@@ -18,6 +18,8 @@ import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.Layout;
+import android.text.Selection;
+import android.text.Spannable;
 import android.text.Spanned;
 import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
@@ -70,6 +72,7 @@ public class TextViewWS extends TextView {
     private static int mDefaultSelectionCursorWidth = 20;
     private static int mDefaultSelectionCursorHeight = 40;
     private static int mDefaultTapAreaThreshold = 40;
+    private ClickableSpanListener mClickableSpanListener = null;
 
     /* future - calculating default cursor sizes */
 
@@ -251,17 +254,21 @@ public class TextViewWS extends TextView {
         mSelectionCursorDrawableEnd = getResources().getDrawable(endResourceId);
     }
 
-    private void calculateSelectionCursorPositionsRaw() {
-
+    private int textAreaWidth() {
         int cpT = getCompoundPaddingTop();
         int cpB = getCompoundPaddingBottom();
         int cpL = getCompoundPaddingLeft();
         int cpR = getCompoundPaddingRight();
+        return getWidth() - (cpL + cpR);
+    }
+
+    private void calculateSelectionCursorPositionsRaw() {
+        Log.d(TAG,"calculateSelectionCursorPositions()");
 
         Rect startBounds = new Rect();
         Rect endBounds = new Rect();
 
-        int want = getWidth() - (cpL + cpR);
+        int want = textAreaWidth();
         int selectionStart = getSelectionStart();
         int selectionEnds = getSelectionEnd();
 
@@ -288,12 +295,12 @@ public class TextViewWS extends TextView {
         try {
             calculateSelectionCursorPositionsRaw();
         } catch (NullPointerException e) {
-            this.postDelayed(new Runnable() { // dirty hack: need carefully work while reflow in background
-                @Override
-                public void run() {
-                    invalidate();
-                }
-            }, 100);
+//            this.postDelayed(new Runnable() { // dirty hack: need carefully work while reflow in background
+//                @Override
+//                public void run() {
+//                    invalidate();
+//                }
+//            }, 100);
         }
     }
 
@@ -519,7 +526,7 @@ public class TextViewWS extends TextView {
             }
         }
     }
-
+    @SuppressLint("NewApi")
     protected void onSelectionModeEnds() {
         if (!mSelectModeActive) return;
         mSelectModeActive = false;
@@ -543,7 +550,30 @@ public class TextViewWS extends TextView {
         return mSelectionEnd;
     }
 
+    public void setSelected(boolean selected) {
+        if (mSelectModeActive!=selected) {
+            super.setSelected(selected);
+            if (!selected && getText() instanceof Spannable) {
+                Selection.removeSelection((Spannable) getText());
+                mSelectModeActive = false;
+                mSelectionStart = 0;
+                mSelectionEnd = 0;
+            }
+            calculateSelectionCursorPositions();
+            invalidate();
+        }
+    }
+
     public void setSelection(int start, int end, int color) {
+        // super.setSelected(false);
+        /* remove built-in selection used for paint in TextView */
+        if (getText() instanceof Spannable) {
+            Spannable text = (Spannable) getText();
+            if (start>-1 && start < end)
+                Selection.setSelection((Spannable)getText(),start,end);
+            else
+                Selection.removeSelection((Spannable)getText());
+        }
         mSelectionStart = start;
         mSelectionEnd = end;
         mSelectionColorDraw = color;
@@ -590,9 +620,20 @@ public class TextViewWS extends TextView {
     }
 
     protected void onUrlClicked(String url, int position, ClickableSpan span) {
+        if (span!=null) span.onClick(this);
     }
 
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dds) {
+        if (mClickableSpanListener!=null) {
+            int line = getLineForPosition(position);
+            Rect bounds = new Rect();
+            getLineBounds(line,bounds);
+            float left = getPrimaryHorizontal(line, position, textAreaWidth()) + getCompoundPaddingLeft();
+            float right = getPrimaryHorizontal(line, position + 1, textAreaWidth()) + getCompoundPaddingLeft();
+            bounds.left = (int) left;
+            bounds.right = (int) right;
+            mClickableSpanListener.onClick(this,dds,position,position+1,bounds);
+        }
     }
 
     // public boolean isTextSelectable() { return super.isTextSelectable(); }
@@ -626,9 +667,18 @@ public class TextViewWS extends TextView {
     }
 
     @Override
+    public void setText(CharSequence text, BufferType type) {
+        super.setText(text,type);
+    }
+
+    @Override
     public boolean isTextSelectable() {
         if (Build.VERSION.SDK_INT > 10)
             return super.isTextSelectable();
         return mTextIsSelectable;
+    }
+
+    public void setmClickableSpanListener(ClickableSpanListener listener) {
+        mClickableSpanListener = listener;
     }
 }
