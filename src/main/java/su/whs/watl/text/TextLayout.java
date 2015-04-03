@@ -1323,7 +1323,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     if (hyphen) {
                         // check if text[breakPosition] + hyphen_width fit line
                         if (state.lineWidth + span.hyphenWidth > wrapWidth) {
-                            Log.v(TAG,"hyphen character exeed line width");
+                            // Log.v(TAG,"hyphen character exeed line width");
+                            int fixedBreakVal = lineBreaker.nearestLineBreak(text,state.lastWhitespace,breakPosition-1,span.end);
+                            breakPosition = LineBreaker.getPosition(fixedBreakVal);
+                            forceBreak = true;
+                            continue processing;
                         }
                         state.lineWidth += span.hyphenWidth;
                     }
