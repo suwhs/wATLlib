@@ -47,7 +47,7 @@ import java.util.List;
 public class TextLayout implements ContentView.OptionsChangeListener {
 
     private int mMeasuredTo = 0;
-
+    private static char[] mHyphenChar = new char[] { '-' };
     private Spanned mText;
     private int mParagraphStartMargin = 0;
     private int mParagraphTopMargin = 0;
@@ -655,6 +655,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         public float width; // real line width (with margin, but without justification)
         public float justifyArgument = 0f;
         public LeadingMarginSpan leadingMargin;
+        public boolean hyphen = false;
         WeakReference<LineSpan> span;
         // LineSpanBreak startBreak = null; // deprecated
         int start;
@@ -1302,7 +1303,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         Log.e(TAG, "lineBreaker (" + lineBreaker + ") returns breakPosition before lineStarts");
                     }
                     forceBreak = false; // cancel force break
-
                     /* check if breakPosition < span.start (rollback to previous state) */
                     if (breakPosition < span.start) {
                         span.breakFirst = null;
@@ -1320,12 +1320,21 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                     state.rollback(breakPosition);
 
+                    if (hyphen) {
+                        // check if text[breakPosition] + hyphen_width fit line
+                        if (state.lineWidth + span.hyphenWidth > wrapWidth) {
+                            Log.v(TAG,"hyphen character exeed line width");
+                        }
+                        state.lineWidth += span.hyphenWidth;
+                    }
+
                     y += state.height;
                     ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                     ld.margin = lineMargin + wrapMargin;
                     ld.wrapMargin = wrapMargin;
                     result.add(ld);
-
+                    ld.hyphen = hyphen;
+//                    ld.width += hyphen ? span.hyphenWidth : 0;
                     state.breakLine(isWhitespace, ld); // nb: breakLine does not increment state.character
 
                     if (justification)
@@ -1974,6 +1983,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 canvas.drawRect(highlightStartX + align, y, highlightEndX + align, y + line.height, highlightPaint);
             }
 
+            if (line.hyphen) {
+                canvas.drawText(TextLayout.mHyphenChar,0,1,x,baseLine,workPaint);
+            }
 
             y += line.height;
             //if (y > clipRect.bottom) break linesLoop;

@@ -27,7 +27,7 @@ public abstract class LineBreaker {
     }
 
     public static boolean isHyphen(int value) {
-        return (value & 0xf0000000) > 0;
+        return (value & HYPHEN) == HYPHEN;
     }
 
     /* punctuation ranges */
