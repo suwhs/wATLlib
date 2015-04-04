@@ -37,6 +37,7 @@ import su.whs.watl.text.TextLayout;
  * - supports full justification for spanned strings
  * - supports OverflowListener
  * - supports two-tap click on urls
+ * - supports hyphenation (see sample application)
  */
 
 public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener, ITextView {

@@ -7,8 +7,8 @@ import su.whs.watl.text.ContentView;
  */
 
 public interface ITextView {
-    public void setText(CharSequence text);
-    public void setTextSize(float size);
-    public void setTextSize(int unit, float size);
-    public ContentView.Options getOptions();
+    void setText(CharSequence text);
+    void setTextSize(float size);
+    void setTextSize(int unit, float size);
+    ContentView.Options getOptions();
 }
