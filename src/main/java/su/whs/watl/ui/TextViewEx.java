@@ -309,6 +309,8 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
 
     @Override
     public CharSequence getText() {
+        if (isInEditMode())
+            return super.getText();
         return getTextLayout().getText();
     }
 
