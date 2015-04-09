@@ -1,5 +1,27 @@
 apply plugin: 'com.android.library'
 
+apply plugin: 'maven'
+
+uploadArchives {
+    repositories.mavenDeployer {
+        repository(url: "file://${System.properties['user.home']}/AndroidStudioProjects/maven-repository")
+    pom.project {
+            groupId 'su.whs.watl'
+            artifactId 'watllibrarylite'
+            version '0.9.1'
+
+            inceptionYear '2015'
+            licenses {
+                license {
+                    name 'GPL v3'
+                    url 'https://www.gnu.org/licenses/gpl.txt'
+                    distribution 'repo'
+                }
+            }
+        }
+    }
+}
+
 android {
     compileSdkVersion 21
     buildToolsVersion "21.0.2"
