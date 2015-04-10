@@ -193,12 +193,18 @@ public class HyphenPattern {
      * Common language patterns
      * More info at https://github.com/bramstein/hyphenation-patterns
      */
-    public final Map<Integer, String> patternObject;
+    public Map<Integer, String> patternObject = null;
 
     public HyphenPattern(int leftMin, int rightMin, Map<Integer, String> patternObject) {
         this.leftMin = leftMin;
         this.rightMin = rightMin;
         this.patternObject = patternObject;
+    }
+
+    public HyphenPattern(int leftMin, int rightMin, DataInputStream in) throws IOException {
+        this.trie = new TrieNode(in);
+        this.leftMin = leftMin;
+        this.rightMin = rightMin;
     }
 
 
