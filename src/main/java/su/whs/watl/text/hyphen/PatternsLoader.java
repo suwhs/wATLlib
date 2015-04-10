@@ -38,7 +38,7 @@ public class PatternsLoader {
             if (am != null) {
                 try {
                     DataInputStream in = new DataInputStream(am.open(fileName));
-                    mCache.put(fileName,new HyphenPattern(2,2,in));
+                    mCache.put(fileName,new HyphenPattern(in));
                     in.close();
                 } catch (IOException e) {
                     Log.e(TAG, "Error loading hyphenation rules:" + e);
