@@ -1033,7 +1033,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         // extract options
         LineBreaker lineBreaker = options.getLineBreaker();
         float lineSpacingMultiplier = options.getLineSpacingMultiplier();
-        int lineSpacingAdd = options.getmLineSpacingAdd();
+        int lineSpacingAdd = options.getLineSpacingAdd();
         int steplimit = options.getReflowQuantize();
         boolean justification = options.isJustification();
         ImagePlacementHandler imagePlacementHandler = options.getImagePlacementHandler();
@@ -1065,6 +1065,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 throw new IllegalArgumentException("reflow called with argument 'width' < 1");
             }
         }
+
+        /* TODO: new-line margins (forced paragraph top margin & paragraph start margin)
+           TODO: add modifiers for leadingMargin and spanHeight after '\n'
+          */
+
+        boolean carrierReturn = false;
+        int forcedParagraphLeftMargin = getOptions().getNewLineLeftMargin();
+        int forcedParagraphTopMargin = getOptions().getNewLineTopMargin();
+
 
         int wrapWidth = width;
         int wrapHeight = 0;
@@ -1191,8 +1200,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         if (spanHeight > state.height) state.height = spanHeight;
                         if (spanLeading > state.leading) state.leading = spanLeading;
                         if (spanDescent > state.descent) state.descent = spanDescent;
-                        // check if switched line exceed view height (height defined and collected height exceed)
-                        if (height > -1 && collectedHeight + y + state.height > height) {
+                        // check if new line exceed view height (height defined and collected height exceed)
+                        if (height > -1 && collectedHeight + y + state.height + (carrierReturn ? forcedParagraphTopMargin : 0) > height) {
                             Log.v(TAG, "2 break recursion at: " + state.character + " isDrawable = " + span.isDrawable);
                             break recursion;
                         }
@@ -1343,6 +1352,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                     if (justification)
                         ld.justify(wrapWidth);
+                    // ajust new line margins
+                    if (carrierReturn) {
+                        ld.height += forcedParagraphTopMargin;
+                        y += forcedParagraphTopMargin;
+                        ld.margin += forcedParagraphLeftMargin;
+                        carrierReturn = false;
+                    }
 
                     /* handle exceed view height */
                     viewHeightLeft -= ld.height;
@@ -1373,6 +1389,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     state.skipWhitespaces = true;
                     lineStartAt = state.character;
                     linesAddedInParagraph++;
+
                 } else if (text[state.character] == '\n') {
                     // handle force carrier return
                     state.processedWidth += span.widths[state.character - span.start];
@@ -1419,6 +1436,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         state.lineWidth = lineMargin;
                     }
 
+                    carrierReturn = true;
+                    state.lineWidth += forcedParagraphLeftMargin;
                     lineStartAt = state.character;
                     state.skipWhitespaces = true;
                 } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR

@@ -26,7 +26,8 @@ public interface ContentView {
         private int mEmptyLineHeightLimit;
         private int mEmptyLinesThreshold;
         private OptionsChangeListener mListener;
-
+        private int mNewLineLeftMargin = 0;
+        private int mNewLineTopMargin = 0;
 
         public Options() {
 
@@ -49,6 +50,8 @@ public interface ContentView {
             mEmptyLineHeightLimit = source.mEmptyLineHeightLimit;
             mEmptyLinesThreshold = source.mEmptyLinesThreshold;
             mListener = source.mListener;
+            mNewLineLeftMargin = source.mNewLineLeftMargin;
+            mNewLineTopMargin = source.mNewLineTopMargin;
         }
 
         public int invalidateLevel(Options source) {
@@ -130,7 +133,7 @@ public interface ContentView {
             return this;
         }
 
-        public int getmLineSpacingAdd() {
+        public int getLineSpacingAdd() {
             return mLineSpacingAdd;
         }
 
@@ -143,7 +146,6 @@ public interface ContentView {
             return mReflowTimeQuant;
         }
 
-
         public boolean isJustification() {
             return mJustification;
         }
@@ -155,6 +157,14 @@ public interface ContentView {
         public int getEmptyLinesThreshold() {
             return mEmptyLinesThreshold;
         }
+
+        public Options setNewLineLeftMargin(int margin) { mNewLineLeftMargin = margin; return this; }
+
+        public int getNewLineLeftMargin() { return mNewLineLeftMargin; }
+
+        public Options setNewLineTopMargin(int margin) { mNewLineTopMargin = margin; return this; }
+
+        public int getNewLineTopMargin() { return mNewLineTopMargin; }
 
         public void apply() {
             if (mListener != null) {
