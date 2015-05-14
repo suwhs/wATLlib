@@ -1925,6 +1925,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     // TODO: rewrite to handle gravity and wrap
                     for (CharacterStyle style : span.spans)
                         if (style instanceof DynamicDrawableSpan) {
+
+                            x -= align; // revert aligment
+
                             DynamicDrawableSpan dds = (DynamicDrawableSpan) style;
                             float drawableWidth = 0f;
 
