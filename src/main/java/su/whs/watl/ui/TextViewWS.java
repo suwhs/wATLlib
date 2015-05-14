@@ -663,6 +663,11 @@ public class TextViewWS extends TextView {
         else {
             mTextIsSelectable = selectable;
         }
+        if (!selectable) {
+            if (mSelectModeActive) {
+                onSelectionModeEnds();
+            }
+        }
     }
 
     @Override
