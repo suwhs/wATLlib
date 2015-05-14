@@ -11,8 +11,6 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
@@ -37,7 +35,6 @@ import android.widget.TextView;
 /**
  * Created by igor n. boulliev on 08.03.15.
  * License GPL v3 https://www.gnu.org/copyleft/gpl.html
- *
  */
 
 public class TextViewWS extends TextView {
@@ -223,10 +220,10 @@ public class TextViewWS extends TextView {
             side *= -1;
         }
 
-        cursorPaint.setColor(Color.WHITE);
-        cursorPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+        cursorPaint.setColor(Color.BLUE);
+        // cursorPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC)); // BUG in hw accelerated devices
         cursorPaint.setStyle(Paint.Style.FILL);
-        cursorPaint.setShader(new LinearGradient(0, 0, 0, getHeight(), Color.BLUE, Color.GRAY, Shader.TileMode.CLAMP));
+        cursorPaint.setShader(new LinearGradient(x, y, x - side, y+mDefaultSelectionCursorHeight, Color.BLUE, Color.GRAY, Shader.TileMode.CLAMP));
 
         Path path = new Path();
         path.moveTo(x, y);
@@ -239,10 +236,12 @@ public class TextViewWS extends TextView {
         cursorPaint.setPathEffect(new CornerPathEffect(3f));
 
         canvas.drawPath(path, cursorPaint);
+
         cursorPaint.setColor(Color.BLACK);
         cursorPaint.setStyle(Paint.Style.STROKE);
-        cursorPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.XOR));
+        // cursorPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.XOR)); // BUG on hwaccell
         canvas.drawPath(path, cursorPaint);
+
     }
 
     public void setSelectionCursorDrawable(int resourceId) {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="TextViewWS">
+        <attr name="selection_cursor_drawable_left" format="reference"></attr>
+        <attr name="selection_cursor_drawable_right" format="reference"></attr>
+        <attr name="selection_color" format="reference"></attr>
+        <attr name="url_highlight_before_open" format="boolean"></attr>
+        <attr name="url_highlight_color" format="color"></attr>
+    </declare-styleable>
+</resources>
