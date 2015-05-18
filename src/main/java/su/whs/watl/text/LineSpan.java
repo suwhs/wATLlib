@@ -38,6 +38,7 @@ public class LineSpan {
     public int height = -1;
     public int start; // first character index
     public int end; // end-1 == last character index
+    // TODO: lazy widths[] 
     public float[] widths; // widths of chars
     public LineSpan next = null; // next LineSpan in chain
     public CharacterStyle[] spans;

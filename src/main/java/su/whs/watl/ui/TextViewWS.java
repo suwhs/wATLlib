@@ -640,7 +640,7 @@ public class TextViewWS extends TextView {
         drawing functions
      */
 
-    public final void onDraw(Canvas canvas) {
+    public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (isInEditMode()) return;
         drawText(canvas);

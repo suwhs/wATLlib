@@ -509,7 +509,7 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
     /* we need completely disable original TextView call to assumeLayout() from onPreDraw() */
     @Override
     public boolean onPreDraw() {
-        if (isInEditMode()) return super.onPreDraw(); // required due to ide 'rendering errors'
+        if (isInEditMode()) return super.onPreDraw(); // required for ide 'rendering errors'
         /* suppress original TextView onPreDraw() */
         return true;
     }
