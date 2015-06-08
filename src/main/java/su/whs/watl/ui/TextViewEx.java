@@ -24,11 +24,9 @@ import android.widget.Toast;
 import su.whs.watl.text.DynamicDrawableInteractionListener;
 import su.whs.watl.text.ImagePlacementHandler;
 import su.whs.watl.text.ContentView;
-import su.whs.watl.text.TextInfoInvalidateListener;
+import su.whs.watl.text.TextLayoutListener;
 import su.whs.watl.text.TextLayout;
 
-
-// import android.support.v7.view.ActionMode;
 
 /**
  * TextViewEx - drop-in replacement for TextView
@@ -40,7 +38,7 @@ import su.whs.watl.text.TextLayout;
  * - supports hyphenation (see sample application)
  */
 
-public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener, ITextView {
+public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextView {
     private static final String TAG = "TextViewEx";
     private TextLayout mTextLayout;
 
@@ -236,6 +234,9 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
             }
         } else {
             mNeedTotalHeight = false;
+            if (getVisibility()==View.INVISIBLE) {
+                prepareLayout(want,height-cpT-cpB);
+            }
         }
         // mTextLayout.setSize(want, height > 0 ? (height - cpT - cpB) : -1);
 
@@ -249,6 +250,24 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
         /* set geometry for layout */
         mTextLayout.setSize(textLayoutWidth, textLayoutHeight);
     }
+
+    public void prepareLayout() {
+        int cpT = getCompoundPaddingTop();
+        int cpB = getCompoundPaddingBottom();
+        int cpL = getCompoundPaddingLeft();
+        int cpR = getCompoundPaddingRight();
+        /**
+         * TODO: need small changes to supports MultiColumnTextView draw
+         */
+            /*
+            if (mTextLayout == null) {
+                Log.v(TAG, "pending layout reset?");
+                return;
+            } */
+        Log.v(TAG, "prepare layout, no draw? (" + mTextLayout + ")");
+        prepareLayout(getMeasuredWidth() - (cpL + cpR), getMeasuredHeight() - (cpT + cpB));
+    }
+
 
     private boolean attemptToDrawNullLayout = false;
     /**
@@ -265,20 +284,7 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
             return;
         }
         if (!mTextLayout.isLayouted()) {
-            int cpT = getCompoundPaddingTop();
-            int cpB = getCompoundPaddingBottom();
-            int cpL = getCompoundPaddingLeft();
-            int cpR = getCompoundPaddingRight();
-            /**
-             * TODO: need small changes to supports MultiColumnTextView draw
-             */
-            /*
-            if (mTextLayout == null) {
-                Log.v(TAG, "pending layout reset?");
-                return;
-            } */
-            Log.v(TAG, "prepare layout, no draw? (" + mTextLayout + ")");
-            prepareLayout(getMeasuredWidth() - (cpL + cpR), getMeasuredHeight() - (cpT + cpB));
+            prepareLayout();
         }
         int left = getCompoundPaddingLeft();
         int right = getWidth() - getCompoundPaddingRight();
@@ -452,6 +458,10 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
         }
     }
 
+    @Override
+    public boolean onHeightExceed(int collectedHeight) {
+        return true;
+    }
 
     /**
      * called  by TextLayout.reflow() -> on text height changed
@@ -483,6 +493,7 @@ public class TextViewEx extends TextViewWS implements TextInfoInvalidateListener
         }
     }
 
+    @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
         Log.v(TAG, "clicked on drawable: '" + drawable + "'");
     }

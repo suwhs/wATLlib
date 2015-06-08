@@ -65,7 +65,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected int requestedHeight = -1;
     private float reflowedTextSize = -1;
 
-    protected TextInfoInvalidateListener listener = null;
+    protected TextLayoutListener listener = null;
     private boolean reflowedJustification = true;
     protected boolean justification = true;
     protected int viewHeight = -1;
@@ -154,35 +154,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return getLineForVertical(y, 0);
     }
 
-    public void setInvalidateListener(TextInfoInvalidateListener listener) {
+    public void setInvalidateListener(TextLayoutListener listener) {
         this.listener = listener;
     }
-
-    protected interface LineSpanReflowProgressListener {
-        /**
-         * notify listener about reflow() progress
-         *
-         * @param lines            - actual lines list
-         * @param height           - collected lines height
-         * @param viewHeightExceed - notify listener about view height exceed
-         * @return
-         */
-        public boolean onProgress(List<TextLine> lines, int height, boolean viewHeightExceed);
-
-        /**
-         * notify listener about reflow() finished
-         *
-         * @param lines  - result of reflow() (list of LineDescription)
-         * @param height - summary of lines height
-         */
-        public void onFinish(List<TextLine> lines, int height);
-    }
-
-    protected interface LineSpanReflowProgressListener2 extends LineSpanReflowProgressListener {
-        public boolean updateGeometry(int[] geometry);
-    }
-
-
     /**
      * default LineBreaker implementation
      */
@@ -204,7 +178,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
     }
 
-    public TextLayout(Spanned text, int start, int end, TextPaint paint, TextInfoInvalidateListener invalidateListener) {
+    public TextLayout(Spanned text, int start, int end, TextPaint paint, TextLayoutListener invalidateListener) {
         this(text, start, end, paint, new ContentView.Options(), invalidateListener);
     }
 
@@ -216,7 +190,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param invalidateListener
      */
 
-    public TextLayout(Spanned text, int start, int end, TextPaint paint, ContentView.Options options, TextInfoInvalidateListener invalidateListener) {
+    public TextLayout(Spanned text, int start, int end, TextPaint paint, ContentView.Options options, TextLayoutListener invalidateListener) {
         listener = invalidateListener;
         mStart = start;
         mEnd = end;
@@ -259,7 +233,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         this(text, 0, text.length(), paint, null);
     }
 
-    public TextLayout(Spanned text, TextPaint paint, TextInfoInvalidateListener invalidateListener) {
+    public TextLayout(Spanned text, TextPaint paint, TextLayoutListener invalidateListener) {
         this(text, 0, text.length(), paint, invalidateListener);
     }
 
@@ -466,7 +440,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         onBeforeReflow();
         doReflowInBackground();
         reflowedWidth = width;
-        reflowedTextSize = paint.getTextSize();
+        reflowedTextSize = getPaint().getTextSize();
     }
 
     protected void onBeforeReflow() {
@@ -620,31 +594,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     public int getSelectionEnds() {
         return mSelectionEnd;
-    }
-
-    /*
-        'protected'
-        for override reflow() call parameters
-     */
-
-    /**
-     * layout calculation method (called from background thread)
-     *
-     * @param listener - callbacks
-     */
-
-    protected void runReflow(LineSpanReflowProgressListener listener) {
-        lines = null;
-        reflowPaint.set(paint);
-        synchronized (this) {
-            if (lineSpan != null)
-                lineSpan.clearCache(false);
-        }
-        reflow(chars, mStart, mEnd, lineSpan,
-                0, width, 0, requestedHeight, viewHeight,
-                reflowPaint,
-                listener
-                , getOptions());
     }
 
     public static class TextLine {
@@ -804,50 +753,17 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             setReflowBackgroundTaskCancelled(false);
             setReflowFinished(false);
             /* default reflow listener supports multiviews reflow (with same width)*/
-            runReflow(new LineSpanReflowProgressListener() {
-                @Override
-                public boolean onProgress(List<TextLine> lines, int height, boolean viewHeightExceed) {
-                    TextLayout.this.lines = lines;
-                    if (mNeedTotalHeight && listener != null) {
-                        TextLayout.this.height = height;
-                        notifyTextHeightChanged();
-                    }
-                    /* */
-                    boolean finish = false;
-                    if (viewHeightExceed && listener instanceof TextInfoInvalidateListenerExt) {
-                        finish = !((TextInfoInvalidateListenerExt) listener).onHeightExceed(height);
-                    }
-                    if (isReflowBackgroundTaskCancelled()) {
-                        finish = true;
-                    }
-                    if (finish) {
-                        // Log.v(TAG, "reflow background task cancelled");
-                        setReflowBackgroundTaskRunning(false);
-                        setReflowBackgroundTaskCancelled(false);
-                        return false;
-                    }
-                    return true;
-                }
 
-                @Override
-                public void onFinish(List<TextLine> lines, int height) {
-                    TextLayout.this.lines = lines;
-                    setReflowBackgroundTaskCancelled(false);
-                    setReflowBackgroundTaskRunning(false);
-                    setReflowFinished(true);
-                    if (mNeedTotalHeight && listener != null) {
-                        TextLayout.this.height = height;
-                        // listener.onTextHeightChanged();
-                        notifyTextHeightChanged();
-                        // listener.onTextReady();
-                        notifyTextReady();
-                    } else if (listener != null) {
-                        // listener.onTextInfoInvalidated();
-                        // listener.onTextReady();
-                        notifyTextReady();
-                    }
-                }
-            });
+            lines = null;
+            reflowPaint.set(paint);
+            synchronized (this) {
+                if (lineSpan != null)
+                    lineSpan.clearCache(false);
+            }
+            reflow(chars, mStart, mEnd, lineSpan,
+                    0, width, 0, requestedHeight, viewHeight,
+                    reflowPaint,
+                    getOptions());
         }
     }
 
@@ -999,6 +915,49 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
     }
 
+    protected boolean updateGeometry(int[] geometry) {
+        return false;
+    }
+
+    protected boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
+        this.lines = lines;
+        if (mNeedTotalHeight && listener != null) {
+            this.height = height;
+            notifyTextHeightChanged();
+        }
+                    /* */
+        boolean finish = false;
+
+        if (viewHeightExceed) {
+            finish = !listener.onHeightExceed(height);
+        }
+        if (isReflowBackgroundTaskCancelled()) {
+            finish = true;
+        }
+        if (finish) {
+            // Log.v(TAG, "reflow background task cancelled");
+            setReflowBackgroundTaskRunning(false);
+            setReflowBackgroundTaskCancelled(false);
+            return false;
+        }
+        return true;
+
+    }
+
+    protected void onFinish(List<TextLine> lines, int height) {
+        this.lines = lines;
+        setReflowBackgroundTaskCancelled(false);
+        setReflowBackgroundTaskRunning(false);
+        setReflowFinished(true);
+        if (mNeedTotalHeight && listener != null) {
+            this.height = height;
+            notifyTextHeightChanged();
+            notifyTextReady();
+        } else if (listener != null) {
+            notifyTextReady();
+        }
+    }
+
     /**
      * main method used for calculating spans geometry with given base TextPaint, width and height limit, and so on
      *
@@ -1026,7 +985,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                           final int height,
                           int viewHeight,
                           TextPaint paint,
-                          LineSpanReflowProgressListener progress,
                           ContentView.Options options) {
         // extract options
         LineBreaker lineBreaker = options.getLineBreaker();
@@ -1056,7 +1014,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int linesAddedInParagraph = 0;
 
         if (width < 1) {
-            if ((progress instanceof LineSpanReflowProgressListener2) && ((LineSpanReflowProgressListener2) progress).updateGeometry(geometry)) {
+            if (updateGeometry(geometry)) {
                 width = geometry[0];
                 viewHeight = geometry[1];
             } else {
@@ -1127,7 +1085,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             /* if we spent more times, than steplimit - execute callback */
             if (timeSpent > steplimit) {
                 /* note - if viewHeightExceed == false - break loop if onProgress() returns false */
-                if (!progress.onProgress(result, y + collectedHeight, false)) {
+                if (!onProgress(result, y + collectedHeight, false)) {
                     return;
                 }
                 timeQuantStart = currentTime;
@@ -1219,16 +1177,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             break recursion;
                         }
                         if (viewHeightLeft - state.height < 0 && !span.isDrawable) {
-                            if (viewHeight > -1 && !progress.onProgress(result, y, true)) {
+                            if (viewHeight > -1 && !onProgress(result, y, true)) {
                                 // Log.v(TAG, "3 break recursion at viewHeightExceed (onProgress returns true)");
                                 break recursion;
-                            } else if (viewHeight > -1 && progress instanceof LineSpanReflowProgressListener2) {
+                            } else if (viewHeight > -1 && updateGeometry(geometry)) {
                                 /* special case - ask geometry for next portion */
-                                if (((LineSpanReflowProgressListener2) progress).updateGeometry(geometry)) {
+
                                     width = geometry[0];
                                     viewHeight = geometry[1];
                                     // Log.v(TAG, "change geometry to : width=" + width + ", viewHeight=" + viewHeight);
-                                }
+
                             }
 
                             if (viewHeight > -1) { // TODO: reorganize conditions
@@ -1405,7 +1363,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 } else if (text[state.character] == '\n') {
                     // handle force carrier return
-                    state.processedWidth += span.widths[state.character - span.start];
+                    try {
+                        state.processedWidth += span.widths[state.character - span.start];
+                    } catch (IndexOutOfBoundsException e) {
+                        // TODO: fix \n immediately after drawable span
+                        Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
+                    }
                     /* eliminate empty line only if non-empty-lines-count > threshold */
                     if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
                         TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
@@ -1748,10 +1711,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             result.add(ld);
         } else
             state.height = 0;
-        if (progress != null) {
+        /* if (progress != null) {
             // Log.v(TAG, "call on Finish()");
-            progress.onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
-        }
+
+        } */
+        onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
     }
 
 

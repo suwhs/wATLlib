@@ -1,6 +1,7 @@
 package su.whs.watl.text;
 
 /**
+ * interface for interaction between TextLayout and View
  * Created by igor n. boulliev on 13.02.15.
  */
 
@@ -9,7 +10,7 @@ package su.whs.watl.text;
  * - used for notify TextLayout's holder about layout geometry changes and content updates
  */
 
-public interface TextInfoInvalidateListener {
+public interface TextLayoutListener {
     /**
      * called, when layout's content changed
      */
@@ -25,4 +26,12 @@ public interface TextInfoInvalidateListener {
      * called when reflow finished
      */
     void onTextReady();
+
+    /**
+     * called when viewHeight exceed
+     *
+     * @return - if true, reflow() process will be continued
+     */
+
+    boolean onHeightExceed(int collectedHeight);
 }

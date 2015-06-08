@@ -7,14 +7,14 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 
-import su.whs.watl.text.TextInfoInvalidateListenerExt;
+import su.whs.watl.text.TextLayoutListener;
 
 
 /**
  * Created by igor n. boulliev on 18.02.15.
  */
 
-public class MultiColumnTextViewEx extends TextViewEx implements TextInfoInvalidateListenerExt {
+public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListener {
     private static final String TAG = "MCTVE";
     /* with default value - it's no difference with TextViewEx (as planned) */
     private int mMaxColumns = 1;
@@ -97,6 +97,11 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextInfoInvalid
         super.drawAllSelectionCursors(canvas);
     }
 
+    // FIX: we need call prepareLayout for invisible View state
+    @Override
+    public void onMeasure(int wms, int hms) {
+        super.onMeasure(wms,hms);
+    }
 
     @Override
     protected boolean moveCursor(float x, float y, int zero) {
@@ -205,6 +210,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextInfoInvalid
             mColumnsReady = 0;
             mFirstColumnLine = 0;
         }
+        super.onTextInfoInvalidated();
     }
 
     @Override
