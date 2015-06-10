@@ -8,26 +8,29 @@ import android.graphics.Rect;
 public interface ContentView {
 
     interface OptionsChangeListener {
-        void invalidateMeasurement();
-        void invalidateLines();
-        void invalidate();
+        void invalidateMeasurement(); // full reflow required
+        void invalidateLines(); // lines distribution changed
+        void invalidate(); // simple repaint
     }
 
     class Options {
-        boolean mFilterEmptyLines = true;
-        boolean mJustification = true;
-        int mDefaultDirection = 0;
-        int[] mDrawablePaddings = new int[]{0, 0, 0, 0};
-        ImagePlacementHandler mImagePlacementHandler = null;
-        LineBreaker mLineBreaker = null;
-        int mReflowTimeQuant = 150;
-        float mLineSpacingMultiplier = 1f;
-        int mLineSpacingAdd = 0;
+        private boolean mFilterEmptyLines = true;
+        private boolean mJustification = true;
+        private int mDefaultDirection = 0;
+        private int[] mDrawablePaddings = new int[]{0, 0, 0, 0};
+        private ImagePlacementHandler mImagePlacementHandler = null;
+        private LineBreaker mLineBreaker = null;
+        private int mReflowTimeQuant = 150;
+        private float mLineSpacingMultiplier = 1f;
+        private int mLineSpacingAdd = 0;
         private int mEmptyLineHeightLimit;
         private int mEmptyLinesThreshold;
         private OptionsChangeListener mListener;
         private int mNewLineLeftMargin = 0;
         private int mNewLineTopMargin = 0;
+        private boolean mInvalidateMeasurement = false;
+        private boolean mInvalidateLines = false;
+        private boolean mInvalidate = false;
 
         public Options() {
 
@@ -52,21 +55,24 @@ public interface ContentView {
             mListener = source.mListener;
             mNewLineLeftMargin = source.mNewLineLeftMargin;
             mNewLineTopMargin = source.mNewLineTopMargin;
-        }
-
-        public int invalidateLevel(Options source) {
-            int result = 0;
-            if (mFilterEmptyLines != source.mFilterEmptyLines || mJustification != source.mJustification || mLineSpacingMultiplier != source.mLineSpacingMultiplier || mLineSpacingAdd != source.mLineSpacingAdd ||
-                    mEmptyLineHeightLimit != source.mEmptyLineHeightLimit || mEmptyLinesThreshold != source.mEmptyLinesThreshold)
-                result = 1;
-            return result;
+            if (mListener!=null)
+                mListener.invalidateMeasurement();
         }
 
         public void setChangeListener(OptionsChangeListener listener) {
             mListener = listener;
         }
 
+        private void _il() { mInvalidateLines = true; }
+        private void _im() { mInvalidateMeasurement = true; }
+        private void _ii() { mInvalidate = true; }
+        private void _clearInvalidation() {
+            mInvalidate = false;
+            mInvalidateLines = false;
+            mInvalidateMeasurement = false;
+        }
         public Options filterEmptyLines(boolean filter) {
+            if (mFilterEmptyLines!=filter) _il();
             mFilterEmptyLines = filter;
             return this;
         }
@@ -76,11 +82,13 @@ public interface ContentView {
         }
 
         public Options enableJustification(boolean justification) {
+            if (mJustification!=justification) _ii();
             mJustification = justification;
             return this;
         }
 
         public Options setDefaultDirection(int direction) {
+            if (mDefaultDirection!=direction) _im();
             mDefaultDirection = direction;
             return this;
         }
@@ -90,6 +98,7 @@ public interface ContentView {
         }
 
         public Options setDrawablePaddings(int left, int top, int right, int bottom) {
+            if (mDrawablePaddings[0]!=left||mDrawablePaddings[1]!=top||mDrawablePaddings[2]!=right||mDrawablePaddings[3]!=bottom) _im();
             mDrawablePaddings[0] = left;
             mDrawablePaddings[1] = top;
             mDrawablePaddings[2] = right;
@@ -102,8 +111,13 @@ public interface ContentView {
         }
 
         public Options setImagePlacementHandler(ImagePlacementHandler handler) {
-            mImagePlacementHandler = handler;
-            return this;
+            if (isSameClass(mImagePlacementHandler,handler)) {
+                return this;
+            } else {
+                mImagePlacementHandler = handler;
+                _im();
+                return this;
+            }
         }
 
         public ImagePlacementHandler getImagePlacementHandler() {
@@ -111,6 +125,10 @@ public interface ContentView {
         }
 
         public Options setLineBreaker(LineBreaker lineBreaker) {
+            if (isSameClass(mLineBreaker,lineBreaker)) {
+                return this;
+            }
+            _im();
             mLineBreaker = lineBreaker;
             return this;
         }
@@ -120,6 +138,7 @@ public interface ContentView {
         }
 
         public Options setLineSpacingMultiplier(float mult) {
+            if (mLineSpacingMultiplier!=mult) _il();
             mLineSpacingMultiplier = mult;
             return this;
         }
@@ -129,6 +148,7 @@ public interface ContentView {
         }
 
         public Options setLineSpacingAdd(int add) {
+            if (mLineSpacingAdd!=add) _il();
             mLineSpacingAdd = add;
             return this;
         }
@@ -158,18 +178,50 @@ public interface ContentView {
             return mEmptyLinesThreshold;
         }
 
-        public Options setNewLineLeftMargin(int margin) { mNewLineLeftMargin = margin; return this; }
+        public Options setNewLineLeftMargin(int margin) {
+            if (mNewLineLeftMargin!=margin) _im();
+            mNewLineLeftMargin = margin;
+            return this;
+        }
 
         public int getNewLineLeftMargin() { return mNewLineLeftMargin; }
 
-        public Options setNewLineTopMargin(int margin) { mNewLineTopMargin = margin; return this; }
+        public Options setNewLineTopMargin(int margin) {
+            if (mNewLineTopMargin!=margin) _im();
+            mNewLineTopMargin = margin;
+            return this;
+        }
 
         public int getNewLineTopMargin() { return mNewLineTopMargin; }
 
         public void apply() {
             if (mListener != null) {
-                mListener.invalidate();
+                if (mInvalidateMeasurement) {
+                    _clearInvalidation();
+                    mListener.invalidateMeasurement();
+                } else if (mInvalidateLines) {
+                    _clearInvalidation();
+                    mListener.invalidateLines();
+                } else if (mInvalidate) {
+                    _clearInvalidation();
+                    mListener.invalidate();
+                }
             }
+        }
+
+        private boolean isSameClass(Object a, Object b) {
+            if (a!=null) {
+                if (b!=null) {
+                    if (!a.getClass().getName().equals(b.getClass().getName())) {
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (b==null) {
+                return true;
+            }
+            return false;
         }
     }
 

@@ -458,6 +458,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
     }
 
+    /**
+     * called fron non-ui thread
+     * @param collectedHeight
+     * @return
+     */
+
     @Override
     public boolean onHeightExceed(int collectedHeight) {
         return true;
@@ -474,7 +480,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
         if (mNeedTotalHeight)
             requestLayout();
-        else invalidate();
+        else
+            invalidate();
     }
 
     @Override

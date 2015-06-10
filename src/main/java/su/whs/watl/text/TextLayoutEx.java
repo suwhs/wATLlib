@@ -31,6 +31,8 @@ public class TextLayoutEx extends TextLayout {
 
     public interface PagerViewBuilder {
         void createViewForPage(int page);
+        void pageReady(int page);
+        void layoutFinished();
     }
 
     private class BeginsGeometry {
@@ -47,7 +49,7 @@ public class TextLayoutEx extends TextLayout {
     private PagerViewBuilder mBuilder;
     private boolean mLaunched = false;
     private SparseArray<TextLayoutListenerAdv> mPages = new SparseArray<TextLayoutListenerAdv>();
-    private SparseArray<BeginsGeometry> mBegins = new SparseArray<BeginsGeometry>();
+    // private SparseArray<BeginsGeometry> mBegins = new SparseArray<BeginsGeometry>();
     private boolean waitForNext = false;
 
     public TextLayoutEx(Spanned text, TextPaint textPaint, PagerViewBuilder builder) {
@@ -87,6 +89,12 @@ public class TextLayoutEx extends TextLayout {
         updateGeometryFlag = false;
     }
 
+    /**
+     * called by TextLayout.reflow() immediately after viewHeightExceed == true,
+     * @param geometry
+     * @return
+     */
+
     @Override
     public boolean updateGeometry(int[] geometry) {
         if (updateGeometryFlag) {
@@ -100,6 +108,7 @@ public class TextLayoutEx extends TextLayout {
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
+        Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible");
         }
@@ -110,7 +119,11 @@ public class TextLayoutEx extends TextLayout {
             Log.v("REFLOW LISTENER", "no listener for page " + pageInProgress);
             return false;
         }
-        boolean stopForPage = !pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), collectedHeight-collectedHeightTotal,viewHeightExceed);
+        if (collectedHeight<1) {
+            // Log.v(TAG,"empty height?");
+            return true;
+        }
+        boolean stopForPage = !pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), collectedHeight,viewHeightExceed);
         if (stopForPage && viewHeightExceed) {
             firstLineForPage = lines.size();
             // post to UI-thread
@@ -128,6 +141,7 @@ public class TextLayoutEx extends TextLayout {
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
+                            mBuilder.pageReady(pageInProgress-1);
                             mBuilder.createViewForPage(pageInProgress);
                         }
                     });
@@ -163,6 +177,7 @@ public class TextLayoutEx extends TextLayout {
     public void onFinish(List<TextLine> lines, int height) {
         // stub
         Log.v("REFLOW LISTENER","reflow finished");
+        listener.onTextReady();
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
@@ -172,22 +187,29 @@ public class TextLayoutEx extends TextLayout {
                 throw new RuntimeException("pageGeometryBegins called twice for pageNo="+pageNo);
             }
             mPages.put(pageNo,listener);
-            mBegins.put(pageNo, new BeginsGeometry(width,height,viewHeight));
+            // mBegins.put(pageNo, new BeginsGeometry(width,height,viewHeight));
+            updateGeometryFlag = true;
+            geometry[0] = width;
+            geometry[1] = viewHeight;
             if (waitForNext)
                 mPages.notify();
         }
         if (!mLaunched) {
             if (pageNo==0) {
+                mLaunched = true;
                 super.setSize(width,height,viewHeight);
             } else {
-                mBuilder.createViewForPage(0); // if first requested page > 0 - ask builder to create view for page 0
+                mBuilder.createViewForPage(pageNo); // if first requested page > 0 - ask builder to create view for page 0
             }
         }
     }
 
 
     /* Slice */
-    private class Slice<T> implements List<T> {
+    /*
+    @hide
+     */
+    static class Slice<T> implements List<T> {
 
         private WeakReference<List<T>> mBaseList;
         private int mStart;
@@ -197,6 +219,18 @@ public class TextLayoutEx extends TextLayout {
             mBaseList = new WeakReference<List<T>>(list);
             mStart = start;
             mEnd = end;
+        }
+
+        public Slice(Slice<T> slice) {
+            mBaseList = slice.mBaseList;
+            mStart = slice.mStart;
+            mEnd = slice.mEnd;
+        }
+
+        /* remporary shift size methods */
+
+        public void setSize(int size) {
+            mEnd = mStart+size;
         }
 
         @Override

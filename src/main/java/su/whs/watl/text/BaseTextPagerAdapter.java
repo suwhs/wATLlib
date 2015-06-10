@@ -1,9 +1,7 @@
 package su.whs.watl.text;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.text.SpannableString;
@@ -30,7 +28,7 @@ import su.whs.watl.ui.TextViewEx;
  *
  */
 
-public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder {
+public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
 
     private TextLayoutEx mTextLayout = null;
@@ -46,8 +44,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private int mMaxPageNumber = 0;
     private boolean mUpdating = false;
     private int mCount = 1;
-    // private ViewProxy mViewProxyWithFakePage = null;
-    private ViewTypeGeometryCollector mGeometryCollector = new ViewTypeGeometryCollector();
     private FakePagesController mFakePages = new FakePagesController();
 
     @Override
@@ -72,7 +68,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void setTextSize(int unit, float size) {
-        Log.e(TAG, "not implemented yet");
+
     }
 
     @Override
@@ -94,7 +90,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public int getItemPosition(Object object) {
         if (object instanceof ProxyLayout) {
-            return ((ProxyLayout)object).mPosition;
+            return ((ProxyLayout)object).getPosition();
         }
         return 0;
     }
@@ -120,17 +116,16 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         int vtype = getViewTypeForPage(position);
 
         // check if we have ProxyLayout instance for page
-        ProxyLayout proxyLayout = mProxies.get(position);
+        ProxyLayout proxyLayout = getProxyLayoutForPage(position);
+
         View proxiedView = null;
 
-        if (proxyLayout==null) { // if not - create new ProxyLayout
-            proxyLayout = new ProxyLayout(position);
-            mProxies.put(position, proxyLayout); // and save it to map
-        } else {
+        if (mFakePages.contains(proxyLayout)) {
             // check if we have proxyLayout attached to fake page
-            ViewProxy vp = mFakePages.get(proxyLayout);
+            View vp = mFakePages.remove(proxyLayout);
             if (vp!=null) {
-                proxiedView = vp.detachInvisiblePage(proxyLayout.mPosition);
+                // proxiedView = vp.detachInvisiblePage(proxyLayout.getPosition());
+
             }
         }
 
@@ -174,7 +169,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (proxy.hasInvisiblePage()) {
             return; // do not remove
         }
-        mProxyMap.remove((ProxyLayout)object);
+        mProxyMap.remove((ProxyLayout) object);
         unused.add(proxy);
         container.removeView(proxy);
     }
@@ -219,224 +214,72 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public abstract View getViewForPage(int position);
     public int getViewTypesCount() { return 1; }
     public int getViewTypeForPage(int position) { return 0; }
+
     public View getViewType(int type) {
         return getViewForPage(0);
     }
 
-
-    private class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerAdv {
-        private static final String TAG="ProxyLayout";
-        protected int mPosition = 0;
-        private boolean mTextReady = false;
-        private boolean mTextInvalidated = false;
-        private TextLayoutListener wrappedListener = null;
-        private List<Point> mGeometry = null;
-        private List<Integer> mViewHeights = new ArrayList<Integer>();
-        private List<Integer> mLinesForView = new ArrayList<Integer>();
-        private int mFakeLinesCounter = 0;
-
-        private int mCurrentVew = 0;
-        private int[] mActiveGeometry = new int[] { 0, 0 };
-        private boolean mGeometryChanged = false;
-        private boolean mLayoutFinished = false;
-        private int mCollectedHeight = 0;
-
-        public ProxyLayout(int position) {
-            mPosition = position;
-            if (position>mMaxPageNumber) mMaxPageNumber = position;
-            // need check
-            mProxies.put(position,this);
+    private ProxyLayout getProxyLayoutForPage(int page) {
+        if (mProxies.get(page)!=null)
+            return mProxies.get(page);
+        int vtype = getViewTypeForPage(page);
+        if (hasReplies(vtype)) {
+            // we have geometry for page's view - so create proxy layout with stored replies
+            ProxyLayout pl = new ProxyLayout(mTextLayout,page,mReplies.get(vtype));
+            mProxies.put(page,pl);
+            return pl;
         }
-
-        public ProxyLayout(int position, List<Point> geometry) {
-            mPosition = position;
-            if (position>mMaxPageNumber) mMaxPageNumber = position;
-            mProxies.put(position,this);
-            mGeometry = geometry;
-            Point first = nextView();
-            mTextInvalidated = true;
-            mActiveGeometry[0] = first.x;
-            mActiveGeometry[1] = first.y;
-            mGeometryChanged = true;
-            mTextLayout.pageGeometryBegins(mPosition, first.x, -1, first.y, this);
-        }
-
-        private Point nextView() {
-            Point result = mGeometry.get(mCurrentVew);
-            mCurrentVew++;
-            return result;
-        }
-
-        @Override
-        public boolean isLayouted() {
-            return mTextInvalidated;
-        }
-
-        /* setSize called from TextViewEx.prepareLayout() ui-threas */
-        // TODO: MultiColumnTextViewEx calls here
-
-        @Override
-        public void setSize(int width, int height, int viewHeight) {
-            Log.d(TAG, "setSize");
-            mTextInvalidated = true;
-            int vtype = getViewTypeForPage(mPosition);
-            mGeometry = null;
-            mActiveGeometry[0] = width;
-            mActiveGeometry[1] = viewHeight;
-            mGeometryChanged = true;
-            if (!mGeometryCollector.contains(vtype)) {
-                mGeometryCollector.notifySetSize(vtype,mPosition,width,viewHeight);
-            }
-
-            // publishPageGeometryFirst(mPosition,width,height,viewHeight);
-            mTextLayout.pageGeometryBegins(mPosition, width, height, viewHeight, this);
-        }
-
-        // TODO: base TextViewEx calls here
-        @Override
-        public void setSize(int width, int height) {
-            setSize(width, -1, height);
-        }
-        @Override
-        public void setInvalidateListener(TextLayoutListener listener) {
-            Log.d(TAG,"setInvalidateListener: " + listener);
-            attach(listener);
-        }
-
-        private void attach(TextLayoutListener listener) {
-            Log.d(TAG,"attach");
-            wrappedListener = listener;
-            if (mTextReady) {
-                // we have all lines prepared
-                listener.onTextInfoInvalidated();
-                if (listener instanceof TextLayoutListener) {
-                    // restore geometry for listener by call correct listener.onViewHeightExceed
-                    int collectedHeight = mCollectedHeight;
-                    mCollectedHeight = 0;
-                    mFakeLinesCounter = 0;
-                    for (int i=0; i<mViewHeights.size();i++) {
-                        int h = mViewHeights.get(i);
-                        Point p = mGeometry.get(i);
-                        mFakeLinesCounter += mLinesForView.get(i);
-                        mCollectedHeight+=h;
-                        listener.onHeightExceed(mCollectedHeight);
-                    }
-                }
-                listener.onTextReady();
-                mFakeLinesCounter = -1;
-            } else if (mTextInvalidated) {
-                // we in reflow process for this page
-                listener.onTextInfoInvalidated();
-            }
-        }
-
-        @Override
-        public int getHeight() {
-            return mCollectedHeight;
-        }
-
-        @Override
-        public int getLinesCount() {
-            if (mFakeLinesCounter>-1) {
-                return mFakeLinesCounter;
-            }
-            return super.getLinesCount();
-        }
-
-        private void detach() {
-            Log.d(TAG,"detach");
-            wrappedListener = null;
-        }
-
-        @Override
-        public void draw(Canvas canvas, int left, int top, int right, int bottom) {
-            super.draw(canvas,left,top,right,bottom);
-        }
-
-        @Override
-        public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
-            Log.v(TAG, "onProgress()");
-            // replace lines
-            this.lines = lines;
-            if (wrappedListener!=null) {
-                // transfer events to wrappedListener
-                mCollectedHeight = collectedHeight;
-                return true;
-            } else {
-                // use geometry to handle events manually
-                if (viewHeightExceed) {
-                    return mGeometryCollector.viewHeightExceed(mPosition);
-                }
-                return true;
-            }
-        }
-
-        @Override
-        public boolean updateGeometry(int[] geometry) {
-            if (mGeometryChanged) {
-                Log.v(TAG,"change geometry");
-                geometry[0] = mActiveGeometry[0];
-                geometry[1] = mActiveGeometry[1];
-                mGeometryChanged = false;
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean onHeightExceed(int collectedHeight) {
-            Log.v(TAG,"onHeightExceed " + collectedHeight);
-            if (wrappedListener!=null) {
-                boolean result = wrappedListener.onHeightExceed(collectedHeight);
-                mGeometryCollector.onHeightExceed(mPosition,collectedHeight,result);
-            } else {
-                return mGeometryCollector.hasNextView();
-            }
-            return false;
-        }
-
-        @Override
-        public void onTextInfoInvalidated() {
-            mTextReady = false;
-            if (wrappedListener!=null)
-                wrappedListener.onTextInfoInvalidated();
-        }
-
-        @Override
-        public void onTextHeightChanged() {
-            if (wrappedListener!=null)
-                wrappedListener.onTextHeightChanged();
-        }
-
-        @Override
-        public void onTextReady() {
-            mTextReady = true;
-            if (wrappedListener!=null)
-                wrappedListener.onTextReady();
-        }
-
-        @Override
-        public CharSequence getText() {
-            return mTextLayout.getText();
-        }
+        ProxyLayout pl = new ProxyLayout(mTextLayout,page);
+        mProxies.put(page,pl);
+        return pl;
     }
 
-
-    private class OptionsWrapper extends ContentView.Options {
-        private boolean mIsAttached = false;
-        private OptionsWrapper() {
-
+    @Override
+    public void pageReady(int page) {
+        int vtype = getViewTypeForPage(page);
+        ProxyLayout pl = mProxies.get(page);
+        if (pl==null)
+            throw new RuntimeException("page ready received for non-existent page");
+        if (!hasReplies(vtype)) {
+            mReplies.put(vtype,pl.getReplies());
         }
-
-        private void attach(ContentView.Options options) {
-            copy(options);
+        if (mProxyMap.containsKey(pl)) {
+            ViewProxy vp = mProxyMap.get(pl);
+            vp.resetLoadingState();
         }
+        mMaxPageNumber = mMaxPageNumber < page ? page : mMaxPageNumber;
+        notifyDataSetChanged();
+    }
 
+    @Override
+    public void invalidateMeasurement() {
+        // complete re-reflow
+        if (mTextLayout.isReflowBackgroundTaskRunning()) {
+            mTextLayout.setReflowBackgroundTaskCancelled(true);
+        }
+        setText(mText);
+    }
+
+    @Override
+    public void invalidateLines() {
+        // recalculate lines distribution
+        invalidateMeasurement(); // TODO: create new thread, that simulate reflow with new options values
+    }
+
+    @Override
+    public void invalidate() {
+        // refresh current view
+        ProxyLayout pl = getProxyLayoutForPage(mPrimaryItem);
+        if (mProxyMap.containsKey(pl)) {
+            ViewProxy vp = mProxyMap.get(pl);
+            vp.invalidate();
+        }
     }
 
     /* used for substitute invisible views to determine invisible pages geometry
     * and show 'loading' stub
     * */
+
     private class ViewProxy extends FrameLayout {
 
         private View mRealPage = null;
@@ -475,11 +318,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
         }
 
-        public void addInvisiblePage(View page, int position) {
+        public void addInvisiblePage(View page, ProxyLayout layout) {
             TextViewEx invisiblePageTV = (TextViewEx) page.findViewById(mContentResourceId);
-            invisiblePageTV.setTextLayout(new ProxyLayout(position));
+            invisiblePageTV.setTextLayout(layout);
             addView(page, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            mInvisiblePages.put(position,page);
+            mInvisiblePages.put(layout.getPosition(),page);
         }
 
         public boolean hasInvisiblePage() {
@@ -578,43 +421,36 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             // we have layout, but not have page
             mFakePages.add(layout);
         } else {
-            ProxyLayout layout = new ProxyLayout(page);
-            mFakePages.add(layout);
+
+            int vtype = getViewTypeForPage(page);
+            if (hasReplies(vtype)) {
+                ProxyLayout layout = new ProxyLayout(mTextLayout,page,mReplies.get(vtype));
+                mProxies.put(page,layout);
+            } else {
+                ProxyLayout layout = new ProxyLayout(mTextLayout,page);
+                mProxies.put(page,layout);
+                mFakePages.add(layout);
+            }
+
         }
+    }
+
+    @Override
+    public void layoutFinished() {
+        Log.v(TAG,"Layout Finished");
     }
 
     // TODO: find nearest ChapterTitleSpan to provide page title
     //
 
-    private class ViewTypeGeometryCollector {
+    private SparseArray<ProxyLayout.Replies> mReplies = new SparseArray<ProxyLayout.Replies>();
 
-        public ViewTypeGeometryCollector() {
+    private boolean hasReplies(int vtype) {
+        return mReplies.get(vtype) != null;
+    }
 
-        }
-
-        public void notifySetSize(int vtype, int page, int width, int viewHeight) {
-
-        }
-
-        public boolean contains(int page) {
-            return false;
-        }
-
-        public List<Point> get(int page) {
-            return null;
-        }
-
-        public boolean viewHeightExceed(int page) {
-            return false;
-        }
-
-        public void onHeightExceed(int page, int collectedHeight, boolean notLast) {
-
-        }
-
-        public boolean hasNextView() {
-            return false;
-        }
+    private ProxyLayout.Replies getRepliesForViewType(int vtype) {
+        return mReplies.get(vtype);
     }
 
     private class FakePagesController {
@@ -626,7 +462,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
         public void put(ViewProxy view, View page, ProxyLayout proxyLayout) {
             mViewsMap.put(proxyLayout,view);
-            view.addInvisiblePage(page,proxyLayout.mPosition);
+            view.addInvisiblePage(page,proxyLayout);
         }
 
         public ViewProxy get(ProxyLayout proxyLayout) {
@@ -636,7 +472,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         public View remove(ProxyLayout proxyLayout) {
             ViewProxy vp = mViewsMap.get(proxyLayout);
             if (vp!=null) {
-                return vp.detachInvisiblePage(proxyLayout.mPosition);
+                return vp.detachInvisiblePage(proxyLayout.getPosition());
             }
             return null;
         }
@@ -650,14 +486,42 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 Log.e(TAG,"no proxy for primary item");
                 return;
             }
+
             ViewProxy primaryView = mViewsMap.get(pl);
             if (primaryView==null) {
-                for (ViewProxy proxy : mViewsMap.values()) {
-                    primaryView = proxy;
-                    break;
+                /*
+            * if (mViewsMap.size() < 1) - try to fetch views from mProxyMap
+            */
+
+                if (mViewsMap.size()<1) {
+                    for (ViewProxy proxy : mProxyMap.values()) {
+                        primaryView = proxy;
+                        break;
+                    }
+                } else {
+                    // take first known viewProxy
+                    for (ViewProxy proxy : mViewsMap.values()) {
+                        primaryView = proxy;
+                        break;
+                    }
                 }
             }
-            put(primaryView,getViewForPage(layout.mPosition),layout);
+
+            put(primaryView,getViewForPage(layout.getPosition()),layout);
+        }
+
+        public boolean contains(ProxyLayout proxyLayout) {
+            return mViewsMap.containsKey(proxyLayout);
         }
     }
+
+    private class OptionsWrapper extends ContentView.Options {
+        public OptionsWrapper() {
+            super();
+            setChangeListener(BaseTextPagerAdapter.this);
+        }
+    }
+
+
+
 }

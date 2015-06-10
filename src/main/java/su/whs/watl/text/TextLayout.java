@@ -59,7 +59,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected char[] chars; /* for performance - we need direct access to text as array of chars */
     protected LineSpan lineSpan;
     protected int width;              //
-    private int reflowedWidth = -1;
+    protected int reflowedWidth = -1;
     protected int height = -1;
     protected int reflowedHeight = -1;
     protected int requestedHeight = -1;
