@@ -31,6 +31,7 @@ public interface ContentView {
         private boolean mInvalidateMeasurement = false;
         private boolean mInvalidateLines = false;
         private boolean mInvalidate = false;
+        private Rect mTextPaddings = new Rect(25,25,25,25);
 
         public Options() {
 
@@ -223,7 +224,20 @@ public interface ContentView {
             }
             return false;
         }
+
+        public void setTextPaddings(int left, int top, int right, int bottom) {
+            if (diff(mTextPaddings,new Rect(left,top,right,bottom))) _im();
+            mTextPaddings.set(left,top,right,bottom);
+        }
+
+        public Rect getTextPaddings() { return mTextPaddings; }
+
+        private boolean diff(Rect a, Rect b) {
+            return (a.left==b.left && a.top==b.top && a.right==b.right && a.bottom==b.bottom);
+        }
     }
+
+
 
     void setLoadingState(boolean loading);
 

@@ -141,7 +141,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             for (int i = 0; i < atColumn; i++) {
                 // translated.y += mLinesHeightsOnColumns[i];
             }
-            startLine = mColumnsLinesStarts[atColumn];
+            startLine = mColumnsCount > 1 ? mColumnsLinesStarts[atColumn] : 0;
         } else {
             translated.x = x;
             translated.y = y;

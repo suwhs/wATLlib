@@ -1,7 +1,6 @@
 package su.whs.watl.text;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.text.SpannableString;
@@ -46,6 +45,12 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private int mCount = 1;
     private FakePagesController mFakePages = new FakePagesController();
 
+    {
+        mTextPaint.setTextSize(24f);
+        mTextPaint.setAntiAlias(true);
+        mOptions.setTextPaddings(20,20,20,20);
+    }
+
     @Override
     public void setText(CharSequence text) {
         if (text instanceof Spanned) {
@@ -63,12 +68,12 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void setTextSize(float size) {
-        Log.e(TAG, "not implemented yet");
+        mTextPaint.setTextSize(size);
     }
 
     @Override
     public void setTextSize(int unit, float size) {
-
+        throw new RuntimeException("setTextSize(unit,size) not supported");
     }
 
     @Override
@@ -194,6 +199,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void setPrimaryItem(ViewGroup container, int position, Object object) {
+        if (mPrimaryItem==position) return;
         Log.d(TAG, "setPrimaryItem == " + position + ", " + object);
         mPrimaryItem = position;
     }
@@ -276,6 +282,16 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
     }
 
+    @Override
+    public void finalize() throws Throwable {
+        mText = null;
+        mProxies.clear();
+        mProxyMap.clear();
+        mUnusedViews.clear();
+        mTextLayout = null;
+        super.finalize();
+    }
+
     /* used for substitute invisible views to determine invisible pages geometry
     * and show 'loading' stub
     * */
@@ -292,7 +308,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         public ViewProxy(Context context, ProxyLayout proxy) {
             super(context);
             mProxy = proxy;
-            setBackgroundColor(Color.RED);
             mProgress = new ProgressBar(context);
             mProgress.setVisibility(View.VISIBLE);
             mProgress.setIndeterminate(true);
@@ -313,6 +328,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             mProxy = proxy;
             if (mContent!=null)
                 mContent.setTextLayout(proxy);
+                if (proxy.isLayouted())
+                    resetLoadingState();
             else {
                 throw new RuntimeException("mContent are null");
             }
@@ -342,12 +359,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
             mContent.setTextLayout(mProxy);
-            if (mLoading) {
-             //   mRealPage.setVisibility(View.INVISIBLE);
-               // mContent.onBeforeDraw();
+            if (mProxy.isLayouted()) {
+                resetLoadingState();
             }
             addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
         }
 
         public void setLoadingState() {
@@ -374,8 +389,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             if (mAttachedPagesCounter<2) {
                 onAttachedFirst(getRootView().getContext());
             }
-            setLoadingState();
-
+            if (!mProxy.isLayouted())
+                setLoadingState();
+            else
+                resetLoadingState();
         }
 
         @Override

@@ -988,6 +988,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                           ContentView.Options options) {
         // extract options
         LineBreaker lineBreaker = options.getLineBreaker();
+        Rect textPaddings = options.getTextPaddings();
+        int lineWidthDec = textPaddings.left+textPaddings.right;
+        int viewHeightDec = textPaddings.top+textPaddings.bottom;
+
         float lineSpacingMultiplier = options.getLineSpacingMultiplier();
         int lineSpacingAdd = options.getLineSpacingAdd();
         int steplimit = options.getReflowQuantize();
@@ -1046,7 +1050,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int forcedParagraphTopMargin = getOptions().getNewLineTopMargin();
 
 
-        int wrapWidth = width;
+        int wrapWidth = width - lineWidthDec;
         int wrapHeight = 0;
         int wrapMargin = 0;
         int wrapEnd = y;
@@ -1073,7 +1077,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         LineSpan wrappedSpan = null;
-        int viewHeightLeft = viewHeight;
+        int viewHeightLeft = viewHeight - viewHeightDec;
         int collectedHeight = 0;
 
         /* recursion function port */
@@ -1192,8 +1196,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (viewHeight > -1) { // TODO: reorganize conditions
                                 collectedHeight += y;
                                 y = 0;  // y zeroed only if viewHeight greater than -1
-                                viewHeightLeft = viewHeight;
-                                wrapWidth = width;
+                                viewHeightLeft = viewHeight - viewHeightDec;
+                                wrapWidth = width - lineWidthDec;
                                 wrapHeight = 0;
                                 wrapMargin = 0;
                             }
@@ -1345,7 +1349,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             wrappedSpan = null;
                         }
 
-                        wrapWidth = width;
+                        wrapWidth = width - lineWidthDec;
                         wrapMargin = 0;
                     }
 
@@ -1400,7 +1404,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 wrappedSpan = null;
                             }
 
-                            wrapWidth = width;
+                            wrapWidth = width - lineWidthDec;
                             wrapMargin = 0;
                             /* FIXME: adjust vertical wrapped image position here ? */
                         }
@@ -1749,6 +1753,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return 0;
         }
         Rect clipRect = canvas.getClipBounds();
+        Rect textPaddings = getOptions().getTextPaddings();
+        int leftOffset = textPaddings.left;
+        int topOffset = textPaddings.top;
 
         greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
@@ -1762,12 +1769,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         selectionPaint.setColor(selectionColor);
         // selectionPaint.setXfermode(xorMode);
         int i = startLine;
-        int y = 0;
+        int y = topOffset;
 
         boolean highlight = false;
         boolean selection = false;
         TextLayout.TextLine line = lines.get(startLine);
-
+        // DBG (issue with WeakRef to textLayout lines)
+        if (line==null) {
+            Log.e(TAG,"line are null");
+            return 0;
+        }
         LeadingMarginSpan actualLeadingMargin = null;
         while ((y + line.height < clipRect.top) && (y + line.wrapHeight < clipRect.top)) {
             y += line.height;
@@ -1864,7 +1875,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             float tail = line.afterBreak == null ? 0f : line.afterBreak.get().tail;
             LineSpan span = line.span.get();
             LineSpanBreak lineSpanBreak = line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next);
-            float x = 0f;
+            float x;
             int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
 
             if (line.leadingMargin != null) {
@@ -1872,7 +1883,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     actualLeadingMargin = line.leadingMargin;
                 }
                 try {
-                    line.leadingMargin.drawLeadingMargin(canvas, workPaint, line.wrapMargin, 1, y, baseLine, baseLine + line.descent, new FakeSpanned(line.leadingMargin, drawStart), drawStart, drawStop, false, null);
+                    line.leadingMargin.drawLeadingMargin(canvas, workPaint, line.wrapMargin + leftOffset, 1, y, baseLine, baseLine + line.descent, new FakeSpanned(line.leadingMargin, drawStart), drawStart, drawStop, false, null);
                 } catch (NullPointerException e) {
                     // avoid unsupported leading margins exceptions, caused layout==null
                 }
@@ -1880,7 +1891,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 actualLeadingMargin = null;
             }
 
-            float align = 0f;
+            float align = leftOffset;
 
             if (line.gravity != Gravity.NO_GRAVITY) {
                 if (line.gravity == Gravity.RIGHT) {
@@ -1913,7 +1924,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             float drawableWidth = 0f;
 
                             if (span.gravity == Gravity.RIGHT) {
-                                x = width - line.wrapWidth;
+                                x = width - line.wrapWidth + textPaddings.right;
                             } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
                                 x -= span.drawableScaledWidth / 2;
                             }

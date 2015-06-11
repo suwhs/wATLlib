@@ -147,22 +147,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         requestLayout();
     }
 
-    /* MOVED TO Options
-    /**
-     * set or remove line breaker
-     *
-     * @param lineBreaker
-     *
-
-
-    public TextViewEx setLineBreaker(LineBreaker lineBreaker) {
-        // mLineBreaker = lineBreaker;
-        if (mTextLayout != null) {
-            mTextLayout.getOptions().setLineBreaker(lineBreaker);
-        }
-        return this;
-    } */
-
     @Override
     public void setHighlightColor(int color) {
         mHighlightColor = color;

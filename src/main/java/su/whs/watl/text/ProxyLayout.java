@@ -374,4 +374,12 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // doest not call until current attached listener used to determine page geometry
         // so if text is not ready - throw exception
     }
+
+    @Override
+    public void finalize() throws Throwable {
+        mPendingListener = null;
+        mTextInvalidated = false;
+        mLayout = null;
+        super.finalize();
+    }
 }

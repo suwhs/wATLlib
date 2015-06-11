@@ -210,21 +210,25 @@ public class TextLayoutEx extends TextLayout {
     @hide
      */
     static class Slice<T> implements List<T> {
-
+        private List<T> mHOLDER;
         private WeakReference<List<T>> mBaseList;
         private int mStart;
         private int mEnd;
+        private boolean dbg_cloned = false;
 
         public Slice(List<T> list, int start, int end) {
             mBaseList = new WeakReference<List<T>>(list);
+            mHOLDER = list;
             mStart = start;
             mEnd = end;
         }
 
         public Slice(Slice<T> slice) {
             mBaseList = slice.mBaseList;
+            mHOLDER = slice.mHOLDER;
             mStart = slice.mStart;
             mEnd = slice.mEnd;
+            dbg_cloned = true;
         }
 
         /* remporary shift size methods */
@@ -264,6 +268,10 @@ public class TextLayoutEx extends TextLayout {
 
         @Override
         public T get(int location) {
+            if (mBaseList.get()==null) {
+                Log.v(TAG,"error: ");
+                return null;
+            }
             return mBaseList.get().get(location+mStart);
         }
 
@@ -365,6 +373,13 @@ public class TextLayoutEx extends TextLayout {
         @Override
         public <T1> T1[] toArray(T1[] array) {
             return null;
+        }
+
+        @Override
+        public void finalize() throws Throwable {
+            mHOLDER = null;
+            mBaseList.clear();
+            super.finalize();
         }
     }
 
