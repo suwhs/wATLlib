@@ -16,6 +16,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.BackgroundColorSpan;
 import android.text.style.CharacterStyle;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.LeadingMarginSpan;
@@ -72,12 +73,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected List<TextLine> lines;
     private TextPaint paint = new TextPaint();
     private TextPaint reflowPaint = new TextPaint();
+    private Paint backgroundPaint = new Paint();
     private ContentView.Options mOptions = null;
 
     private int mStart;
     private int mEnd;
     protected int mStartLine = 0;
-
+    protected int mViewsCount = 0;
     // protected LineBreaker mLineBreaker = new DefaultLineBreaker();
     // private boolean debugDraw;
     private int mLineHeightTreshold = 0;
@@ -157,6 +159,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     public void setInvalidateListener(TextLayoutListener listener) {
         this.listener = listener;
     }
+
+    public int getWidth() {
+        return width;
+    }
+
     /**
      * default LineBreaker implementation
      */
@@ -194,6 +201,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         listener = invalidateListener;
         mStart = start;
         mEnd = end;
+        mViewsCount = 0;
         chars = new char[end - start];
         mText = text;
         if (mText instanceof Editable) {
@@ -915,9 +923,25 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
     }
 
+    /**
+     * default implementation does not supports geometry change supports
+     * @param geometry
+     * @return
+     */
+
     protected boolean updateGeometry(int[] geometry) {
         return false;
     }
+
+    /**
+     * method where handles interaction with TextLayoutListener
+     * when overriden - onProgress() must increments mViewsCount on every viewHeightExceed==true
+     *
+     * @param lines
+     * @param collectedHeight
+     * @param viewHeightExceed
+     * @return
+     */
 
     protected boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
         this.lines = lines;
@@ -929,6 +953,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         boolean finish = false;
 
         if (viewHeightExceed) {
+            mViewsCount++;
             finish = !listener.onHeightExceed(height);
         }
         if (isReflowBackgroundTaskCancelled()) {
@@ -944,6 +969,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     }
 
+    /**
+     * method, where handles layout finish
+     *
+     * @param lines
+     * @param height
+     */
     protected void onFinish(List<TextLine> lines, int height) {
         this.lines = lines;
         setReflowBackgroundTaskCancelled(false);
@@ -1290,6 +1321,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     /* check if breakPosition < span.start (rollback to previous state) */
                     if (breakPosition < span.start) {
                         span.breakFirst = null;
+                        // crash here if width too small
+                        // TODO: to avoid crashed - we need to wrap call to reflow() to try{} catch{}
                         state = stack.remove(0);
                         span = state.span;
                         forceBreak = true;
@@ -1927,17 +1960,18 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 x = width - line.wrapWidth + textPaddings.right;
                             } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
                                 x -= span.drawableScaledWidth / 2;
+                            } else if (line.start==span.start) {
+                                x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
                             }
 
                             if (span.drawableScaledWidth > 0f) {
                                 dds.draw(canvas, null, span.start, span.end, x, y + span.baselineShift, (int) (y + span.baselineShift + span.drawableScaledHeight), (int) (y + span.baselineShift + span.drawableScaledHeight + span.leading), workPaint);
                                 drawableWidth = span.drawableScaledWidth;
                             } else {
-                                // drawable.setBounds(0, 0, (int) (span.width), (int) (span.height));
                                 dds.draw(canvas, null, span.start, span.end, x, y + span.baselineShift, y + span.baselineShift + span.height, (int) (y + span.baselineShift + span.height + span.leading), workPaint);
                                 drawableWidth = span.width;
                             }
-
+                            // TODO: check correct paddings elimination (may be we need handle this in reflow() function)
                             x += drawableWidth;
                             break;
                         }
@@ -1947,18 +1981,28 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     continue drawline;
                 }
 
+                boolean backgroundColorSpan = false;
+                int backgroundColor = Color.WHITE;
+
                 if (span.spans != null && span.spans != styles) {
                     workPaint.set(paint);
                     for (CharacterStyle style : span.spans) {
                         style.updateDrawState(workPaint);
+                        // TODO: move to 'prepare'
+                        if (style instanceof BackgroundColorSpan) {
+                            backgroundColor = ((BackgroundColorSpan)style).getBackgroundColor();
+                        }
                     }
                     styles = span.spans;
                 }
+                backgroundPaint.setColor(backgroundColor);
 
                 while (lineSpanBreak != null) {
                     drawStop = lineSpanBreak.position + 1;
                     drawStop = drawStop > line.end ? line.end : drawStop;
                     if (drawStart < drawStop) {
+                        if (backgroundColorSpan)
+                            canvas.drawRect(x,y,x+span.width,y+span.height,backgroundPaint);
                         canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                     } else {
                         // Log.v(TAG,"oops");
@@ -2189,6 +2233,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
         }
         return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0) + textLine.margin);
+    }
+
+    /*
+        each onHeightExceed()==true increments viewsCount
+     */
+
+    public int getExceedsCount() {
+        return mViewsCount;
     }
 
     public class Options extends ContentView.Options {

@@ -119,7 +119,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (mTextLayout != null) {
             mTextLayout.release();
         }
-        mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(), new ContentView.Options(), this);
+        mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
+                mTextLayout==null ? new ContentView.Options() : mTextLayout.getOptions() ,
+                this);
         mTextLayout.getOptions().setImagePlacementHandler(mImagePlacementHandler);
         // mTextLayout.setImagePlacementHandler(mImagePlacementHandler);
         // if (mLineBreaker != null)
@@ -138,7 +140,15 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     private int mSetLayoutCounter = 0;
 
+    /**
+     *
+     * @param textLayout
+     */
+
     public void setTextLayout(TextLayout textLayout) {
+        /*
+
+         */
         if (textLayout == null) throw new IllegalArgumentException("textLayout must be not null");
         mSetLayoutCounter++;
         mTextLayout = textLayout;
@@ -207,7 +217,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         int want = width - (cpL + cpR);
 
-
         if (height < 0) { // if WRAP_CONTENT - sttart layout process immediately
             if (!mTextLayout.isLayouted()) {
                 prepareLayout(want, -1);
@@ -222,11 +231,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
                 prepareLayout(want,height-cpT-cpB);
             }
         }
-        // mTextLayout.setSize(want, height > 0 ? (height - cpT - cpB) : -1);
-
-        // if (height < 0) // if we need layouted text height
-        //    height = mTextLayout.getHeight();
-
         setMeasuredDimension(width, height);
     }
 
@@ -240,20 +244,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int cpB = getCompoundPaddingBottom();
         int cpL = getCompoundPaddingLeft();
         int cpR = getCompoundPaddingRight();
-        /**
-         * TODO: need small changes to supports MultiColumnTextView draw
-         */
-            /*
-            if (mTextLayout == null) {
-                Log.v(TAG, "pending layout reset?");
-                return;
-            } */
-        Log.v(TAG, "prepare layout, no draw? (" + mTextLayout + ")");
         prepareLayout(getMeasuredWidth() - (cpL + cpR), getMeasuredHeight() - (cpT + cpB));
     }
 
-
-    private boolean attemptToDrawNullLayout = false;
     /**
      * draw text content on canvas
      *
@@ -404,6 +397,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return mTextLayout.getLinesCount();
     }
 
+    protected void resetState() {
+        setSelection(0, 0, 0);
+    }
+
     /**
      * called by TextLayout when layout invalidated
      *  (base font size changed)
@@ -418,7 +415,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
             throw new RuntimeException("onTextInfoInvalidated must be called from UI Thread!");
         }
-        setSelection(0, 0, 0);
+        resetState();
         if (mNeedTotalHeight)
             requestLayout();
         else

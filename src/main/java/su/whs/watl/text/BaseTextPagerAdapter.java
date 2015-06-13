@@ -39,7 +39,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private int mPrimaryItem = 0;
     private SparseArray<List<ViewProxy>> mUnusedViews = new SparseArray<List<ViewProxy>>();
     private Map<ProxyLayout,ViewProxy> mProxyMap = new HashMap<ProxyLayout,ViewProxy>();
-    private int mContentResourceId = android.R.id.content;
+    private int mContentResourceId = -1;
     private int mMaxPageNumber = 0;
     private boolean mUpdating = false;
     private int mCount = 1;
@@ -49,6 +49,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         mTextPaint.setTextSize(24f);
         mTextPaint.setAntiAlias(true);
         mOptions.setTextPaddings(20,20,20,20);
+    }
+
+    public BaseTextPagerAdapter(int resourceId) {
+        super();
+        mContentResourceId = resourceId;
     }
 
     @Override
@@ -326,11 +331,12 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 mProxy.detach();
             }
             mProxy = proxy;
-            if (mContent!=null)
+            if (mContent!=null) {
+
                 mContent.setTextLayout(proxy);
                 if (proxy.isLayouted())
                     resetLoadingState();
-            else {
+            } else {
                 throw new RuntimeException("mContent are null");
             }
         }

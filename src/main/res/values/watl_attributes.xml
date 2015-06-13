@@ -7,4 +7,19 @@
         <attr name="url_highlight_before_open" format="boolean"></attr>
         <attr name="url_highlight_color" format="color"></attr>
     </declare-styleable>
+    <declare-styleable name="TextViewEx">
+
+    </declare-styleable>
+    <declare-styleable name="MultiColumnTextViewEx">
+        
+    </declare-styleable>
+    <declare-styleable name="ContentViewOptions">
+        
+    </declare-styleable>
+    <declare-styleable name="DefaultImagePlacementHanlder">
+
+    </declare-styleable>
+    <declare-styleable name="ViewPagerExt">
+
+    </declare-styleable>
 </resources>

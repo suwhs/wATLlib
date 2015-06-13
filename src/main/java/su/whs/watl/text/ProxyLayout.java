@@ -38,10 +38,16 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     public ProxyLayout(TextLayoutEx textLayoutEx,int pageNo, Replies replies) {
         // replay replies when invalidate,
+        mViewsCount = 0;
         mPosition = pageNo;
         mEvents = new Replies(replies); // clone replies, so a_current == zero
+        for (ViewHeightExceedEvent event : replies.a_list) {
+            if (event.equals(Event.CLONE) || event.equals(Event.CHANGE) || event.equals(Event.FINISH))
+                mViewsCount++;
+        }
         mLayout = textLayoutEx;
         ViewHeightExceedEvent first = mEvents.first();
+        this.width = first.width;
         mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
     }
 
@@ -54,6 +60,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     @Override
     public void setSize(int width, int height, int viewHeight) {
+        this.width = width;
         mAttached = true;
         mEvents = new Replies();
         mEvents.add(new ViewHeightExceedEvent(Event.INIT,width,viewHeight,0,0));
@@ -111,12 +118,20 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             }
             ViewHeightExceedEvent event = mEvents.next();
             if (event.equals(Event.FINISH)) {
+
                 return false;
-            }
-            if (event.event.equals(Event.CHANGE)) {
+            } else if (event.equals(Event.CHANGE)) {
                 mCGWidth = event.width;
                 mCGHeight = event.height;
                 mGeometryChanged = true;
+                // we need correct event.lines and event collectedHeight
+                event.lines = this.lines.size();
+                event.collectedHeight = collectedHeight;
+                return true;
+            } else if (event.equals(Event.CLONE)) {
+                // we need correct event.lines and event collectedHeight
+                event.lines = this.lines.size();
+                event.collectedHeight = collectedHeight;
                 return true;
             }
         } else { // attached
@@ -124,8 +139,9 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             if (!result) { // this page does not need more views
                 mEvents.add(new ViewHeightExceedEvent(Event.FINISH,0,0,collectedHeight,this.lines.size()));
                 return false;
-            } else
+            } else {
                 mEvents.add(new ViewHeightExceedEvent(Event.CLONE, 0, 0, collectedHeight, this.lines.size()));
+            }
             return result;
         }
         return false;
@@ -171,6 +187,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // collectedHeight - total calculated height of text on current page
         // viewHeightExceed == true if bottom bound of current geometry exceed
         if (viewHeightExceed) {
+            mViewsCount++;
             boolean result = onHeightExceed(collectedHeight);
             if (!result) {
                //  mEvents.add(new ViewHeightExceedEvent(Event.FINISH,0,0,collectedHeight,this.lines.size()));
@@ -240,6 +257,19 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             this.collectedHeight = collectedHeight;
             this.lines = collectedLines;
         }
+
+        public String toString() {
+            return "" + event;
+        }
+
+        public ViewHeightExceedEvent(ViewHeightExceedEvent source) {
+            this.event = source.event;
+            this.width = source.width;
+            this.height = source.height;
+            this.collectedHeight = source.collectedHeight;
+            this.lines = source.lines;
+        }
+
         public boolean equals(Event e) {
             return e.equals(event);
         }
@@ -266,9 +296,16 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             if (!r.a_complete) {
                 throw new RuntimeException("events must be completed before clone");
             }
-            a_list = r.a_list;
+            a_list = new ArrayList<ViewHeightExceedEvent>(r.a_list.size());
+            copy(a_list, r.a_list);
             a_complete = true;
             a_current = 0;
+        }
+
+        private void copy(List<ViewHeightExceedEvent> dest, List<ViewHeightExceedEvent> source) {
+            for (int i=0; i<source.size(); i++) {
+                dest.add(new ViewHeightExceedEvent(source.get(i)));
+            }
         }
 
         public ViewHeightExceedEvent next() {
@@ -313,8 +350,10 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // listener may be attached during reflow process on given page geometry - so
         // we need to notify listener about completed views and does not use calls to listener
         // to determine geometry (so we must ignore onViewHeightExceed
+
         if (mEvents!=null && !mEvents.a_complete) {
             mPendingListener = listener;
+            // super.setInvalidateListener(listener);
             replayEvents(listener);
         } else {
             super.setInvalidateListener(listener);
@@ -350,21 +389,26 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     private void replayEvents(TextLayoutListener listener) {
         mReplay = true;
         for(ViewHeightExceedEvent event = mEvents.first(); event!=null; event = mEvents.next()) {
-            if (Event.INIT.equals(event)) {
-                // pass
-            } else if (Event.CLONE.equals(event)) {
+            if ( event.equals(Event.INIT)) {
+                // we need call 'prepareLayout' on MultiColumnTextViewEx
+                listener.onTextInfoInvalidated();
+            } else if (event.equals(Event.CLONE)) {
                 mReplayHeight = event.collectedHeight;
                 mReplayLinesCount = event.lines;
-                notifyTextHeightChanged();
-            } else if (Event.CHANGE.equals(event)) {
+                listener.onHeightExceed(event.collectedHeight);
+                // notifyTextHeightChanged();
+            } else if (event.equals(Event.CHANGE)) {
                 mReplayHeight = event.collectedHeight;
                 mReplayLinesCount = event.lines;
-                notifyTextHeightChanged();
-            } else if (Event.FINISH.equals(event)) {
+                listener.onHeightExceed(event.collectedHeight);
+                // notifyTextHeightChanged();
+            } else if (event.equals(Event.FINISH)) {
+                mReplay = false;
+                listener.onHeightExceed(event.collectedHeight);
                 break;
             }
         }
-        mReplay = false;
+
     }
 
     public void detach() {

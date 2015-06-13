@@ -213,7 +213,7 @@ public interface ContentView {
         private boolean isSameClass(Object a, Object b) {
             if (a!=null) {
                 if (b!=null) {
-                    if (!a.getClass().getName().equals(b.getClass().getName())) {
+                    if (a.getClass().getName().equals(b.getClass().getName())) {
                         return true;
                     }
                 } else {
