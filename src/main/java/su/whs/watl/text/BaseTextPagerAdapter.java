@@ -44,8 +44,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private int mMaxPageNumber = 0;
     private boolean mUpdating = false;
     private int mCount = 1;
-    private FakePagesController mFakePages = new FakePagesController();
+    private ITextPagesNumber mPagesNumberListener = null;
 
+    private FakePagesController mFakePages = new FakePagesController();
     {
         mTextPaint.setTextSize(24f);
         mTextPaint.setAntiAlias(true);
@@ -56,6 +57,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public BaseTextPagerAdapter(int resourceId) {
         super();
         mContentResourceId = resourceId;
+    }
+
+    public BaseTextPagerAdapter(int resourceId, ITextPagesNumber pagesNumberListener) {
+        this(resourceId);
+        mPagesNumberListener = pagesNumberListener;
     }
 
     @Override
@@ -111,6 +117,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public boolean isViewFromObject(View view, Object object) { // here object - ProxyLayout
         // check if View actual holds content from ((ProxyLayout)object)
         if (view instanceof ViewProxy) {
+            if (mProxies.get(mPrimaryItem)==object) {
+                ViewProxy proxy = mProxyMap.get(object);
+                proxy.updateIndicators();
+            }
             return ((ViewProxy)view).isFromProxy(object);
         }
         return false;
@@ -123,7 +133,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        Log.v(TAG,"instantiate item " + position);
+        // Log.v(TAG,"instantiate item " + position);
         // determine view type for page
         int vtype = getViewTypeForPage(position);
 
@@ -169,7 +179,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
         //  if ViewProxy holds fakePage (determine geometry process active) - do not remove view!
-        Log.v(TAG,"destroy item "+position);
+        // Log.v(TAG,"destroy item "+position);
         int vtype = getViewTypeForPage(position);
         List<ViewProxy> unused = mUnusedViews.get(vtype);
         if (unused==null) {
@@ -222,6 +232,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public void finishUpdate(ViewGroup container) {
         super.finishUpdate(container);
         mUpdating = false;
+        if (mCount<mMaxPageNumber+1) {
+            mCount=mMaxPageNumber+1;
+            notifyDataSetChanged();
+        }
     }
 
     public abstract View getViewForPage(int position);
@@ -334,8 +348,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
             mProxy = proxy;
             if (mContent!=null) {
-
                 mContent.setTextLayout(proxy);
+                updateIndicators();
                 if (proxy.isLayouted())
                     resetLoadingState();
             } else {
@@ -355,7 +369,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public void addRealPage(View page) {
-            Log.v(TAG, "addRealPage");
+            // Log.v(TAG, "addRealPage");
             if (mRealPage!=null) {
                 removeView(mRealPage);
                 mRealPage = null;
@@ -367,10 +381,17 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
             mContent.setTextLayout(mProxy);
+            updateIndicators();
             if (mProxy.isLayouted()) {
                 resetLoadingState();
             }
             addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
+        public void updateIndicators() {
+            if (mPagesNumberListener!=null && mRealPage!=null) {
+                mPagesNumberListener.updateInfo(mRealPage,mProxy.getPosition(),getCount());
+            }
         }
 
         public void setLoadingState() {
@@ -390,8 +411,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         @Override
         public void onAttachedToWindow() {
             /** ui-thread **/
-     //       if (mRealPage!=null && mContent == null) -- this never happens
-     //           mContent = (TextViewEx) mRealPage.findViewById(mContentResourceId);
             super.onAttachedToWindow();
             mAttachedPagesCounter++;
             if (mAttachedPagesCounter<2) {
@@ -401,6 +420,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 setLoadingState();
             else
                 resetLoadingState();
+            updateIndicators();
         }
 
         @Override
@@ -462,7 +482,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void layoutFinished() {
-        Log.v(TAG,"Layout Finished");
+        // Log.v(TAG,"Layout Finished");
     }
 
     // TODO: find nearest ChapterTitleSpan to provide page title

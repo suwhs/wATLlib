@@ -79,17 +79,17 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             int top = getCompoundPaddingTop();
             int bottom = getHeight() - getCompoundPaddingBottom();
             int columnShift = mColumnWidth + mColumnSpacing;
-
+            /*
             if (!mRenderDataLogged) {
                 Log.v(TAG,"columnShift="+columnShift);
                 log_column_lines(0);
-            }
+            } */
 
             for (int i = 0; i < mColumnsReady; i++) {
-                if (!mRenderDataLogged) {
+                /* if (!mRenderDataLogged) {
                     Log.v(TAG, "--draw x=" + (left + columnShift * i) + " startLine=" + mColumnsLinesStarts[i]);
                     log_column_lines(i);
-                }
+                } */
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + top,
                         right + columnShift * i,
@@ -107,13 +107,13 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             log_single_line(i);
             height += getTextLayout().getLineHeight(i);
         }
-        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "] height="+height);
+        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "] height=" + height);
     }
 
     private void log_single_line(int line) {
         int ls = getTextLayout().getLineStart(line);
         int le = getTextLayout().getLineEnd(line);
-        Log.v(TAG,"line["+line+"] '"+getText().subSequence(ls, le)+"'");
+        Log.v(TAG, "line[" + line + "] '" + getText().subSequence(ls, le) + "'");
     }
 
     @Override
@@ -178,7 +178,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      */
 
     public void setColumnsCount(int forcedColumnCount) {
-        Log.v(TAG,""+this+" setColumnsCount " + forcedColumnCount);
+        // Log.v(TAG,""+this+" setColumnsCount " + forcedColumnCount);
         mColumnsCount = forcedColumnCount;
         mColumnsCountChanged = true;
     }
@@ -192,7 +192,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         mColumnsCountChanged = false;
 
         if (mColumnsLinesStarts!=null) {
-            Log.w(TAG,"re-initialization required");
+            // Log.w(TAG,"re-initialization required");
         } else {
             mColumnsVerticalShifts = new int[mColumnsCount];
             mLinesHeightsOnColumns = new int[mColumnsCount];
@@ -218,7 +218,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public void onTextReady() {
         mTextReady = true;
-        Log.v(TAG,""+this+" onTextReady");
+        // Log.v(TAG,""+this+" onTextReady");
         super.onTextReady();
         // TODO: need to calculate individual columns vertical shift to make text more accuracy
         // arrange by most frequent horizontals
@@ -229,23 +229,17 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
     }
 
-    private int ready = 0;
 
     @Override
     public boolean onHeightExceed(int collectedHeight) {
         if (mTextReady)
             Log.e(TAG,"error - onHeightExceed received _after_ onTextReady()");
-        Log.v(TAG,""+this+" onHeightExceed");
+        //Log.v(TAG,""+this+" onHeightExceed");
         synchronized (this) {
             if (mColumnsReady < mColumnsCount) {
                 mColumnsLinesStarts[mColumnsReady] = mFirstColumnLine;
-                Log.v(TAG,"column "+mColumnsReady+" line starts = " + mFirstColumnLine);
-                float height = 0f;
-                for (int i=mFirstColumnLine; i<getLineCount(); i++) {
-                    height += getTextLayout().getLineHeight(i);
-                }
-                Log.v(TAG,"column height="+height);
-                if (mColumnsReady>0 && mFirstColumnLine==0)
+                //Log.v(TAG,"column "+mColumnsReady+" line starts = " + mFirstColumnLine);
+                if (mColumnsReady > 0 && mFirstColumnLine == 0)
                     throw new RuntimeException("!!!!!");
                 /*
                 int ln = getLineCount() - 1;
@@ -260,11 +254,6 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                 mLinesHeightsOnColumns[mColumnsReady] = collectedHeight;
                 mColumnsReady++;
             }
-        }
-        if (mColumnsReady<mColumnsCount)
-            ready++;
-        if (ready>2) {
-            Log.v(TAG,"too much exceeds");
         }
         return mColumnsReady < mColumnsCount; // continue process
     }
@@ -294,7 +283,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public void onTextInfoInvalidated() {
         mTextReady = false;
-        Log.v(TAG,""+this+" onTextInfoInvalidated");
+        // Log.v(TAG,""+this+" onTextInfoInvalidated");
         synchronized (this) {
             mColumnsReady = 0;
             mFirstColumnLine = 0;

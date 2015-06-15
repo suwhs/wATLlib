@@ -108,7 +108,7 @@ public class TextLayoutEx extends TextLayout {
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
-        Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+        // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible");
         }
@@ -116,7 +116,7 @@ public class TextLayoutEx extends TextLayout {
         final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
         if (pageListener==null) {
             // no listener for page?
-            Log.v("REFLOW LISTENER", "no listener for page " + pageInProgress);
+            Log.w("REFLOW LISTENER", "no listener for page " + pageInProgress);
             return false;
         }
         if (collectedHeight<1) {
@@ -124,10 +124,11 @@ public class TextLayoutEx extends TextLayout {
             return true;
         }
         boolean stopForPage = !pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), collectedHeight,viewHeightExceed);
+        /*
         if (viewHeightExceed) {
             Log.v(TAG, "PL:" + pageInProgress+ " onProgress(...," + firstLineForPage + "," + lines.size() + ") == " + !stopForPage);
             Log.d(TAG, "PL:" + pageInProgress+ " HELL: " + lines.size() + " '" + log_single_line(lines.size() - 1) + "'");
-        }
+        } */
         if (stopForPage && viewHeightExceed) {
             firstLineForPage = lines.size();
             // post to UI-thread
@@ -143,7 +144,7 @@ public class TextLayoutEx extends TextLayout {
             pageInProgress++;
             if (mPages.get(pageInProgress)==null) {
                 synchronized (mPages) {
-                    Log.v(TAG,"request for geometry page "+pageInProgress);
+                    // Log.v(TAG,"request for geometry page "+pageInProgress);
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
@@ -154,9 +155,9 @@ public class TextLayoutEx extends TextLayout {
 
                     try {
                         waitForNext = true;
-                        Log.v(TAG,"waitForNext");
+                        // Log.v(TAG,"waitForNext");
                         mPages.wait();
-                        Log.v(TAG, "wait done");
+                        // Log.v(TAG, "wait done");
                         waitForNext = false;
                     } catch (InterruptedException e) {
                         // wait interrupted
@@ -166,11 +167,9 @@ public class TextLayoutEx extends TextLayout {
             }
         } else if (viewHeightExceed) {
             if (pageListener.updateGeometry(geometry)) {
-                Log.v(TAG,"update geometry == true");
+                // Log.v(TAG,"update geometry == true");
                 updateGeometryFlag = true; // next call will be this.updateGeometry
             }
-        } else {
-            Log.v(TAG,"will never happens?");
         }
         return true;
     }
@@ -184,12 +183,12 @@ public class TextLayoutEx extends TextLayout {
     @Override
     public void onFinish(List<TextLine> lines, int height) {
         // stub
-        Log.v("REFLOW LISTENER", "reflow finished");
+        // Log.v("REFLOW LISTENER", "reflow finished");
         if (firstLineForPage<lines.size()-1) {
             final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
             if (pageListener==null) {
                 // no listener for page?
-                Log.v("REFLOW LISTENER", "no listener for last page " + pageInProgress);
+                Log.e("REFLOW LISTENER", "no listener for last page " + pageInProgress);
                 return;
             }
 
@@ -205,7 +204,7 @@ public class TextLayoutEx extends TextLayout {
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
-        Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
+        // Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
         synchronized (mPages) {
             if (mPages.get(pageNo)!=null) {
                 throw new RuntimeException("pageGeometryBegins called twice for pageNo="+pageNo);
@@ -293,7 +292,7 @@ public class TextLayoutEx extends TextLayout {
         @Override
         public T get(int location) {
             if (mBaseList.get()==null) {
-                Log.v(TAG,"error: ");
+                // Log.e(TAG,"error: ");
                 return null;
             }
             return mBaseList.get().get(location+mStart);
@@ -312,7 +311,7 @@ public class TextLayoutEx extends TextLayout {
         @NonNull
         @Override
         public Iterator<T> iterator() {
-            Log.v(TAG,"create Slice.iterator()");
+            // Log.v(TAG,"create Slice.iterator()");
             return new Iterator<T>() {
                 private int mCurrent = mStart;
                 @Override

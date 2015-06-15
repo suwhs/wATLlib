@@ -954,7 +954,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         boolean finish = false;
 
         if (viewHeightExceed) {
-            Log.d(TAG,"heightExceed ON LINE: " + lines.size() + " '"+log_single_line(lines.size()-1)+"'");
+            // Log.d(TAG,"heightExceed ON LINE: " + lines.size() + " '"+log_single_line(lines.size()-1)+"'");
             mViewsCount++;
             finish = !listener.onHeightExceed(height);
         }
@@ -1404,13 +1404,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     try {
                         state.processedWidth += span.widths[state.character - span.start];
                     } catch (IndexOutOfBoundsException e) {
+                        // FIXME: dirty hack with try/catch
                         // TODO: fix \n immediately after drawable span
-                        Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
+                        // Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
                     }
                     /* eliminate empty line only if non-empty-lines-count > threshold */
                     if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
                         TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-                        state.carrierReturn(ld);
+                        state.carrierReturn(ld); // TODO: fix invalid height calculation with filterEmptyLines option
                         linesAddedInParagraph = 0;
                     } else {
                         TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
@@ -1432,7 +1433,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         /* handle wrap ends */
                         wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
                         if (wrapWidth < width && wrapHeight < 1) {
-
                             if (wrappedSpan != null) {
                             /* calculate actual heights, occupied by lines */
                                 int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
@@ -1444,8 +1444,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             wrapMargin = 0;
                             /* FIXME: adjust vertical wrapped image position here ? */
                         }
-
-
                     }
 
                     if (lineMargin > 0 || span.paragraphStart) {
@@ -1848,7 +1846,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 continue;
             }
 
-
             float selectStartX = 0f;
             float selectEndX = 0f;
 
@@ -1914,6 +1911,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (line.leadingMargin != actualLeadingMargin) {
                     actualLeadingMargin = line.leadingMargin;
                 }
+
                 try {
                     line.leadingMargin.drawLeadingMargin(canvas, workPaint, line.wrapMargin + leftOffset, 1, y, baseLine, baseLine + line.descent, new FakeSpanned(line.leadingMargin, drawStart), drawStart, drawStop, false, null);
                 } catch (NullPointerException e) {
@@ -2054,6 +2052,22 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return 0;
     }
 
+    private void drawLineRtl(Canvas canvas, float y, TextLine line) {
+
+    }
+
+    private void drawLineLtr(Canvas canvas, float y, TextLine line) {
+
+    }
+
+    private float getOffsetXRtl(TextLine line, int positionAtLine) {
+        return 0;
+    }
+
+    private float getOffsetXLtr(TextLine line, int positionAtLine) {
+        return  0;
+    }
+
     /**
      * @param span
      * @param from
@@ -2152,7 +2166,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
         drawline:
         while (span != null && drawStart < line.end) {
-
+            // if (span.widths==null)
+            //    LineSpan.measure(span,getChars(),measurePaint,true);
             drawStop = span.end < line.end ? span.end : line.end;
             if (span.isDrawable) {
                 if (atX > x && atX <= (x + span.width)) return span.start;

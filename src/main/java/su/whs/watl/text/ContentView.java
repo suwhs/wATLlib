@@ -14,7 +14,7 @@ public interface ContentView {
     }
 
     class Options {
-        private boolean mFilterEmptyLines = true;
+        private boolean mFilterEmptyLines = false; // TODO: error in code calculating heights on empty lines
         private boolean mJustification = true;
         private int mDefaultDirection = 0;
         private int[] mDrawablePaddings = new int[]{0, 0, 0, 0};
@@ -72,7 +72,7 @@ public interface ContentView {
             mInvalidateLines = false;
             mInvalidateMeasurement = false;
         }
-        public Options filterEmptyLines(boolean filter) {
+        public Options setFilterEmptyLines(boolean filter) {
             if (mFilterEmptyLines!=filter) _il();
             mFilterEmptyLines = filter;
             return this;
