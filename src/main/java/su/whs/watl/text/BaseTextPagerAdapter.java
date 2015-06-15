@@ -67,7 +67,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             mTextLayout.stopReflowIfNeed();
             mTextLayout = null;
         }
-        mTextLayout = new TextLayoutEx(mText,mTextPaint,this);
+        mTextLayout = new TextLayoutEx(mText,mTextPaint,mOptions,this);
         notifyDataSetChanged();
     }
 

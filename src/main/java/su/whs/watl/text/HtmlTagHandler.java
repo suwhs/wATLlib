@@ -24,6 +24,7 @@ public class HtmlTagHandler implements Html.TagHandler {
     private static final String TAG = "HtmlTagHandler";
     private int mListItemCount = 0;
     private Vector<String> mListParents = new Vector<String>();
+    private int mIframeStarts = 0;
 
     private class LMS extends LeadingMarginSpan.Standard {
 
@@ -39,8 +40,8 @@ public class HtmlTagHandler implements Html.TagHandler {
     }
 
     @Override
-    public void handleTag(final boolean opening, final String tag, Editable output, final XMLReader xmlReader) {
-
+    public void handleTag(final boolean opening, final String _tag, Editable output, final XMLReader xmlReader) {
+        String tag = _tag.toLowerCase();
         if (tag.equals("ul") || tag.equals("ol") || tag.equals("dd")) {
             if (opening) {
                 mListItemCount = 0;
@@ -67,6 +68,13 @@ public class HtmlTagHandler implements Html.TagHandler {
                 openAlignment(Layout.Alignment.ALIGN_OPPOSITE, output);
             else
                 closeAlignment(Layout.Alignment.ALIGN_OPPOSITE, output);
+        } else if (tag.equals("iframe")) {
+            if (opening)
+                mIframeStarts = output.length();
+            else {
+                output.delete(mIframeStarts,output.length());
+            }
+
         }
     }
 

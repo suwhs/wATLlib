@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.text.SpannableString;
@@ -21,11 +22,11 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.Toast;
 
+import su.whs.watl.text.ContentView;
 import su.whs.watl.text.DynamicDrawableInteractionListener;
 import su.whs.watl.text.ImagePlacementHandler;
-import su.whs.watl.text.ContentView;
-import su.whs.watl.text.TextLayoutListener;
 import su.whs.watl.text.TextLayout;
+import su.whs.watl.text.TextLayoutListener;
 
 
 /**
@@ -154,7 +155,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         mTextLayout = textLayout;
         mTextLayout.setPaint(getPaint());
         mTextLayout.setInvalidateListener(this);
-        requestLayout();
+        if (mTextLayout.isLayouted())
+            postInvalidate();
+        else
+            requestLayout();
     }
 
     @Override
@@ -231,7 +235,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
                 prepareLayout(want,height-cpT-cpB);
             }
         }
-        setMeasuredDimension(width, height);
+        Rect paddings = getOptions().getTextPaddings();
+        setMeasuredDimension(width, height+paddings.top+paddings.bottom);
     }
 
     protected void prepareLayout(int textLayoutWidth, int textLayoutHeight) {
@@ -247,6 +252,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         prepareLayout(getMeasuredWidth() - (cpL + cpR), getMeasuredHeight() - (cpT + cpB));
     }
 
+    protected void drawSelectionCursor(Canvas canvas, float x, float y, float lineHeight, boolean start) {
+        Rect paddings = getOptions().getTextPaddings();
+        super.drawSelectionCursor(canvas,x+paddings.left,y+paddings.top,lineHeight,start);
+    }
+
     /**
      * draw text content on canvas
      *
@@ -256,13 +266,14 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void drawText(Canvas canvas) {
         // actually, background already painted, and drawables also painted
         // Log.v(TAG,""+this+"drawText()");
+        /*
         if (mTextLayout == null) {
             Log.w(TAG, "mTextLayout are null for = " + this + " setLayoutCounter=" + mSetLayoutCounter);
             return;
         }
         if (!mTextLayout.isLayouted()) {
             prepareLayout();
-        }
+        } */
         int left = getCompoundPaddingLeft();
         int right = getWidth() - getCompoundPaddingRight();
         int top = getCompoundPaddingTop();
@@ -332,7 +343,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
-        return getTextLayout().getOffsetForCoordinates(this, x, y, startLine);
+        Rect paddings = getOptions().getTextPaddings();
+        return getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y-paddings.top, startLine);
     }
 
     @Override
@@ -412,21 +424,21 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public void onTextInfoInvalidated() {
         Log.v(TAG, "onTextInfoInvalidated()");
-        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
-            throw new RuntimeException("onTextInfoInvalidated must be called from UI Thread!");
-        }
         resetState();
-        if (mNeedTotalHeight)
-            requestLayout();
-        else
-            invalidate();
+        if (mNeedTotalHeight) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    requestLayout();
+                }
+            });
+
+        } else
+            postInvalidate();
     }
 
     @Override
     public void onTextReady() {
-        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
-            throw new RuntimeException("onTextReady() must be called from UI Thread!");
-        }
         Log.v(TAG, "onTextReady");
         int lastLine = mTextLayout.getLinesCount();
         if (lastLine < 1) return;
@@ -493,6 +505,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public int getLineBounds(int line, Rect outBounds) {
         TextLayout l = getTextLayout();
+        Rect p = getOptions().getTextPaddings();
         outBounds.top = l.getLineTop(line);
         outBounds.left = (int) l.getPrimaryHorizontal(line, l.getLineStart(line), getWidth());
         outBounds.right = (int) l.getPrimaryHorizontal(line, l.getLineEnd(line), getWidth());
@@ -502,6 +515,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
+        Rect p = getOptions().getTextPaddings();
         return getTextLayout().getPrimaryHorizontal(line, postionAtLine, getWidth());
     }
 
@@ -510,6 +524,13 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public boolean onPreDraw() {
         if (isInEditMode()) return super.onPreDraw(); // required for ide 'rendering errors'
         /* suppress original TextView onPreDraw() */
+        if (mTextLayout == null) {
+            Log.w(TAG, "mTextLayout are null for = " + this + " setLayoutCounter=" + mSetLayoutCounter);
+            return false;
+        }
+        if (!mTextLayout.isLayouted()) {
+            prepareLayout();
+        }
         return true;
     }
 }

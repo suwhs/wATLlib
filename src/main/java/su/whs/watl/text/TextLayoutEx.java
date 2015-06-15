@@ -52,8 +52,8 @@ public class TextLayoutEx extends TextLayout {
     // private SparseArray<BeginsGeometry> mBegins = new SparseArray<BeginsGeometry>();
     private boolean waitForNext = false;
 
-    public TextLayoutEx(Spanned text, TextPaint textPaint, PagerViewBuilder builder) {
-        super(text, 0, text.length(), textPaint, new ContentView.Options(), new TextLayoutListener() {
+    public TextLayoutEx(Spanned text, TextPaint textPaint, ContentView.Options options, PagerViewBuilder builder) {
+        super(text, 0, text.length(), textPaint, options, new TextLayoutListener() {
             @Override
             public void onTextInfoInvalidated() {
                 // STUB
@@ -124,15 +124,21 @@ public class TextLayoutEx extends TextLayout {
             return true;
         }
         boolean stopForPage = !pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), collectedHeight,viewHeightExceed);
+        if (viewHeightExceed) {
+            Log.v(TAG, "PL:" + pageInProgress+ " onProgress(...," + firstLineForPage + "," + lines.size() + ") == " + !stopForPage);
+            Log.d(TAG, "PL:" + pageInProgress+ " HELL: " + lines.size() + " '" + log_single_line(lines.size() - 1) + "'");
+        }
         if (stopForPage && viewHeightExceed) {
             firstLineForPage = lines.size();
             // post to UI-thread
+            pageListener.onTextReady();
+            /*
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    pageListener.onTextReady();
+
                 }
-            });
+            }); */
             collectedHeightTotal = collectedHeight;
             pageInProgress++;
             if (mPages.get(pageInProgress)==null) {
@@ -163,6 +169,8 @@ public class TextLayoutEx extends TextLayout {
                 Log.v(TAG,"update geometry == true");
                 updateGeometryFlag = true; // next call will be this.updateGeometry
             }
+        } else {
+            Log.v(TAG,"will never happens?");
         }
         return true;
     }
@@ -233,9 +241,9 @@ public class TextLayoutEx extends TextLayout {
 
         /* remporary shift size methods */
 
-        public void setSize(int size) {
-            mEnd = mStart+size;
-        }
+        // public void setSize(int size) {
+        //    mEnd = mStart+size;
+        // }
 
         @Override
         public void add(int location, T object) { /* stub */ }

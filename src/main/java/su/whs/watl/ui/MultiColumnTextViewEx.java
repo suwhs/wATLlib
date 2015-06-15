@@ -35,6 +35,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private boolean mPreferMinColumnWidth = true;
     private int mDefaultColumnsCount = 1;
     private boolean mColumnsCountChanged = false;
+    private boolean mTextReady = false;
 
     public MultiColumnTextViewEx(Context context) {
         this(context, null, 0);
@@ -50,25 +51,19 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      * @param defStyle
      */
 
-
     public MultiColumnTextViewEx(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
 
-    private int storedWidth = 0;
-    private int storedHeight = 0;
-
     @Override
     protected void prepareLayout(int textLayoutWidth, int textLayoutHeight) {
-        /* */
-       //  mColumnWidth = textLayoutWidth; //
-        storedWidth = textLayoutWidth;
-        storedHeight = textLayoutHeight;
         mTextLayoutHeight = textLayoutHeight;
         if (mMinColumnWidth>-1 || mMaxColumnWidth > -1) {
             calculateColumns(textLayoutWidth);
-        } // else
-          //  setColumnsCount(mColumnsCount);
+        } else if (mColumnWidth==0) {
+            setColumnsCount(mColumnsCount);
+            calculateColumns(getMeasuredWidth()-getCompoundPaddingLeft()-getCompoundPaddingRight());
+        }
         getTextLayout().setSize(mColumnWidth, -1, textLayoutHeight);
     }
 
@@ -78,30 +73,43 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public void drawText(Canvas canvas) {
-        super.drawText(canvas);
-        /*
-        *.draw other columns
-         */
 
-        if (mColumnsCount > 1) {
             int left = getCompoundPaddingLeft();
             int right = getWidth() - getCompoundPaddingRight();
             int top = getCompoundPaddingTop();
             int bottom = getHeight() - getCompoundPaddingBottom();
-            /*
-            if (mColumnWidth<1) {
-                calculateColumns(right-left);
-            } */
-
             int columnShift = mColumnWidth + mColumnSpacing;
 
-            for (int i = 1; i < mColumnsReady; i++) {
+            if (!mRenderDataLogged) {
+                Log.v(TAG,"columnShift="+columnShift);
+                log_column_lines(0);
+            }
+
+            for (int i = 0; i < mColumnsReady; i++) {
+                if (!mRenderDataLogged) {
+                    Log.v(TAG, "--draw x=" + (left + columnShift * i) + " startLine=" + mColumnsLinesStarts[i]);
+                    log_column_lines(i);
+                }
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + top,
                         right + columnShift * i,
-                        mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i]);
+                        mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
-        }
+            mRenderDataLogged = true;
+     }
+
+    private void log_column_lines(int column) {
+        int start = mColumnsLinesStarts[column];
+        int end = column < mColumnsCount-1 ? mColumnsLinesStarts[column+1] : getLineCount();
+        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "]");
+        for (int i=start; i<end; i++)
+            log_single_line(i);
+    }
+
+    private void log_single_line(int line) {
+        int ls = getTextLayout().getLineStart(line);
+        int le = getTextLayout().getLineEnd(line);
+        Log.v(TAG,"line["+line+"] '"+getText().subSequence(ls, le)+"'");
     }
 
     @Override
@@ -109,18 +117,9 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         super.drawAllSelectionCursors(canvas);
     }
 
-    // FIX: we need call prepareLayout for invisible View state
     @Override
     public void onMeasure(int wms, int hms) {
         super.onMeasure(wms, hms);
-        if (mColumnsCountChanged) {
-            calculateColumns();
-        }
-        // if mColumnsCount sets before layout - we must calculate columns width
-        // if setTextLayout already called - throw Exception
-        //if (mColumnsCount>1) {
-        //    setColumnsCount(mColumnsCount);
-        //}
     }
 
     @Override
@@ -175,19 +174,26 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      */
 
     public void setColumnsCount(int forcedColumnCount) {
+        Log.v(TAG,""+this+" setColumnsCount " + forcedColumnCount);
         mColumnsCount = forcedColumnCount;
         mColumnsCountChanged = true;
     }
 
-    private void calculateColumns() {
+    private void calculateColumns(int textLayoutWidth) {
+        if (mTextReady)
+            Log.e(TAG,"calculate columns _after_ onTextReady()");
+        if (mColumnsCount==0) {
+            Log.e(TAG,"error - columns count are zero");
+        }
         mColumnsCountChanged = false;
-        int textLayoutWidth = (getMeasuredWidth() - getCompoundPaddingLeft() - getCompoundPaddingRight());
+
         if (mColumnsLinesStarts!=null) {
             Log.w(TAG,"re-initialization required");
+        } else {
+            mColumnsVerticalShifts = new int[mColumnsCount];
+            mLinesHeightsOnColumns = new int[mColumnsCount];
+            mColumnsLinesStarts = new int[mColumnsCount];
         }
-        mColumnsVerticalShifts = new int[mColumnsCount];
-        mLinesHeightsOnColumns = new int[mColumnsCount];
-        mColumnsLinesStarts = new int[mColumnsCount];
         int q = (textLayoutWidth / mColumnsCount);
         if (q > 1) {
             int spacingSum = mColumnSpacing * (mColumnsCount - 1);
@@ -207,6 +213,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public void onTextReady() {
+        mTextReady = true;
+        Log.v(TAG,""+this+" onTextReady");
         super.onTextReady();
         // TODO: need to calculate individual columns vertical shift to make text more accuracy
         // arrange by most frequent horizontals
@@ -217,21 +225,36 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
     }
 
+    private int ready = 0;
+
     @Override
     public boolean onHeightExceed(int collectedHeight) {
+        if (mTextReady)
+            Log.e(TAG,"error - onHeightExceed received _after_ onTextReady()");
+        Log.v(TAG,""+this+" onHeightExceed");
         synchronized (this) {
             if (mColumnsReady < mColumnsCount) {
                 mColumnsLinesStarts[mColumnsReady] = mFirstColumnLine;
+                Log.v(TAG,"column "+mColumnsReady+" line starts = " + mFirstColumnLine);
                 if (mColumnsReady>0 && mFirstColumnLine==0)
                     throw new RuntimeException("!!!!!");
                 int ln = getLineCount() - 1;
                 int ls = getTextLayout().getLineStart(ln);
                 int le = getTextLayout().getLineEnd(ln);
-                Log.v(TAG, "last line = '" + getText().subSequence(ls, le) + "'");
+                try {
+                    Log.v(TAG, "last line = '" + getText().subSequence(ls, le) + "'");
+                } catch (StringIndexOutOfBoundsException e) {
+                    Log.e(TAG,"invalid values");
+                }
                 mFirstColumnLine = getLineCount();
                 mLinesHeightsOnColumns[mColumnsReady] = collectedHeight;
                 mColumnsReady++;
             }
+        }
+        if (mColumnsReady<mColumnsCount)
+            ready++;
+        if (ready>2) {
+            Log.v(TAG,"too much exceeds");
         }
         return mColumnsReady < mColumnsCount; // continue process
     }
@@ -245,22 +268,25 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      *
      */
 
+    protected void drawSelectionCursor(Canvas canvas, float x, float y, float lineHeight, boolean start) {
+        int shift = (int) (y / getTextLayout().getHeight());
+        super.drawSelectionCursor(canvas, x + getTextLayout().getWidth() * shift , y % getTextLayout().getHeight(), lineHeight, start);
+    }
+
+    private int storedWidth = 0;
+
     @Override
     public void onTextInfoInvalidated() {
-        Log.v(TAG, "multi-column starts");
+        mTextReady = false;
+        Log.v(TAG,""+this+" onTextInfoInvalidated");
         synchronized (this) {
             mColumnsReady = 0;
             mFirstColumnLine = 0;
-            if (mColumnsLinesStarts==null) {
-                Log.d(TAG, "TextLayout provides prepared data : " + getTextLayout().isLayouted());
-                // mColumnsLinesStarts = new int[getTextLayout().getExceedsCount()];
-                // mColumnsVerticalShifts = new int[getTextLayout().getExceedsCount()];
-                // TODO: NEED TO RESTORE mColumnsCount!!!
-                // FIXME: wrong - getTextLayout().getWidth() returns COLUMN WIDTH, SO WE NEED TO RESTORE
-                // REAL WIDTH FROM THIS AND getExceedsCount()
-                // calculateColumns(getTextLayout().getWidth());
-                restoreFromLayout(getTextLayout());
-            }
+            if (storedWidth==0) // FIXME: dirty hack
+                storedWidth = getMeasuredWidth()-getCompoundPaddingRight()-getCompoundPaddingLeft();
+            if (storedWidth==0)
+                storedWidth = getTextLayout().getWidth() * mColumnsCount + (mColumnSpacing*(mColumnsCount-1));
+            calculateColumns(storedWidth);
         }
         super.onTextInfoInvalidated();
     }
@@ -291,6 +317,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         return baseLine - deltaY;
     }
 
+    /*
     private void calculateColumns(int width) {
 
         int fits = mDefaultColumnsCount;
@@ -316,22 +343,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
         setColumnsCount(fits);
         calculateColumns();
-    }
+    } */
+
+    private boolean mRenderDataLogged = false;
 
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-
-
+        mRenderDataLogged = false;
     }
 
-    private void restoreFromLayout(TextLayout textLayout) {
-        synchronized (this) {
-            mColumnsCount = textLayout.getExceedsCount();
-            mColumnWidth = textLayout.getWidth();
-            mColumnsLinesStarts = new int[mColumnsCount];
-            mColumnsVerticalShifts = new int[mColumnsCount];
-            mLinesHeightsOnColumns = new int[mColumnsCount];
-        }
-    }
 }

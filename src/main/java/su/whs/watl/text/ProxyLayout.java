@@ -1,6 +1,7 @@
 package su.whs.watl.text;
 
 import android.text.TextPaint;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,10 +42,13 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         mViewsCount = 0;
         mPosition = pageNo;
         mEvents = new Replies(replies); // clone replies, so a_current == zero
-        for (ViewHeightExceedEvent event : replies.a_list) {
-            if (event.equals(Event.CLONE) || event.equals(Event.CHANGE) || event.equals(Event.FINISH))
-                mViewsCount++;
-        }
+            for (ViewHeightExceedEvent event : replies.a_list) {
+                if (event.equals(Event.CLONE) || event.equals(Event.CHANGE) || event.equals(Event.FINISH))
+                    mViewsCount++;
+            }
+
+
+        Log.v(TAG,"PL:"+mPosition+" restored viewsCount="+mViewsCount);
         mLayout = textLayoutEx;
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
@@ -63,7 +67,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         this.width = width;
         mAttached = true;
         mEvents = new Replies();
-        mEvents.add(new ViewHeightExceedEvent(Event.INIT,width,viewHeight,0,0));
+        mEvents.add(new ViewHeightExceedEvent(Event.INIT, width, viewHeight, 0, 0));
         reflowedHeight = viewHeight;
         reflowedWidth = width;
         mLayout.pageGeometryBegins(mPosition, width, -1, viewHeight, this);
@@ -87,6 +91,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
                 throw new RuntimeException("ProxyLayout create with no Replies");
             }
             mEvents.rewind();
+            // skip first INIT
+            mEvents.first();
         } else { // attached
             notifyTextInfoInvalidated();
         }
@@ -118,23 +124,33 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             }
             ViewHeightExceedEvent event = mEvents.next();
             if (event.equals(Event.FINISH)) {
-
+                firstLine();
+                lastLine();
                 return false;
             } else if (event.equals(Event.CHANGE)) {
                 mCGWidth = event.width;
                 mCGHeight = event.height;
                 mGeometryChanged = true;
                 // we need correct event.lines and event collectedHeight
-                event.lines = this.lines.size();
+                Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
+                lastLine();
+                event.lines = getLinesCount();
                 event.collectedHeight = collectedHeight;
                 return true;
             } else if (event.equals(Event.CLONE)) {
                 // we need correct event.lines and event collectedHeight
-                event.lines = this.lines.size();
+                event.lines = getLinesCount();
                 event.collectedHeight = collectedHeight;
+                Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
+                firstLine();
+                lastLine();
                 return true;
             }
+            return true;
         } else { // attached
+            Log.v(TAG, "PL:" + mPosition + " views count increment: " + mViewsCount);
+            mViewsCount++;
+            lastLine();
             boolean result = this.listener.onHeightExceed(collectedHeight);
             if (!result) { // this page does not need more views
                 mEvents.add(new ViewHeightExceedEvent(Event.FINISH,0,0,collectedHeight,this.lines.size()));
@@ -144,7 +160,6 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             }
             return result;
         }
-        return false;
     }
 
     @Override
@@ -178,7 +193,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         if (!mTextInvalidated) {
             // first call for this page
             mTextInvalidated = true;
-            notifyTextInfoInvalidated();
+            // notifyTextInfoInvalidated();
+            onTextInfoInvalidated();
         }
         this.lines = lines;
 
@@ -187,11 +203,10 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // collectedHeight - total calculated height of text on current page
         // viewHeightExceed == true if bottom bound of current geometry exceed
         if (viewHeightExceed) {
-            mViewsCount++;
             boolean result = onHeightExceed(collectedHeight);
             if (!result) {
                //  mEvents.add(new ViewHeightExceedEvent(Event.FINISH,0,0,collectedHeight,this.lines.size()));
-                notifyTextReady();
+                onTextReady();
                 return false;
             }
         }
@@ -235,6 +250,35 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     public int getPosition() {
         return mPosition;
+    }
+
+    private String firstLine() {
+        int ls = getLineStart(0);
+        int le = getLineEnd(0);
+        try {
+            String line = (String) getText().subSequence(ls, le).toString();
+            Log.v(TAG, "PL:"+mPosition+" first line = '" + line + "'");
+            return line;
+        } catch (StringIndexOutOfBoundsException e) {
+            Log.e(TAG,"invalid values");
+            return e.toString();
+        }
+
+    }
+
+    private String lastLine() {
+        int ln = getLinesCount() - 1;
+        int ls = getLineStart(ln);
+        int le = getLineEnd(ln);
+        try {
+            String line = (String) getText().subSequence(ls, le).toString();
+            Log.v(TAG, "PL:"+mPosition+" last line ("+ln+") = '" + line + "'");
+            return line;
+        } catch (StringIndexOutOfBoundsException e) {
+            Log.e(TAG,"invalid values");
+            return e.toString();
+        }
+
     }
 
     /* */
@@ -331,6 +375,11 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
                 } else {
                     a_list.add(event);
                 }
+            } else if (event.equals(Event.CLONE)){
+                if (a_list.size()>1) {
+                    Log.e(TAG,"too mach size");
+                }
+                a_list.add(event);
             } else {
                 a_list.add(event);
             }
@@ -353,16 +402,13 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
         if (mEvents!=null && !mEvents.a_complete) {
             mPendingListener = listener;
+            return;
             // super.setInvalidateListener(listener);
+            // replayEvents(listener);
+        } else if (mEvents!=null) {
             replayEvents(listener);
-        } else {
-            super.setInvalidateListener(listener);
-            if (mEvents!=null) {
-                // we have completed events
-                replayEvents(listener);
-                notifyTextReady();
-            }
         }
+        super.setInvalidateListener(listener);
     }
 
     private boolean mReplay = false;
@@ -372,6 +418,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     @Override
     public int getHeight() {
         if (!mReplay) return super.getHeight();
+        Log.v(TAG,"getHeight() returns fake height="+mReplayHeight);
         return mReplayHeight;
     }
 
@@ -383,6 +430,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     @Override
     public int getLinesCount() {
         if (!mReplay) return super.getLinesCount();
+        Log.v(TAG,"getLinesCount() returns fake count="+mReplayLinesCount);
         return mReplayLinesCount;
     }
 
@@ -415,6 +463,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         if (mEvents!=null && !mEvents.a_complete) {
             throw new RuntimeException("detach view but no replies completed");
         }
+        Log.v(TAG,"detached!");
         // doest not call until current attached listener used to determine page geometry
         // so if text is not ready - throw exception
     }

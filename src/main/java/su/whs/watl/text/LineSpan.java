@@ -332,7 +332,7 @@ public class LineSpan {
         else if (alignment == Layout.Alignment.ALIGN_OPPOSITE)
             return Gravity.RIGHT;
         else
-            return Gravity.CENTER;
+            return Gravity.CENTER_HORIZONTAL;
     }
 
 

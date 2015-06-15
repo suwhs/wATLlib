@@ -93,12 +93,19 @@ public abstract class ImagePlacementHandler {
                     float ratio = viewWidth / dW;
                     scale.x = (int) (dW * (viewWidth / dW));
                     scale.y = (int) (dH * ratio);
+                    return EXCLUSIVE | ALIGN_CENTER;
                 } else {
                     float ratio = height / dH;
-                    scale.x = (int) (dW * ratio);
-                    scale.y = (int) (dH * ratio);
+                    if (ratio<1) {
+                        scale.x = (int) (dW * ratio);
+                        scale.y = (int) (dH * ratio);
+                        return EXCLUSIVE | ALIGN_CENTER;
+                    }
+                    scale.x = (int) dW;
+                    scale.y = (int) dH;
+                    return WRAP_TEXT | ALIGN_START;
                 }
-
+                /*
                 if (dH > height * 5) {
                     if (scale.y * 5 < dH) {
                         Log.v(TAG, "(6) DEFER");
@@ -108,7 +115,7 @@ public abstract class ImagePlacementHandler {
                     scale.x = (int) (viewWidth / drawableRatio);
                 }
 
-                if (scale.x > viewWidth / 2) {
+                if (scale.x*1.5 > viewWidth) {
                     if (scale.x > viewWidth) {
                         scale.x = viewWidth;
                         scale.y = (int) (scale.x * drawableRatio);
@@ -121,7 +128,7 @@ public abstract class ImagePlacementHandler {
                     return EXCLUSIVE | ALIGN_CENTER;
                 }
                 Log.v(TAG, "(3) WRAP_TEXT | ALIGN_START " + scale.x + "," + scale.y);
-                return WRAP_TEXT | ALIGN_START;
+                return WRAP_TEXT | ALIGN_START; */
             }
 //
 //            if (dW == 0)
