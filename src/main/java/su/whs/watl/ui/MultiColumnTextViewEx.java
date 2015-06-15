@@ -101,9 +101,13 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private void log_column_lines(int column) {
         int start = mColumnsLinesStarts[column];
         int end = column < mColumnsCount-1 ? mColumnsLinesStarts[column+1] : getLineCount();
-        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "]");
-        for (int i=start; i<end; i++)
+
+        float height = 0f;
+        for (int i=start; i<end; i++) {
             log_single_line(i);
+            height += getTextLayout().getLineHeight(i);
+        }
+        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "] height="+height);
     }
 
     private void log_single_line(int line) {
@@ -236,8 +240,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             if (mColumnsReady < mColumnsCount) {
                 mColumnsLinesStarts[mColumnsReady] = mFirstColumnLine;
                 Log.v(TAG,"column "+mColumnsReady+" line starts = " + mFirstColumnLine);
+                float height = 0f;
+                for (int i=mFirstColumnLine; i<getLineCount(); i++) {
+                    height += getTextLayout().getLineHeight(i);
+                }
+                Log.v(TAG,"column height="+height);
                 if (mColumnsReady>0 && mFirstColumnLine==0)
                     throw new RuntimeException("!!!!!");
+                /*
                 int ln = getLineCount() - 1;
                 int ls = getTextLayout().getLineStart(ln);
                 int le = getTextLayout().getLineEnd(ln);
@@ -245,7 +255,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                     Log.v(TAG, "last line = '" + getText().subSequence(ls, le) + "'");
                 } catch (StringIndexOutOfBoundsException e) {
                     Log.e(TAG,"invalid values");
-                }
+                } */
                 mFirstColumnLine = getLineCount();
                 mLinesHeightsOnColumns[mColumnsReady] = collectedHeight;
                 mColumnsReady++;
@@ -269,8 +279,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      */
 
     protected void drawSelectionCursor(Canvas canvas, float x, float y, float lineHeight, boolean start) {
-        int shift = (int) (y / getTextLayout().getHeight());
-        super.drawSelectionCursor(canvas, x + getTextLayout().getWidth() * shift , y % getTextLayout().getHeight(), lineHeight, start);
+        /*
+        Rect paddings = getOptions().getTextPaddings();
+        int height = getMeasuredHeight() - getCompoundPaddingTop() - getCompoundPaddingBottom();
+        int shift = (int) (y / height);
+        int mod = (int)y % height;
+        int columnWidthWithSpacing = mColumnWidth + mColumnSpacing;
+        */
+        super.drawSelectionCursor(canvas, x /* + columnWidthWithSpacing * shift */, y /* mod */, lineHeight, start);
     }
 
     private int storedWidth = 0;
@@ -292,21 +308,33 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     }
 
     @Override
+    protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
+        float primary = super.getPrimaryHorizontal(line,postionAtLine, mColumnWidth);
+        int shift = 0;
+        for (int i=1; i < mColumnsCount; i++) {
+            if (line<mColumnsLinesStarts[i]) {
+                break;
+            }
+            shift++;
+        }
+        return primary + (mColumnWidth+mColumnSpacing) * shift;
+    }
+
+    @Override
     public int getLineBounds(int line, Rect bounds) {
         int baseLine = super.getLineBounds(line, bounds);
+        int paddingTop = getOptions().getTextPaddings().top;
         int deltaY = 0;
         int deltaX = 0;
+        int height = getMeasuredHeight() - getCompoundPaddingTop() - getCompoundPaddingBottom();
         if (mColumnsCount > 1) {
             int column = 1;
             while (column < mColumnsCount && line > mColumnsLinesStarts[column]) {
                 column++;
             }
-            if (column > mColumnsCount - 1) {
-                Log.e(TAG, "calculated column exceed columns count");
-                return -1;
-            }
-            for (int i = 0; i < column; i++) {
-                deltaY += getTextLayout().getHeight();
+
+            for (int i = 1; i < column; i++) {
+                deltaY += mLinesHeightsOnColumns[i] - paddingTop;
                 deltaX += mColumnWidth + mColumnSpacing;
             }
         }

@@ -492,7 +492,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param bottom - bottom bound of layout rect
      */
 
-
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
         if (endLine<=startLine) return;
         workPaint.set(paint);
@@ -1024,7 +1023,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         LineBreaker lineBreaker = options.getLineBreaker();
         Rect textPaddings = options.getTextPaddings();
         int lineWidthDec = textPaddings.left+textPaddings.right;
-        int viewHeightDec = textPaddings.top+textPaddings.bottom*2;
+        int viewHeightDec = textPaddings.top+textPaddings.bottom;
 
         float lineSpacingMultiplier = options.getLineSpacingMultiplier();
         int lineSpacingAdd = options.getLineSpacingAdd();
@@ -1256,7 +1255,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                                     result.add(new TextLine(defferedSpan, scale.y, scale.x + paddingWidth, gravity));
 
-                                    // if (scale.x+paddingWidth+state.lineWidth>)
                                     lineStartAt = state.character + 1;
                                 } else if (imagePlacementHandler.isNewLineAfter(placement)) {
                                     TextLine ld;
@@ -1351,7 +1349,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         state.lineWidth += span.hyphenWidth;
                     }
 
-                    y += state.height;
+
                     ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                     ld.margin = lineMargin + wrapMargin;
                     ld.wrapMargin = wrapMargin;
@@ -1365,12 +1363,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     // ajust new line margins
                     if (carrierReturn) {
                         ld.height += forcedParagraphTopMargin;
-                        y += forcedParagraphTopMargin;
+                        // y += forcedParagraphTopMargin;
                         ld.margin += forcedParagraphLeftMargin;
                         carrierReturn = false;
                     }
 
                     /* handle exceed view height */
+                    y += ld.height; // was state.height at 1368 -- DEBUG
                     viewHeightLeft -= ld.height;
                     /* handle wrap ends */
                     wrapHeight -= ld.height;
@@ -1421,13 +1420,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         } else
                             linesAddedInParagraph++;
                         y += ld.height;
+                        /* handle exceed view height */
+                        viewHeightLeft -= ld.height;
                         result.add(ld);
+
                         ld.margin = lineMargin + wrapMargin;
                         ld.wrapMargin = wrapMargin;
                         ld.wrapMargin = wrapMargin;
                         state.carrierReturn(ld);
-                        /* handle exceed view height */
-                        viewHeightLeft -= ld.height;
+
                         /* handle wrap ends */
                         wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
                         if (wrapWidth < width && wrapHeight < 1) {
@@ -1495,6 +1496,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (finishLine) {
                                 if (lineStartAt < state.character) {
                                     TextLine ld;
+                                    int backed_height = state.height;
                                     y += state.height;
                                     viewHeightLeft -= state.height;
 
@@ -1530,6 +1532,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 if (wrapHeight > 0) {
                                     // before, we must close active wrap
                                     result.add(new TextLine(null, 0, wrapHeight));
+
                                     /**
                                      * need correctly handle case, if current line calculated for wrap, and looks like
                                      * 'ccccccI', where ccccc - collected characters, and I - current DynamicDrawableSpan
@@ -1556,9 +1559,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                                 if (gravity == Gravity.LEFT)
                                     wrapMargin = width - wrapWidth;
-
-                                result.add(new TextLine(span, scale.y, scale.x + paddingWidth, gravity));
-
+                                TextLine ld = new TextLine(span, scale.y, scale.x + paddingWidth, gravity);
+                                result.add(ld);
                                 // if (scale.x+paddingWidth+state.lineWidth>)
                                 lineStartAt = state.character + 1;
                             } else if (imagePlacementHandler.isWrapText(placement)) {
@@ -1566,11 +1568,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 // image at the end of line, which is stars wrap,
                                 // so - close line, shift lineStartsAt and set values for wrapWidth etc
                                 int paddingWidth = paddings.right + paddings.left;
+
                                 result.add(new TextLine(span, scale.y, scale.x + paddingWidth, gravity));
+
                                 // add fake image 'line'
 
-                                TextLine ld;
-                                ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+
+                                TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
 
                                 wrapWidth = width - scale.x - paddingWidth;
 
@@ -1597,7 +1601,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                                     y += state.height;
                                     viewHeightLeft -= state.height;
-
+                                    int back_height = state.height;
                                     if (height > -1 && y > height - 1) {
                                         Log.v(TAG, "6 break recursion height=" + height + ", y=" + y);
                                         break recursion;
@@ -1778,10 +1782,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param highlightColor - background color for selection
      */
 
-    Paint greenPaint = new Paint();
-    Paint redPaint = new Paint();
-    Paint blackPaint = new Paint();
-    Paint bluePaint = new Paint();
     TextPaint workPaint = new TextPaint();
     Paint highlightPaint = new Paint();
     Paint selectionPaint = new Paint();
@@ -1796,17 +1796,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int leftOffset = textPaddings.left;
         int topOffset = textPaddings.top;
 
-        greenPaint.setColor(Color.GREEN);
-        greenPaint.setStyle(Paint.Style.STROKE);
-        redPaint.setColor(Color.RED);
-        bluePaint.setColor(Color.BLUE);
-        bluePaint.setStyle(Paint.Style.STROKE);
-        blackPaint.setStrokeWidth(2f);
-        blackPaint.setColor(Color.MAGENTA);
-        // String textStr = new String(text);
         highlightPaint.setColor(highlightColor);
         selectionPaint.setColor(selectionColor);
-        // selectionPaint.setXfermode(xorMode);
+
         int i = startLine;
         int y = topOffset;
 
@@ -1819,6 +1811,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return 0;
         }
         LeadingMarginSpan actualLeadingMargin = null;
+        /*
         while ((y + line.height < clipRect.top) && (y + line.wrapHeight < clipRect.top)) {
             y += line.height;
             i++;
@@ -1826,7 +1819,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 line = lines.get(i);
             else
                 break;
-        }
+        } */
 
         if (selectionStart < selectionEnd)
             selection = true;
@@ -1848,7 +1841,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             int drawStart = line.start;
             int drawStop = line.end;
             if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
-                y += line.height;
+                y += line.span.get().height;
                 if (line.span.get().isDrawable) {
                     // Log.v(TAG, "skip line with drawable O_o");
                 }

@@ -184,7 +184,23 @@ public class TextLayoutEx extends TextLayout {
     @Override
     public void onFinish(List<TextLine> lines, int height) {
         // stub
-        Log.v("REFLOW LISTENER","reflow finished");
+        Log.v("REFLOW LISTENER", "reflow finished");
+        if (firstLineForPage<lines.size()-1) {
+            final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
+            if (pageListener==null) {
+                // no listener for page?
+                Log.v("REFLOW LISTENER", "no listener for last page " + pageInProgress);
+                return;
+            }
+
+            pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), height,true);
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    mBuilder.pageReady(pageInProgress);
+                }
+            });
+        }
         listener.onTextReady();
     }
 

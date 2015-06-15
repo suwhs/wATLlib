@@ -405,7 +405,7 @@ public class TextViewWS extends TextView {
             start--;
         while (end < lEnd && Character.isLetter(text.charAt(end)) == letter) end++;
         String __text = getText().subSequence(start, end).toString();
-        Log.d(TAG, "long tap text: '" + __text + "'");
+        Log.d(TAG, "long tap text: '" + __text + "'" + end);
         setSelection(start, end, selectionColor());
         mSelectModeActive = true;
         calculateSelectionCursorPositions();

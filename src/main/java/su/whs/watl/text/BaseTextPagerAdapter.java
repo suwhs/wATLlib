@@ -1,6 +1,7 @@
 package su.whs.watl.text;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.text.SpannableString;
@@ -48,6 +49,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     {
         mTextPaint.setTextSize(24f);
         mTextPaint.setAntiAlias(true);
+        mTextPaint.linkColor = Color.BLUE; // required to correctly draw colors
         mOptions.setTextPaddings(20,20,20,20);
     }
 
@@ -90,8 +92,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public int getCount() {
         if (mUpdating) return mCount;
         if (mProxies.size()<1) return 1;
-        if (mMaxPageNumber>mCount) {
-            mCount = mMaxPageNumber;
+        if (mMaxPageNumber+1>mCount) {
+            mCount = mMaxPageNumber+1;
             notifyDataSetChanged();
         }
         return mCount;
