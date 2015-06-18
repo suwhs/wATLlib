@@ -14,24 +14,24 @@ public interface ContentView {
     }
 
     class Options {
-        private boolean mFilterEmptyLines = false; // TODO: error in code calculating heights on empty lines
-        private boolean mJustification = true;
+        private boolean mFilterEmptyLines = true;
+        private boolean mJustification = false;
         private int mDefaultDirection = 0;
         private int[] mDrawablePaddings = new int[]{0, 0, 0, 0};
         private ImagePlacementHandler mImagePlacementHandler = null;
         private LineBreaker mLineBreaker = null;
-        private int mReflowTimeQuant = 150;
+        private int mReflowTimeQuant = 300;
         private float mLineSpacingMultiplier = 1f;
         private int mLineSpacingAdd = 0;
-        private int mEmptyLineHeightLimit;
-        private int mEmptyLinesThreshold;
+        private int mEmptyLineHeightLimit = 0;
+        private int mEmptyLinesThreshold = 3;
         private OptionsChangeListener mListener;
         private int mNewLineLeftMargin = 0;
         private int mNewLineTopMargin = 0;
         private boolean mInvalidateMeasurement = false;
         private boolean mInvalidateLines = false;
         private boolean mInvalidate = false;
-        private Rect mTextPaddings = new Rect(10,10,10,10);
+        private Rect mTextPaddings = new Rect(5,5,5,5);
 
         public Options() {
 

@@ -5,6 +5,7 @@ package su.whs.watl.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -257,6 +258,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         super.drawSelectionCursor(canvas,x+paddings.left,y+paddings.top,lineHeight,start);
     }
 
+    protected Paint debugPaint = new Paint();
+    {
+        debugPaint.setStyle(Paint.Style.STROKE);
+        debugPaint.setColor(Color.GREEN);
+    }
+
     /**
      * draw text content on canvas
      *
@@ -280,6 +287,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int bottom = getHeight() - getCompoundPaddingBottom();
         // Log.v(TAG, String.format("onDraw() left= %d, top = %d, right = %d, bottom = %d", left, top, right, bottom));
         mTextLayout.draw(canvas, left, top, right, bottom);
+        canvas.drawRect(debugClickedLineBound,debugPaint);
     }
 
     @Override
@@ -344,7 +352,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
         Rect paddings = getOptions().getTextPaddings();
-        return getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y-paddings.top, startLine);
+        int offset = getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y - paddings.top, startLine);
+        int line = getTextLayout().getLineForVertical((int)y);
+        if (line>-1) getLineBounds(line,debugClickedLineBound);
+        return offset;
     }
 
     @Override
@@ -459,7 +470,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public boolean onHeightExceed(int collectedHeight) {
-        return true;
+        return false;
     }
 
     /**
@@ -505,6 +516,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public int getLineBounds(int line, Rect outBounds) {
         TextLayout l = getTextLayout();
+
         Rect p = getOptions().getTextPaddings();
         outBounds.top = l.getLineTop(line);
         outBounds.left = (int) l.getPrimaryHorizontal(line, l.getLineStart(line), getWidth());
@@ -512,6 +524,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         outBounds.bottom = l.getLineBottom(line);
         return (int) (outBounds.bottom - l.getLineDescent(line));
     }
+
 
     @Override
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
@@ -532,5 +545,36 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             prepareLayout();
         }
         return true;
+    }
+
+    @Override
+    protected void processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
+        super.processTouchAt(X,Y,longTap,startsFromLine);
+        dump_lines_heights(getTextLayout());
+    }
+
+    private void dump_lines_heights(TextLayout l) {
+        int total = 0;
+        for (int i=0; i<30 && i<l.getLinesCount(); i++) {
+            int h = (int) l.getLineHeight(i);
+            total += h;
+            Log.v("LLL:","line "+i+" height="+h+" total height = "+total);
+        }
+        Log.v("LLL:","last line '"+lastLine(l)+"'");
+    }
+
+    private String lastLine(TextLayout l) {
+        int ln = l.getLinesCount() - 1;
+        int ls = l.getLineStart(ln);
+        int le = l.getLineEnd(ln);
+        try {
+            String line = (String) getText().subSequence(ls, le).toString();
+            // Log.v(TAG, "PL:"+mPosition+" last line ("+ln+") = '" + line + "'");
+            return line;
+        } catch (StringIndexOutOfBoundsException e) {
+            // Log.e(TAG,"invalid values");
+            return e.toString();
+        }
+
     }
 }

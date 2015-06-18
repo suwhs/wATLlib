@@ -96,6 +96,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                         mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
             mRenderDataLogged = true;
+        canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
     private void log_column_lines(int column) {
@@ -183,6 +184,35 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         mColumnsCountChanged = true;
     }
 
+    private void calculateColumns2(int width) {
+        int fits = mColumnsCount;
+        if (mMaxColumnWidth > -1 && mMaxColumnWidth < width) {
+            fits = 1 + (width-mColumnSpacing) / (mMaxColumnWidth+mColumnSpacing);
+        } else if (mMinColumnWidth > -1) {
+            fits = (width-mColumnSpacing) / mMinColumnWidth;
+            if (fits<1) fits = 1;
+        }
+
+        if (fits!=mColumnsCount) {
+            mColumnsCountChanged = false;
+            if (mColumnsLinesStarts!=null) {
+                // Log.w(TAG,"re-initialization required");
+            } else {
+                mColumnsVerticalShifts = new int[mColumnsCount];
+                mLinesHeightsOnColumns = new int[mColumnsCount];
+                mColumnsLinesStarts = new int[mColumnsCount];
+            }
+            int q = (width / fits);
+            if (q > 1) {
+                Rect textPaddings = getOptions().getTextPaddings();
+                int spacingSum = (mColumnSpacing+textPaddings.left+textPaddings.right) * (mColumnsCount - 1);
+                mColumnWidth = (fits - spacingSum) / mColumnsCount;
+            } else {
+                mColumnWidth = q; // q = 1, so no spacing
+            }
+        }
+    }
+
     private void calculateColumns(int textLayoutWidth) {
         if (mTextReady)
             Log.e(TAG,"calculate columns _after_ onTextReady()");
@@ -200,7 +230,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
         int q = (textLayoutWidth / mColumnsCount);
         if (q > 1) {
-            int spacingSum = mColumnSpacing * (mColumnsCount - 1);
+            Rect textPaddings = getOptions().getTextPaddings();
+            int spacingSum = (mColumnSpacing+textPaddings.left+textPaddings.right) * (mColumnsCount - 1);
             mColumnWidth = (textLayoutWidth - spacingSum) / mColumnsCount;
         } else {
             mColumnWidth = q; // q = 1, so no spacing

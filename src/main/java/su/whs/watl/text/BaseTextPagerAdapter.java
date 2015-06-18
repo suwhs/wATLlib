@@ -12,6 +12,8 @@ import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 
@@ -45,13 +47,14 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private boolean mUpdating = false;
     private int mCount = 1;
     private ITextPagesNumber mPagesNumberListener = null;
-
+    private boolean mNeedFontSize = true;
     private FakePagesController mFakePages = new FakePagesController();
+
+    // static initialization
     {
-        mTextPaint.setTextSize(24f);
         mTextPaint.setAntiAlias(true);
         mTextPaint.linkColor = Color.BLUE; // required to correctly draw colors
-        mOptions.setTextPaddings(20,20,20,20);
+        mOptions.setTextPaddings(15,15,15,15);
     }
 
     public BaseTextPagerAdapter(int resourceId) {
@@ -66,6 +69,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void setText(CharSequence text) {
+        mCount = 1;
+        mMaxPageNumber = 0;
         if (text instanceof Spanned) {
             mText = (Spanned)text;
         } else {
@@ -81,6 +86,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void setTextSize(float size) {
+        mNeedFontSize = false;
         mTextPaint.setTextSize(size);
     }
 
@@ -280,11 +286,35 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void invalidateMeasurement() {
-        // complete re-reflow
-        if (mTextLayout.isReflowBackgroundTaskRunning()) {
-            mTextLayout.setReflowBackgroundTaskCancelled(true);
-        }
+        clearViewProxies();
+        clearProxyLayouts();
+        mMaxPageNumber = 0;
         setText(mText);
+        notifyDataSetChanged();
+    }
+
+    private void clearViewProxies() {
+
+        for (ViewProxy vp : mProxyMap.values()) {
+            vp.clear();
+            ViewParent p = vp.getParent();
+            if (p!=null) {
+                if (p instanceof ViewGroup) {
+                    ((ViewGroup)p).removeView(vp);
+                }
+            }
+        }
+        mProxyMap.clear();
+    }
+
+    private void clearProxyLayouts() {
+        for (int i=0; i<mUnusedViews.size(); i++) {
+            int k = mUnusedViews.keyAt(i);
+            List<ViewProxy> unused = mUnusedViews.get(k);
+            unused.clear();
+        }
+        mUnusedViews.clear();
+        mProxies.clear();
     }
 
     @Override
@@ -413,7 +443,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             /** ui-thread **/
             super.onAttachedToWindow();
             mAttachedPagesCounter++;
-            if (mAttachedPagesCounter<2) {
+            if (mAttachedPagesCounter<2) { //
                 onAttachedFirst(getRootView().getContext());
             }
             if (!mProxy.isLayouted())
@@ -438,12 +468,40 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             removeView(detached);
             return detached;
         }
+
+        @Override
+        public void invalidate() {
+            // Log.v(TAG,"called invalidate from child?");
+            super.invalidate();
+        }
+
+        public void clear() {
+            if (mRealPage!=null) {
+                removeView(mRealPage);
+                mRealPage = null;
+            }
+            mContent = null;
+            if (mProxy!=null) mProxy.setInvalidateListener(null);
+            mProxy = null;
+            for (int i=0; i<mInvisiblePages.size(); i++) {
+                int k = mInvisiblePages.keyAt(i);
+                View v = mInvisiblePages.get(k);
+                if (v!=null) {
+                    removeView(v);
+                }
+            }
+            mInvisiblePages.clear();
+            setLoadingState();
+        }
     }
-
-
 
     private void onAttachedFirst(Context context) {
         /** ui-thread **/
+        if (!mNeedFontSize)
+            return;
+        float size = new Button(context).getTextSize();
+        mNeedFontSize = false;
+        mTextPaint.setTextSize(size);
     }
 
     private void onDetachedLast() {
@@ -459,6 +517,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (mProxies.get(page)!=null) {
             // we already have proxy for page
             ProxyLayout layout = mProxies.get(page);
+            if (!layout.isLayouted()) {
+                Log.v(TAG,"no layout calculated for " + layout);
+            }
             if (mProxyMap.containsKey(layout)) {
                 // and we already have ViewProxy for this page
                 return;
@@ -470,11 +531,13 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             int vtype = getViewTypeForPage(page);
             if (hasReplies(vtype)) {
                 ProxyLayout layout = new ProxyLayout(mTextLayout,page,mReplies.get(vtype));
-                mProxies.put(page,layout);
+                mProxies.put(page, layout);
             } else {
                 ProxyLayout layout = new ProxyLayout(mTextLayout,page);
                 mProxies.put(page,layout);
                 mFakePages.add(layout);
+                if (page>mMaxPageNumber)
+                    mMaxPageNumber = page;
             }
 
         }
@@ -484,9 +547,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public void layoutFinished() {
         // Log.v(TAG,"Layout Finished");
     }
-
-    // TODO: find nearest ChapterTitleSpan to provide page title
-    //
 
     private SparseArray<ProxyLayout.Replies> mReplies = new SparseArray<ProxyLayout.Replies>();
 

@@ -184,6 +184,11 @@ class ReflowState {
         this.lineWidth += width;
     }
 
+    public void increaseBreak(float width, float realWidth) {
+        this.breakWidth += realWidth;
+        this.lineWidth += realWidth;
+    }
+
     public void rollback(int breakPosition) {
         while (this.character > breakPosition) {
             float currentCharacterWidth = span.widths[this.character - span.start - 1];
@@ -204,4 +209,6 @@ class ReflowState {
             skipWhitespaces = false;
         }
     }
+
+
 }

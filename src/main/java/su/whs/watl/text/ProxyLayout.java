@@ -1,6 +1,7 @@
 package su.whs.watl.text;
 
 import android.text.TextPaint;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,9 +50,11 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
         // Log.v(TAG,"PL:"+mPosition+" restored viewsCount="+mViewsCount);
         mLayout = textLayoutEx;
+
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
         mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
+
     }
 
     /**
@@ -84,7 +87,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     @Override
     public void onTextInfoInvalidated() {
-        // stub
+        this.lines = null;
         if (!mAttached) {
             if (mEvents==null) {
                 throw new RuntimeException("ProxyLayout create with no Replies");
@@ -214,12 +217,22 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     @Override
     public void setInvalidateListener(TextLayoutListener listener) {
+        if (listener==null) {
+            detach();
+            return;
+        }
         attach(listener);
     }
 
     @Override
     public void invalidateMeasurement() {
         // avoid nullable this.lines
+        if (mEvents==null) {
+            Log.e(TAG, "ivalidateMeasurement() called without replies");
+        }
+        ViewHeightExceedEvent first = mEvents.first();
+        this.width = first.width;
+        mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
     }
 
     @Override
@@ -465,6 +478,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // Log.v(TAG,"detached!");
         // doest not call until current attached listener used to determine page geometry
         // so if text is not ready - throw exception
+        super.setInvalidateListener(null);
     }
 
     @Override

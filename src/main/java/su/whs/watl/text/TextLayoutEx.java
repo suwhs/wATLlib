@@ -24,6 +24,12 @@ import java.util.ListIterator;
 public class TextLayoutEx extends TextLayout {
     private static final String TAG="TextLayoutEx";
 
+    private int pageInProgress = 0;
+    private int firstLineForPage = 0;
+    private int[] geometry = new int[] { 0, 0 };
+    private boolean updateGeometryFlag = false;
+    private int collectedHeightTotal = 0;
+
     public interface TextLayoutListenerAdv extends TextLayoutListener {
         boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed);
         boolean updateGeometry(int[] geometry);
@@ -33,6 +39,7 @@ public class TextLayoutEx extends TextLayout {
         void createViewForPage(int page);
         void pageReady(int page);
         void layoutFinished();
+        void invalidateMeasurement();
     }
 
     private class BeginsGeometry {
@@ -77,16 +84,14 @@ public class TextLayoutEx extends TextLayout {
         mBuilder = builder;
     }
 
-    private int pageInProgress = 0;
-    private int firstLineForPage = 0;
-    private int[] geometry = new int[] { 0, 0 };
-    private boolean updateGeometryFlag = false;
-    private int collectedHeightTotal = 0;
-
     public void reset() {
         pageInProgress = 0;
         firstLineForPage = 0;
         updateGeometryFlag = false;
+        mLaunched = false;
+        synchronized (mPages) {
+            mPages.clear();
+        }
     }
 
     /**
@@ -109,6 +114,7 @@ public class TextLayoutEx extends TextLayout {
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
         // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+        this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible");
         }
@@ -122,7 +128,7 @@ public class TextLayoutEx extends TextLayout {
         if (collectedHeight<1) {
             // Log.v(TAG,"empty height?");
             return true;
-        }
+        } // FIXME: dirty hack to prevent line exceed bottom of view
         boolean stopForPage = !pageListener.onProgress(new Slice<TextLine>(lines,firstLineForPage,lines.size()), collectedHeight,viewHeightExceed);
         /*
         if (viewHeightExceed) {
@@ -157,8 +163,11 @@ public class TextLayoutEx extends TextLayout {
                         waitForNext = true;
                         // Log.v(TAG,"waitForNext");
                         mPages.wait();
-                        // Log.v(TAG, "wait done");
                         waitForNext = false;
+                        if (isReflowBackgroundTaskCancelled())
+                            return false;
+                        // Log.v(TAG, "wait done");
+
                     } catch (InterruptedException e) {
                         // wait interrupted
                         return false;
@@ -197,9 +206,13 @@ public class TextLayoutEx extends TextLayout {
                 @Override
                 public void run() {
                     mBuilder.pageReady(pageInProgress);
+                    mBuilder.layoutFinished();
                 }
             });
         }
+        setReflowBackgroundTaskCancelled(false);
+        setReflowBackgroundTaskRunning(false);
+        setReflowFinished(true);
         listener.onTextReady();
     }
 
@@ -227,6 +240,37 @@ public class TextLayoutEx extends TextLayout {
         }
     }
 
+    @Override
+    public void invalidateMeasurement() {
+        stopReflowIfNeed();
+        synchronized (mPages) {
+            for (int p = 0; p < mPages.size(); p++) {
+                int i = mPages.keyAt(p);
+                TextLayoutListenerAdv page = mPages.get(i);
+                page.onTextInfoInvalidated();
+            }
+            if (this.lines!=null)
+                this.lines.clear();
+        }
+        reset();
+        mBuilder.invalidateMeasurement();
+        mBuilder.createViewForPage(0);
+    }
+
+    @Override
+    public void invalidateLines() {
+        invalidateMeasurement();
+    }
+
+    @Override
+    protected void stopReflowIfNeed() {
+        setReflowBackgroundTaskCancelled(true);
+        synchronized (mPages) {
+            if (waitForNext)
+                mPages.notify();
+        }
+        super.stopReflowIfNeed();
+    }
 
     /* Slice */
     /*

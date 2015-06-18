@@ -377,6 +377,7 @@ public class TextViewWS extends TextView {
                 }
             }
         }
+        invalidate();
     }
 
 
@@ -464,6 +465,7 @@ public class TextViewWS extends TextView {
         }
 
         calculateSelectionCursorPositions();
+        destroyDrawingCache();
         invalidate();
         return true;
     }
@@ -611,6 +613,7 @@ public class TextViewWS extends TextView {
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
         Layout l = getLayout();
         int line = l.getLineForVertical((int) y) + startLine;
+        getLineBounds(line,debugClickedLineBound);
         return l.getOffsetForHorizontal(line, x);
     }
 
@@ -627,6 +630,7 @@ public class TextViewWS extends TextView {
             int line = getLineForPosition(position);
             Rect bounds = new Rect();
             getLineBounds(line,bounds);
+            getLineBounds(line,debugClickedLineBound);
             float left = getPrimaryHorizontal(line, position, textAreaWidth()) + getCompoundPaddingLeft();
             float right = getPrimaryHorizontal(line, position + 1, textAreaWidth()) + getCompoundPaddingLeft();
             bounds.left = (int) left;
@@ -685,4 +689,7 @@ public class TextViewWS extends TextView {
     public void setmClickableSpanListener(ClickableSpanListener listener) {
         mClickableSpanListener = listener;
     }
+
+    /* debug */
+    protected Rect debugClickedLineBound = new Rect();
 }
