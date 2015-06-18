@@ -377,7 +377,7 @@ public class TextViewWS extends TextView {
                 }
             }
         }
-        invalidate();
+        postInvalidateDelayed(10);
     }
 
 

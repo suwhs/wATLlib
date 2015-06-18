@@ -550,7 +550,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     protected void processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
         super.processTouchAt(X,Y,longTap,startsFromLine);
-        dump_lines_heights(getTextLayout());
+        // dump_lines_heights(getTextLayout());
     }
 
     private void dump_lines_heights(TextLayout l) {

@@ -217,7 +217,7 @@ public class TextLayoutEx extends TextLayout {
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
-        // Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
+        Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
         synchronized (mPages) {
             if (mPages.get(pageNo)!=null) {
                 throw new RuntimeException("pageGeometryBegins called twice for pageNo="+pageNo);
@@ -244,17 +244,18 @@ public class TextLayoutEx extends TextLayout {
     public void invalidateMeasurement() {
         stopReflowIfNeed();
         synchronized (mPages) {
+            /*
             for (int p = 0; p < mPages.size(); p++) {
                 int i = mPages.keyAt(p);
                 TextLayoutListenerAdv page = mPages.get(i);
                 page.onTextInfoInvalidated();
-            }
+            } */
+            mPages.clear();
             if (this.lines!=null)
                 this.lines.clear();
         }
         reset();
         mBuilder.invalidateMeasurement();
-        mBuilder.createViewForPage(0);
     }
 
     @Override

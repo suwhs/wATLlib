@@ -114,9 +114,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public int getItemPosition(Object object) {
         if (object instanceof ProxyLayout) {
-            return ((ProxyLayout)object).getPosition();
+            int position = ((ProxyLayout)object).getPosition();
+            if (mProxies.get(position)==object)
+                return position;
         }
-        return 0;
+        return POSITION_NONE;
     }
 
     @Override
@@ -139,7 +141,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        // Log.v(TAG,"instantiate item " + position);
+        Log.v(TAG,"instantiate item " + position);
         // determine view type for page
         int vtype = getViewTypeForPage(position);
 
@@ -194,12 +196,14 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
         // get ViewProxy, which holds this ((ProxyLayout)object)
         ViewProxy proxy = mProxyMap.get(object);
-        if (proxy.hasInvisiblePage()) {
+        if (proxy!=null && proxy.hasInvisiblePage()) {
             return; // do not remove
         }
-        mProxyMap.remove((ProxyLayout) object);
-        unused.add(proxy);
-        container.removeView(proxy);
+        if (proxy!=null) {
+            mProxyMap.remove((ProxyLayout) object);
+            unused.add(proxy);
+            container.removeView(proxy);
+        }
     }
 
 
@@ -225,6 +229,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (mPrimaryItem==position) return;
         Log.d(TAG, "setPrimaryItem == " + position + ", " + object);
         mPrimaryItem = position;
+
     }
 
     @Override
@@ -286,10 +291,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void invalidateMeasurement() {
+        mCount = 1;
+        mMaxPageNumber = 0;
         clearViewProxies();
         clearProxyLayouts();
-        mMaxPageNumber = 0;
-        setText(mText);
         notifyDataSetChanged();
     }
 
@@ -315,6 +320,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
         mUnusedViews.clear();
         mProxies.clear();
+        mReplies.clear();
     }
 
     @Override
@@ -368,7 +374,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public boolean isFromProxy(Object object) {
-            return object == mProxy;
+            return object == mProxy && object!=null;
         }
 
         public void replaceProxyLayout(ProxyLayout proxy) {

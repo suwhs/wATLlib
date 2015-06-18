@@ -1863,7 +1863,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int count = 0;
         while ((y + line.height < clipRect.top) && (y + line.wrapHeight < clipRect.top)) {
             y += line.height;
-            Log.v("DDD","line "+i+" height="+line.height+" total="+y+ "(1)");
+            // Log.v("DDD","line "+i+" height="+line.height+" total="+y+ "(1)");
             i++;
             count++;
             if (i < endLine)
@@ -1883,19 +1883,19 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             line = lines.get(i);
             if (height > 0 && (y + line.height > clipRect.bottom) && line.wrapHeight < 1) {
-                Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
+                // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
                 break linesLoop;
             }
             if (line.span == null) { // special case uses for closing image wrap
                 y += line.height;
-                Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
+                // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
                 continue;
             }
             int drawStart = line.start;
             int drawStop = line.end;
             if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
                 y += line.height; // line.span.get().height;
-                Log.v("DDD","line "+i+" height="+line.height+" total="+y+" skip (4)");
+                // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" skip (4)");
                 if (line.span.get().isDrawable) {
                     // Log.v(TAG, "skip line with drawable O_o");
                 }
@@ -2110,7 +2110,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             y += line.height;
-            Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (5)");
+            // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (5)");
            // if (y > clipRect.bottom-textPaddings.bottom) break linesLoop;
         }
         return 0;

@@ -15,9 +15,9 @@ public interface ContentView {
 
     class Options {
         private boolean mFilterEmptyLines = true;
-        private boolean mJustification = false;
+        private boolean mJustification = true;
         private int mDefaultDirection = 0;
-        private int[] mDrawablePaddings = new int[]{0, 0, 0, 0};
+        private int[] mDrawablePaddings = new int[]{5, 0, 5, 0};
         private ImagePlacementHandler mImagePlacementHandler = null;
         private LineBreaker mLineBreaker = null;
         private int mReflowTimeQuant = 300;

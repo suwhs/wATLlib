@@ -26,6 +26,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     private boolean mTextInvalidated = false;
 
     public ProxyLayout(TextLayoutEx textLayoutEx, int pageNo) {
+        Log.v(TAG,"create ProxyLayout pageNo="+pageNo);
         mPosition = pageNo;
         mLayout = textLayoutEx;
     }
@@ -38,6 +39,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
      */
 
     public ProxyLayout(TextLayoutEx textLayoutEx,int pageNo, Replies replies) {
+        Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
         // replay replies when invalidate,
         mViewsCount = 0;
         mPosition = pageNo;
