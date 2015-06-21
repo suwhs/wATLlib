@@ -29,6 +29,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         Log.v(TAG,"create ProxyLayout pageNo="+pageNo);
         mPosition = pageNo;
         mLayout = textLayoutEx;
+        setPaint(textLayoutEx.getPaint());
     }
 
     /**
@@ -42,6 +43,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
         // replay replies when invalidate,
         mViewsCount = 0;
+        setPaint(textLayoutEx.getPaint());
         mPosition = pageNo;
         mEvents = new Replies(replies); // clone replies, so a_current == zero
             for (ViewHeightExceedEvent event : replies.a_list) {
@@ -58,6 +60,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
 
     }
+
 
     /**
      *
@@ -235,11 +238,6 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
         mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
-    }
-
-    @Override
-    public void setPaint(TextPaint paint) {
-        // avoid nullable this.lines
     }
 
     @Override

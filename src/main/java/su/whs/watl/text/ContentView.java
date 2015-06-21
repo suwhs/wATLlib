@@ -31,7 +31,7 @@ public interface ContentView {
         private boolean mInvalidateMeasurement = false;
         private boolean mInvalidateLines = false;
         private boolean mInvalidate = false;
-        private Rect mTextPaddings = new Rect(5,5,5,5);
+        private Rect mTextPaddings = new Rect(5,0,5,0);
 
         public Options() {
 

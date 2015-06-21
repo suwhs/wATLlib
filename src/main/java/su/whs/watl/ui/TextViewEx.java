@@ -112,9 +112,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         super.setText("", BufferType.NORMAL);
         if (_text == null || _text.length() < 1) return;
-        if (mTextLayout != null) {
-            mTextLayout.release();
-        }
         mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
                 mTextLayout==null ? new ContentView.Options() : mTextLayout.getOptions() ,
                 this);

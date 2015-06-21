@@ -8,10 +8,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
 import android.text.Layout;
-import android.text.SpanWatcher;
-import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -71,8 +68,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected boolean justification = true;
     protected int viewHeight = -1;
     protected List<TextLine> lines;
-    private TextPaint paint = new TextPaint();
-    private TextPaint reflowPaint = new TextPaint();
+    private TextPaint paint;
+    private final TextPaint reflowPaint = new TextPaint();
     private Paint backgroundPaint = new Paint();
     private ContentView.Options mOptions = null;
 
@@ -204,24 +201,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         mViewsCount = 0;
         chars = new char[end - start];
         mText = text;
-        if (mText instanceof Editable) {
-            /* we need to monitor DynamicDrawableSpan for updates, invalidates, resizes */
-            ((Editable) mText).setSpan(new SpanWatcher() {
-                @Override
-                public void onSpanAdded(Spannable text, Object what, int start, int end) {
-                }
-
-                @Override
-                public void onSpanRemoved(Spannable text, Object what, int start, int end) {
-
-                }
-
-                @Override
-                public void onSpanChanged(Spannable text, Object what, int ostart, int oend, int nstart, int nend) {
-
-                }
-            }, 0, mText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
         TextUtils.getChars(text, start, end, chars, 0);
         mOptions = options;
         mOptions.setChangeListener(this);
@@ -229,6 +208,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         if (mOptions.getLineBreaker() == null) {
             mOptions.setLineBreaker(new DefaultLineBreaker());
         }
+
         this.paint = paint;
         lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin);
     }
@@ -244,25 +224,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     public TextLayout(Spanned text, TextPaint paint, TextLayoutListener invalidateListener) {
         this(text, 0, text.length(), paint, invalidateListener);
     }
-
-    public void release() {
-        // Log.v(TAG, "layout release :" + this);
-        mText = null;
-        chars = null;
-        if (lines != null) {
-            //   for (LineSpan.LineDescription line : lines)
-            //       line.release();
-            lines.clear();
-        }
-        /*
-        if (lineSpan != null) // BIG EFFECT
-            lineSpan.release();
-            */
-        synchronized (this) {
-            lineSpan = null;
-        }
-    }
-
 
     /**
      * @param view           - view we attached to
@@ -384,12 +345,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param paint
      */
 
-    public void setPaint(TextPaint paint) {
-        this.paint = paint;
-        if (isLayouted())
-            invalidateMeasurement();
-    }
-
     /* set size for layout */
 
     /**
@@ -449,19 +404,18 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * invalidate layout
      * actually, invalidate() works only if width/font size changed
      */
+
     public void invalidate() {
         if (reflowedWidth == width && reflowedTextSize == paint.getTextSize())
             return;
-        onBeforeReflow();
+        mIsLayouted = false;
         doReflowInBackground();
         reflowedWidth = width;
         reflowedTextSize = getPaint().getTextSize();
     }
 
-    protected void onBeforeReflow() {
-        mIsLayouted = false;
-        if (listener != null)
-            listener.onTextInfoInvalidated();
+    protected void setPaint(TextPaint paint) {
+        this.paint = paint;
     }
 
     /**
@@ -525,6 +479,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
         canvas.restoreToCount(state);
     }
+
+
 
     /**
      * @param canvas
@@ -786,6 +742,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     lineSpan.clearCache(false);
             }
 
+
+            if (listener != null)
+                listener.onTextInfoInvalidated();
                 reflow(chars, mStart, mEnd, lineSpan,
                         0, width, 0, requestedHeight, viewHeight,
                         reflowPaint,
@@ -1074,6 +1033,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                           TextPaint paint,
                           ContentView.Options options) {
         // extract options
+        Log.v(TAG,"reflow with font size:"+paint.getTextSize());
         LineBreaker lineBreaker = options.getLineBreaker();
         Rect textPaddings = options.getTextPaddings();
         int lineWidthDec = textPaddings.left+textPaddings.right;
@@ -1188,11 +1148,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             int spanDescent = 0;
             leadingMargin = span.margin;
 
+            workPaint.set(paint);
+
             if (span.isDrawable) {
                 if (span.width == 0)
                     LineSpan.measure(span, text, workPaint);
             } else if (span.widths == null) {
-                workPaint.set(paint);
+
                 LineSpan.measure(span, text, workPaint);
             }
 
