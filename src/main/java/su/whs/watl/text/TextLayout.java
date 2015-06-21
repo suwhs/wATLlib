@@ -101,6 +101,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return mIsLayouted;
     }
 
+    protected void setIsLayoutedInternal(boolean value) {
+        mIsLayouted = false;
+    }
+
+
     public void notifyTextHeightChanged() {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
@@ -224,8 +229,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         if (mOptions.getLineBreaker() == null) {
             mOptions.setLineBreaker(new DefaultLineBreaker());
         }
-        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin);
         this.paint = paint;
+        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin);
     }
 
     public TextLayout() {
@@ -780,10 +785,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (lineSpan != null)
                     lineSpan.clearCache(false);
             }
-            reflow(chars, mStart, mEnd, lineSpan,
-                    0, width, 0, requestedHeight, viewHeight,
-                    reflowPaint,
-                    getOptions());
+
+                reflow(chars, mStart, mEnd, lineSpan,
+                        0, width, 0, requestedHeight, viewHeight,
+                        reflowPaint,
+                        getOptions());
+            Log.v(TAG,"reflow finished");
+
         }
     }
 
@@ -897,9 +905,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         stopReflowIfNeed();
         if (Looper.getMainLooper().getThread() != Thread.currentThread())
             throw new RuntimeException("invalidateMeasurement() must be called from UI Thread");
-        invalidateLines();
-        if (lineSpan != null)
-            LineSpan.clearMeasurementData(lineSpan);
+
+        /*
+        if (listener!=null)
+            listener.onTextHeightChanged(); // dirty hack due to interface lack
+            */
+        int rW = reflowedWidth;
+        int rH = reflowedHeight;
+        invalidateMeasurementInternal();
+        setSize(rW,rH,viewHeight);
     }
 
     /**
@@ -908,14 +922,28 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     @Override
     public void invalidateLines() {
-        stopReflowIfNeed();
-        if (Looper.getMainLooper().getThread() != Thread.currentThread())
-            throw new RuntimeException("invalidateLines() must be called from UI Thread");
+        //
+        // stopReflowIfNeed();
+        // if (Looper.getMainLooper().getThread() != Thread.currentThread())
+        //    throw new RuntimeException("invalidateLines() must be called from UI Thread");
+        // invalidateLinesOnly();
+        invalidateMeasurement();
+    }
+
+    private void invalidateLinesInternal() {
         mIsLayouted = false;
         if (this.lines != null)
             lines.clear();
         this.lines = null;
+    }
 
+    protected void invalidateMeasurementInternal() {
+        invalidateLinesInternal();
+        if (lineSpan != null)
+            LineSpan.clearMeasurementData(lineSpan);
+        mIsLayouted = false;
+        reflowedWidth = -1;
+        reflowedHeight = -1;
     }
 
     /**
@@ -1322,6 +1350,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     continue processing;
                 } // end handle whitespaces block
                 // view line width exceed or force break
+                if (span==null || span.widths==null) {
+                    Log.e(TAG,"Noooo");
+                }
                 if ((forceBreak || state.lineWidth + span.widths[state.character - span.start] > wrapWidth) && !drawableScaleBreak) {
 
                     if (span.isDrawable) {
@@ -2320,9 +2351,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         each onHeightExceed()==true increments viewsCount
      */
 
-    public int getExceedsCount() {
-        return mViewsCount;
-    }
+    // public int getExceedsCount() {
+    //    return mViewsCount;
+    // }
 
     public class Options extends ContentView.Options {
         private ContentView.Options mParent;

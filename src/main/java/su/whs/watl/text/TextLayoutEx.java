@@ -30,6 +30,9 @@ public class TextLayoutEx extends TextLayout {
     private boolean updateGeometryFlag = false;
     private int collectedHeightTotal = 0;
 
+    private boolean mInvalidating = false;
+    private boolean mWaitForInvalidationFinished = false;
+
     public interface TextLayoutListenerAdv extends TextLayoutListener {
         boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed);
         boolean updateGeometry(int[] geometry);
@@ -113,7 +116,7 @@ public class TextLayoutEx extends TextLayout {
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
-        // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+        Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible");
@@ -218,6 +221,9 @@ public class TextLayoutEx extends TextLayout {
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
         Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
+        if (!waitForInvalidation()) {
+            Log.e(TAG,"error while wait for invalidation finished");
+        }
         synchronized (mPages) {
             if (mPages.get(pageNo)!=null) {
                 throw new RuntimeException("pageGeometryBegins called twice for pageNo="+pageNo);
@@ -235,32 +241,52 @@ public class TextLayoutEx extends TextLayout {
                 mLaunched = true;
                 super.setSize(width,height,viewHeight);
             } else {
-                mBuilder.createViewForPage(pageNo); // if first requested page > 0 - ask builder to create view for page 0
+                mBuilder.createViewForPage(0); // if first requested page > 0 - ask builder to create view for page 0
             }
         }
     }
 
     @Override
     public void invalidateMeasurement() {
-        stopReflowIfNeed();
+        lockInvalidate();
+        mBuilder.invalidateMeasurement();
+        super.invalidateMeasurementInternal();
         synchronized (mPages) {
-            /*
-            for (int p = 0; p < mPages.size(); p++) {
-                int i = mPages.keyAt(p);
-                TextLayoutListenerAdv page = mPages.get(i);
-                page.onTextInfoInvalidated();
-            } */
             mPages.clear();
             if (this.lines!=null)
                 this.lines.clear();
         }
         reset();
-        mBuilder.invalidateMeasurement();
+        unlockInvalidate();
+    }
+
+    private synchronized void lockInvalidate() {
+        mInvalidating = true;
+    }
+
+    private synchronized void unlockInvalidate() {
+        if (mInvalidating)
+            mInvalidating = false;
+        if (mWaitForInvalidationFinished) {
+            mWaitForInvalidationFinished = false;
+            this.notify();
+        }
+    }
+
+    private synchronized boolean waitForInvalidation() {
+        if (mInvalidating)
+            try {
+                mWaitForInvalidationFinished = true;
+                this.wait();
+            } catch (InterruptedException e) {
+                return false;
+            }
+        return true;
     }
 
     @Override
     public void invalidateLines() {
-        invalidateMeasurement();
+        super.invalidateLines();
     }
 
     @Override

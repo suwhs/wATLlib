@@ -293,6 +293,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public void invalidateMeasurement() {
         mCount = 1;
         mMaxPageNumber = 0;
+        mNeedFontSize = true;
         clearViewProxies();
         clearProxyLayouts();
         notifyDataSetChanged();

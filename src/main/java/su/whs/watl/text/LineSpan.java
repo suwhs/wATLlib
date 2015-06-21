@@ -349,6 +349,7 @@ public class LineSpan {
         for (LineSpan span = this; span != null; span = span.next) {
             span.breakFirst = null;
             if (span.isDrawable) {
+                span.width = 0;
                 span.drawableScaledHeight = 0f;
                 span.drawableClipHeight = 0f;
                 span.drawableClipWidth = 0f;
@@ -446,6 +447,8 @@ public class LineSpan {
             span.leading = 0;
             span.descent = 0;
             span.baselineShift = 0;
+            span.width = 0;
+            span.breakFirst = null;
         }
 
     }

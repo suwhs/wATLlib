@@ -413,7 +413,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // listener may be attached during reflow process on given page geometry - so
         // we need to notify listener about completed views and does not use calls to listener
         // to determine geometry (so we must ignore onViewHeightExceed
-
+        Log.d(TAG,"PL:"+mPosition+"mAttached");
         if (mEvents!=null && !mEvents.a_complete) {
             mPendingListener = listener;
             return;
