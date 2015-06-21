@@ -1,6 +1,8 @@
 package su.whs.watl.text;
 
 import android.graphics.Rect;
+import android.os.Bundle;
+import android.text.TextPaint;
 
 /**
  * Created by igor n. boulliev on 10.02.15.
@@ -11,13 +13,30 @@ public interface ContentView {
         void invalidateMeasurement(); // full reflow required
         void invalidateLines(); // lines distribution changed
         void invalidate(); // simple repaint
+        void setTextSize(float size);
+        TextPaint getTextPaint();
     }
 
     class Options {
+        private static final String FILTER_EMPTY_LINES_ENABLED = "FELE";
+        private static final String JUSTIFICATION_ENABLED = "JE";
+        private static final String DEFAULT_DIRECTION = "DD";
+        private static final String DRAWABLE_PADDINGS = "DP";
+        private static final String IMAGE_PLACEMENT_HANDLER_CLASS = "IPHCLS";
+        private static final String LINE_BREAKER_CLASS = "LBCLS";
+        private static final String REFLOW_TIME_QUANT_MS = "RTQMS";
+        private static final String LINESPACING_MULTIPLIER = "LSMUL";
+        private static final String LINESPACING_ADD = "LSADD";
+        private static final String EMPTY_LINES_HEIGHT = "ELH";
+        private static final String EMPTY_LINES_TRESHOLD = "ELT";
+        private static final String PARAGRAPH_MARGIN_LEFT = "PMLFT";
+        private static final String PARAGRAPH_MARGIN_TOP = "PMTOP";
+        private static final String TEXT_PADDINGS = "TPAD";
+
         private boolean mFilterEmptyLines = true;
         private boolean mJustification = true;
         private int mDefaultDirection = 0;
-        private int[] mDrawablePaddings = new int[]{5, 0, 5, 0};
+        private Rect mDrawablePaddings = new Rect(5, 0, 5, 0);
         private ImagePlacementHandler mImagePlacementHandler = null;
         private LineBreaker mLineBreaker = null;
         private int mReflowTimeQuant = 300;
@@ -25,13 +44,14 @@ public interface ContentView {
         private int mLineSpacingAdd = 0;
         private int mEmptyLineHeightLimit = 0;
         private int mEmptyLinesThreshold = 3;
-        private OptionsChangeListener mListener;
         private int mNewLineLeftMargin = 0;
         private int mNewLineTopMargin = 0;
+        private Rect mTextPaddings = new Rect(5,5,5,5);
+        /* non-serializable */
         private boolean mInvalidateMeasurement = false;
         private boolean mInvalidateLines = false;
         private boolean mInvalidate = false;
-        private Rect mTextPaddings = new Rect(5,0,5,0);
+        private OptionsChangeListener mListener;
 
         public Options() {
 
@@ -58,6 +78,38 @@ public interface ContentView {
             mNewLineTopMargin = source.mNewLineTopMargin;
             if (mListener!=null)
                 mListener.invalidateMeasurement();
+        }
+
+        public void set(Bundle in) {
+            mFilterEmptyLines = in.getBoolean(FILTER_EMPTY_LINES_ENABLED,true);
+            mJustification = in.getBoolean(JUSTIFICATION_ENABLED,true);
+            mDefaultDirection = in.getInt(DEFAULT_DIRECTION,0);
+            rectFromBundle(DRAWABLE_PADDINGS,in,mDrawablePaddings);
+            mReflowTimeQuant = in.getInt(REFLOW_TIME_QUANT_MS,300);
+            mLineSpacingMultiplier = in.getFloat(LINESPACING_MULTIPLIER,1f);
+            mLineSpacingAdd = in.getInt(LINESPACING_ADD);
+            mEmptyLineHeightLimit = in.getInt(EMPTY_LINES_HEIGHT,0);
+            mEmptyLinesThreshold = in.getInt(EMPTY_LINES_TRESHOLD,3);
+            mNewLineLeftMargin = in.getInt(PARAGRAPH_MARGIN_LEFT);
+            mNewLineTopMargin = in.getInt(PARAGRAPH_MARGIN_TOP);
+            rectFromBundle(TEXT_PADDINGS,in,mTextPaddings);
+        }
+
+        public Bundle getState() {
+            Bundle state = new Bundle();
+            state.putBoolean(FILTER_EMPTY_LINES_ENABLED,mFilterEmptyLines);
+            state.putBoolean(JUSTIFICATION_ENABLED,mJustification);
+            state.putInt(DEFAULT_DIRECTION,mDefaultDirection);
+            rectToBundle(DRAWABLE_PADDINGS,mDrawablePaddings,state);
+            state.putInt(REFLOW_TIME_QUANT_MS,mReflowTimeQuant);
+            state.putFloat(LINESPACING_MULTIPLIER,mLineSpacingMultiplier);
+            state.putInt(LINESPACING_ADD,mLineSpacingAdd);
+            state.putInt(EMPTY_LINES_HEIGHT,mEmptyLineHeightLimit);
+            state.putInt(EMPTY_LINES_TRESHOLD,mEmptyLinesThreshold);
+            state.putInt(PARAGRAPH_MARGIN_LEFT,mNewLineLeftMargin);
+            state.putInt(PARAGRAPH_MARGIN_TOP,mNewLineTopMargin);
+            rectToBundle(TEXT_PADDINGS,mTextPaddings,state);
+            return state;
         }
 
         public void setChangeListener(OptionsChangeListener listener) {
@@ -99,16 +151,13 @@ public interface ContentView {
         }
 
         public Options setDrawablePaddings(int left, int top, int right, int bottom) {
-            if (mDrawablePaddings[0]!=left||mDrawablePaddings[1]!=top||mDrawablePaddings[2]!=right||mDrawablePaddings[3]!=bottom) _im();
-            mDrawablePaddings[0] = left;
-            mDrawablePaddings[1] = top;
-            mDrawablePaddings[2] = right;
-            mDrawablePaddings[3] = bottom;
+            if (mDrawablePaddings.left!=left||mDrawablePaddings.top!=top||mDrawablePaddings.right!=right||mDrawablePaddings.bottom!=bottom) _im();
+            mDrawablePaddings.set(left,top,right,bottom);
             return this;
         }
 
         public void getDrawablePaddings(Rect rect) {
-            rect.set(mDrawablePaddings[0], mDrawablePaddings[1], mDrawablePaddings[2], mDrawablePaddings[3]);
+            rect.set(mDrawablePaddings);
         }
 
         public Options setImagePlacementHandler(ImagePlacementHandler handler) {
@@ -232,9 +281,29 @@ public interface ContentView {
 
         public Rect getTextPaddings() { return mTextPaddings; }
 
+        public Options setTextSize(float size) {
+            if (mListener!=null) {
+                if (mListener.getTextPaint().getTextSize()==size) return this;
+                _im();
+                mListener.getTextPaint().setTextSize(size);
+            }
+            return this;
+        }
+
+        /* utils */
         private boolean diff(Rect a, Rect b) {
             return (a.left==b.left && a.top==b.top && a.right==b.right && a.bottom==b.bottom);
         }
+
+        private void rectToBundle(String name, Rect r, Bundle out) {
+            out.putIntArray(name,new int[]{r.left, r.top, r.right, r.bottom});
+        }
+
+        private void rectFromBundle(String name, Bundle in, Rect out) {
+            int[] r = in.getIntArray(name);
+            out.set(r[0],r[1],r[2],r[3]);
+        }
+
     }
 
 

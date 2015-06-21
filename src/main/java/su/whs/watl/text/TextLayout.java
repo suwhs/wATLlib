@@ -323,6 +323,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return this.height;
     }
 
+    @Override
+    public TextPaint getTextPaint() { return this.paint; }
+
     /**
      * @param size
      */
@@ -1835,7 +1838,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         Rect clipRect = canvas.getClipBounds();
         Rect textPaddings = getOptions().getTextPaddings();
         int leftOffset = textPaddings.left;
-        int topOffset = 0; // textPaddings.top;
+        int topOffset = textPaddings.top;
 
 
         highlightPaint.setColor(highlightColor);

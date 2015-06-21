@@ -85,6 +85,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     }
 
     @Override
+    public TextPaint getTextPaint() { return mTextPaint; }
+
+    @Override
     public void setTextSize(float size) {
         mNeedFontSize = false;
         mTextPaint.setTextSize(size);
