@@ -372,7 +372,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void onTextInfoInvalidated() {
-        Log.v(TAG, "onTextInfoInvalidated()");
+        // Log.v(TAG, "onTextInfoInvalidated()");
         resetState();
         if (mNeedTotalHeight) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
@@ -388,13 +388,16 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void onTextReady() {
-        Log.v(TAG, "onTextReady");
+        // Log.v(TAG, "onTextReady");
+
         int lastLine = mTextLayout.getLinesCount();
         if (lastLine < 1) return;
         int nextCharacter = mTextLayout.getLineEnd(lastLine - 1);
+        /*
         int firstCharacter = mTextLayout.getLineStart(lastLine - 1);
         String lastLineStr = getText().subSequence(firstCharacter, nextCharacter).toString();
         Log.v(TAG, "last line: '" + lastLineStr + "'");
+        */
         if (mLayoutListener != null) {
             mLayoutListener.onLayoutFinished(nextCharacter);
         }

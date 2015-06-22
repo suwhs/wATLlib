@@ -116,7 +116,7 @@ public class TextLayoutEx extends TextLayout {
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
-        Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+        // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible");
@@ -193,7 +193,7 @@ public class TextLayoutEx extends TextLayout {
 
     @Override
     public void setTextSize(float size) {
-        Log.v(TAG,"new reflow font size "+size);
+        // Log.v(TAG,"new reflow font size "+size);
         getTextPaint().setTextSize(size);
     }
 
@@ -225,7 +225,7 @@ public class TextLayoutEx extends TextLayout {
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
-        Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
+        // Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
         if (!waitForInvalidation()) {
             Log.e(TAG,"error while wait for invalidation finished");
         }

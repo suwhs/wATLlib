@@ -40,7 +40,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
      */
 
     public ProxyLayout(TextLayoutEx textLayoutEx,int pageNo, Replies replies) {
-        Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
+        // Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
         // replay replies when invalidate,
         mViewsCount = 0;
         setPaint(textLayoutEx.getPaint());
@@ -411,7 +411,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // listener may be attached during reflow process on given page geometry - so
         // we need to notify listener about completed views and does not use calls to listener
         // to determine geometry (so we must ignore onViewHeightExceed
-        Log.d(TAG,"PL:"+mPosition+"mAttached");
+        // Log.d(TAG,"PL:"+mPosition+"mAttached");
         if (mEvents!=null && !mEvents.a_complete) {
             mPendingListener = listener;
             return;

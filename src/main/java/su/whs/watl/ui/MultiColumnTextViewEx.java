@@ -108,7 +108,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             log_single_line(i);
             height += getTextLayout().getLineHeight(i);
         }
-        Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "] height=" + height);
+        // Log.d(TAG, "column [" + column + "] lines [" + start + "-" + end + "] height=" + height);
     }
 
     private void log_single_line(int line) {

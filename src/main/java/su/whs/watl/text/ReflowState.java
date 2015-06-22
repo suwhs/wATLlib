@@ -160,7 +160,7 @@ class ReflowState {
             lastBreak = lineBreak;
         } else {
             if (lastBreak == null) {
-                Log.w(TAG, "breakFirst!=null, but lastBreak==null!");
+                Log.e(TAG, "breakFirst!=null, but lastBreak==null!");
             }
             lastBreak.next = lineBreak;
             lastBreak = lineBreak;

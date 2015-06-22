@@ -48,10 +48,10 @@ public interface ContentView {
         private int mNewLineTopMargin = 0;
         private Rect mTextPaddings = new Rect(5,5,5,5);
         /* non-serializable */
-        private boolean mInvalidateMeasurement = false;
-        private boolean mInvalidateLines = false;
-        private boolean mInvalidate = false;
-        private OptionsChangeListener mListener;
+        protected boolean mInvalidateMeasurement = false;
+        protected boolean mInvalidateLines = false;
+        protected boolean mInvalidate = false;
+        protected OptionsChangeListener mListener;
 
         public Options() {
 
@@ -284,7 +284,6 @@ public interface ContentView {
         public Options setTextSize(float size) {
             if (mListener!=null) {
                 if (mListener.getTextPaint().getTextSize()==size) return this;
-                _im();
                 mListener.setTextSize(size);
             }
             return this;

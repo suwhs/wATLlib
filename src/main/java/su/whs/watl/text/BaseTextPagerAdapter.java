@@ -150,7 +150,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        Log.v(TAG,"instantiate item " + position);
+        // Log.v(TAG,"instantiate item " + position);
         // determine view type for page
         int vtype = getViewTypeForPage(position);
 
@@ -236,7 +236,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public void setPrimaryItem(ViewGroup container, int position, Object object) {
         if (mPrimaryItem==position) return;
-        Log.d(TAG, "setPrimaryItem == " + position + ", " + object);
+        // Log.d(TAG, "setPrimaryItem == " + position + ", " + object);
         mPrimaryItem = position;
 
     }
@@ -641,6 +641,15 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         public OptionsWrapper() {
             super();
             setChangeListener(BaseTextPagerAdapter.this);
+        }
+
+        @Override
+        public ContentView.Options setTextSize(float size) {
+            if (size!=getTextPaint().getTextSize()) {
+                super.setTextSize(size);
+                mInvalidateMeasurement = true;
+            }
+            return this;
         }
     }
 
