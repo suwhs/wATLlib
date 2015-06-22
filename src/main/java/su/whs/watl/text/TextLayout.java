@@ -1699,7 +1699,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                     // unlimited view height, does not correct
                                 }
                             }
-
+                            wrapWidth -= span.drawableScaledWidth;
                             spanHeight = (int) span.drawableScaledHeight + paddings.top+paddings.bottom;
                         } else { // drawable width < leftWidth
                             if (height < 0) {
@@ -1953,13 +1953,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             int baseLine = y + line.height - line.descent;
-            float tail = line.afterBreak == null ? 0f : line.afterBreak.get().tail;
+            float tail = (line.afterBreak == null || line.afterBreak.get()==null) ? 0f : line.afterBreak.get().tail;
             LineSpan span = line.span.get();
             LineSpanBreak lineSpanBreak = line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next);
             float x;
             int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
 
             if (line.leadingMargin != null) {
+                workPaint.set(paint);
                 if (line.leadingMargin != actualLeadingMargin) {
                     actualLeadingMargin = line.leadingMargin;
                 }
@@ -2060,13 +2061,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         if (backgroundColorSpan)
                             canvas.drawRect(x,y,x+span.width,y+span.height,backgroundPaint);
                         canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
+                        x += lineSpanBreak.width; // TODO: \n empty line has width ?
                     } else {
                         // Log.v(TAG,"oops");
                     }
                     drawStart = drawStop;
-                    x += lineSpanBreak.width;
 
-                    if (!lineSpanBreak.strong && justification)
+
+                     if (!lineSpanBreak.strong && justification)
                         x += line.justifyArgument;
 
                     if (lineSpanBreak.carrierReturn) {
@@ -2081,9 +2083,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 if (tail > 0f) {
                     drawStop = line.end < span.end ? line.end : span.end;
-                    if (drawStart < drawStop)
+                    if (drawStart < drawStop) {
                         canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
-                    x += tail;
+                        x += tail;
+                    }
                 }
                 span = span.next;
                 if (span != null) {
@@ -2095,9 +2098,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawHighlight) {
                 if (findHighlightStartX)
-                    highlightStartX = calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0)) + line.margin;
+                    highlightStartX = calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0)) + line.margin + textPaddings.left;
                 if (findHighlightEndX)
-                    highlightEndX = calculateOffset(line.span.get(), line.start, highlightEnd, (justification ? line.justifyArgument : 0)) + line.margin;
+                    highlightEndX = calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0)) + line.margin + textPaddings.left;
                 canvas.drawRect(highlightStartX + align, y, highlightEndX+align, y + line.height, highlightPaint);
             }
 

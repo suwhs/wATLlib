@@ -33,12 +33,18 @@ import su.whs.watl.ui.TextViewEx;
 public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
 
+    private class DebugTextPaint extends TextPaint {
+        @Override
+        public void setTextSize(float size) {
+            super.setTextSize(size);
+        }
+    }
     private TextLayoutEx mTextLayout = null;
     private Spanned mText = null;
     private SparseArray<ProxyLayout> mProxies = new SparseArray<ProxyLayout>();
     private OptionsWrapper mOptions = new OptionsWrapper();
     private int mAttachedPagesCounter = 0;
-    private TextPaint mTextPaint = new TextPaint();
+    private TextPaint mTextPaint = new DebugTextPaint();
     private int mPrimaryItem = 0;
     private SparseArray<List<ViewProxy>> mUnusedViews = new SparseArray<List<ViewProxy>>();
     private Map<ProxyLayout,ViewProxy> mProxyMap = new HashMap<ProxyLayout,ViewProxy>();
@@ -296,7 +302,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public void invalidateMeasurement() {
         mCount = 1;
         mMaxPageNumber = 0;
-        mNeedFontSize = true;
         clearViewProxies();
         clearProxyLayouts();
         notifyDataSetChanged();
@@ -509,7 +514,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         /** ui-thread **/
         if (!mNeedFontSize)
             return;
-        float size = new Button(context).getTextSize();
+        Button b = new Button(context);
+        b.setTextAppearance(context,android.R.style.TextAppearance_Medium);
+        float size = b.getTextSize();
         mNeedFontSize = false;
         mTextPaint.setTextSize(size);
     }

@@ -39,6 +39,9 @@ class ReflowState {
 
     public ReflowState(ReflowState state) {
         this.span = state.span;
+        if (state.span!=null && state.span.breakFirst!=null) {
+            this.lastBreak = state.span.breakFirst;
+        }
         this.gravity = state.gravity;
         this.lineWidth = state.lineWidth;
         this.shiftY = state.shiftY;
@@ -56,7 +59,6 @@ class ReflowState {
         this.span = span;
         this.gravity = span.gravity;
         this.character = state.character;
-
         this.lastWhitespace = state.lastWhitespace;
         this.carrierReturnBreak = state.carrierReturnBreak;
         this.carrierReturnSpan = state.carrierReturnSpan;

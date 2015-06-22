@@ -285,7 +285,7 @@ public interface ContentView {
             if (mListener!=null) {
                 if (mListener.getTextPaint().getTextSize()==size) return this;
                 _im();
-                mListener.getTextPaint().setTextSize(size);
+                mListener.setTextSize(size);
             }
             return this;
         }

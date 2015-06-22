@@ -191,6 +191,11 @@ public class TextLayoutEx extends TextLayout {
         throw new RuntimeException("disabled method - use pageGeometryBegins() instead");
     }
 
+    @Override
+    public void setTextSize(float size) {
+        Log.v(TAG,"new reflow font size "+size);
+        getTextPaint().setTextSize(size);
+    }
 
     @Override
     public void onFinish(List<TextLine> lines, int height) {
