@@ -13,7 +13,6 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.MetricAffectingSpan;
 import android.text.style.ParagraphStyle;
 import android.text.style.ReplacementSpan;
-import android.util.Log;
 import android.view.Gravity;
 
 import java.io.DataInputStream;
@@ -30,7 +29,7 @@ import java.util.List;
 public class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
     public int gravity = Gravity.LEFT;
-    public int direction = 1; // __FUTURE__ __USE__ (_RTL_)
+    public int direction = Layout.DIR_LEFT_TO_RIGHT;
     public boolean strong = false;
     public boolean paragraphStart = false; // this span are first span in paragraph
     public boolean paragraphEnd = false; // this span are last span in paragraph
@@ -239,7 +238,7 @@ public class LineSpan {
      */
 
     protected static void measure(LineSpan lineSpan, char[] text, TextPaint paint, boolean lasy) {
-        Log.v(TAG, "measure with font size:" + paint.getTextSize());
+        // Log.v(TAG, "measure with font size:" + paint.getTextSize());
         TextPaint workPaint = new TextPaint();
         Paint.FontMetricsInt fmi = new Paint.FontMetricsInt();
         recursive:

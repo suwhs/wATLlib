@@ -1,6 +1,7 @@
 package su.whs.watl.text;
 
 import android.content.Context;
+import android.database.DataSetObserver;
 import android.graphics.Color;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
@@ -515,7 +516,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (!mNeedFontSize)
             return;
         Button b = new Button(context);
-        b.setTextAppearance(context,android.R.style.TextAppearance_Medium);
+        b.setTextAppearance(context,android.R.style.TextAppearance_Small);
         float size = b.getTextSize();
         mNeedFontSize = false;
         mTextPaint.setTextSize(size);
@@ -524,6 +525,22 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private void onDetachedLast() {
         /** ui-thread **/
         /** detached all views from mContext **/
+    }
+
+    private int observers = 0;
+
+    @Override
+    public void registerDataSetObserver(DataSetObserver o) {
+        super.registerDataSetObserver(o);
+        observers++;
+    }
+
+    @Override
+    public void unregisterDataSetObserver(DataSetObserver o) {
+        super.unregisterDataSetObserver(o);
+        observers--;
+        if (observers<0)
+            mTextLayout.stopReflowIfNeed();
     }
 
     @Override

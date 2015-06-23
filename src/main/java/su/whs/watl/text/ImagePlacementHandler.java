@@ -43,9 +43,12 @@ public abstract class ImagePlacementHandler {
          * @param paddings     - accept result 'paddings' for drawable
          * @return
          */
-
         @Override
         public int place(DynamicDrawableSpan drawableSpan, int /* unused - but may be -1 */ height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
+            return PLACEHOLDER;
+        }
+
+        public int place__old(DynamicDrawableSpan drawableSpan, int /* unused - but may be -1 */ height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
             Drawable drawable = drawableSpan.getDrawable();
             if (drawable == null) {
                 return 0;

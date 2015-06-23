@@ -14,6 +14,9 @@ class LineSpanBreak {
     public int skip = 0; // how many characters must be skipped for next line
     public boolean strong = true;
     public boolean hyphen = false;
+    /* marks position where span changes direction (next dir = current_dir * -1)
+     * for android, it cycle switches from LTR to RTL and back */
+    public boolean directionSwitch = false;
     public boolean carrierReturn = false;
     public float tail = -1f;
     // public float align = 0f;
@@ -21,6 +24,7 @@ class LineSpanBreak {
     public static int flagsToInt(LineSpanBreak lineBreak) {
         return
                 (lineBreak.strong ? 0x01 : 0x00) |
+                        (lineBreak.directionSwitch ? 0x08 : 0x00) |
                         (lineBreak.hyphen ? 0x02 : 0x00) |
                         (lineBreak.carrierReturn ? 0x04 : 0x00);
     }
@@ -29,6 +33,7 @@ class LineSpanBreak {
         if ((flags & 0x01) != 0x01) lineBreak.strong = false;
         if ((flags & 0x02) == 0x02) lineBreak.hyphen = true;
         if ((flags & 0x04) == 0x04) lineBreak.carrierReturn = true;
+        if ((flags & 0x08) == 0x08) lineBreak.directionSwitch = true;
     }
 
     public static void Serialize(DataOutputStream osw, LineSpanBreak lineBreak) throws IOException {

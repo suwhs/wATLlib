@@ -173,6 +173,10 @@ class ReflowState {
         return this;
     }
 
+    public void directionSwitchBreak() {
+
+    }
+
     public ReflowState finish() {
         if (lastBreak != null) {
             lastBreak.tail = span.width - this.processedWidth;

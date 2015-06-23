@@ -1050,774 +1050,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                           ContentView.Options options) {
         // extract options
         Log.v(TAG,"reflow with font size:"+paint.getTextSize());
-        LineBreaker lineBreaker = options.getLineBreaker();
-        Rect textPaddings = options.getTextPaddings();
-        int lineWidthDec = textPaddings.left+textPaddings.right;
-        int viewHeightDec = textPaddings.top+textPaddings.bottom;
 
-        float lineSpacingMultiplier = options.getLineSpacingMultiplier();
-        int lineSpacingAdd = options.getLineSpacingAdd();
-        int steplimit = options.getReflowQuantize();
-        boolean justification = options.isJustification();
-        ImagePlacementHandler imagePlacementHandler = options.getImagePlacementHandler();
 
-        LineSpan span = _startSpan;
-        if (options == null)
-            options = new ContentView.Options();
-        LinesList result = new LinesList();
-        TextPaint workPaint = new TextPaint();
-        ParagraphStyle[] paragraphStyles = null;
-        LeadingMarginSpan leadingMarginSpan = null;
-        List<ReflowState> stack = new ArrayList<ReflowState>();
-        long timeQuantStart = System.currentTimeMillis();
-        LineSpan lastParagraphStarts = null;
-        Point scale = new Point();
-        Rect paddings = new Rect();
-        options.getDrawablePaddings(paddings);
-        int lineBreakVal = 0; // breakPosition = 0;
-        boolean forceBreak = false;
-        int[] geometry = new int[2];
-        int leadingMargin = 0;
-        LeadingMarginSpan actualLeadingMarginSpan = null;
-
-        int linesAddedInParagraph = 0;
-
-        if (width < 1) {
-            if (updateGeometry(geometry)) {
-                width = geometry[0];
-                viewHeight = geometry[1];
-            } else {
-                throw new IllegalArgumentException("reflow called with argument 'width' < 1");
-            }
-        }
-
-        /*
-           TODO: add 'line compression' support
-                - if whitespaces count >= unsufficient lineWidth - compress line
-                (negative justification argument)
-           TODO: NoJustificationSpan extends ClickableSpan
-                - suppress clicks
-                - disable justification for ClickableSpan (option 'noJustififyForClickables)
-
-           TODO: add invalidation support for DynamicDrawableSpan area
-                see invalidate(Rect)
-
-           TODO: add caching support
-
-           TODO: immediately free memory after finish lineSpan processing (optional)
-                - change behavior of getPrimaryOffset...
-
-           TODO: add background drawable support, use virtual background span to draw highlight and selection
-          */
-
-        boolean carrierReturn = false;
-        int forcedParagraphLeftMargin = getOptions().getNewLineLeftMargin();
-        int forcedParagraphTopMargin = getOptions().getNewLineTopMargin();
-
-        int wrapWidth = width - lineWidthDec;
-        int wrapHeight = 0;
-        int wrapMargin = 0;
-        int wrapEnd = y;
+        ReflowContext ctx = new ReflowContext(text,lineStartAt,textEnd,_startSpan,x,width,height,viewHeight,paint);
 
         /**
          * reflow() supports "defer" image to next view
          */
 
-        List<LineSpan> deffered = new ArrayList<LineSpan>();
-        ReflowState state = new ReflowState(span, x);
-        state.startSpan = span;
-        state.carrierReturnSpan = span;
-        if (span.start < lineStartAt) {
-            if (span.end <= lineStartAt) {
-                Log.e(TAG, "incorrect start span");
-                return;
-            } else {
-                if (span.widths == null)
-                    LineSpan.measure(span, text, workPaint, true);
-                for (int i = span.start; i < lineStartAt; i++) {
-                    state.processedWidth += span.widths[i - span.start];
-                }
-            }
-            state.character = lineStartAt;
-            state.lastWhitespace = lineStartAt;
-        }
+        ctx.process(text);
 
-        LineSpan wrappedSpan = null;
-        int viewHeightLeft = viewHeight - viewHeightDec;
-        int collectedHeight = 0;
-
-        /* recursion function port */
-        recursion:
-        while (span != null) {
-            span.clearCache(true);
-            long currentTime = System.currentTimeMillis();
-            long timeSpent = currentTime - timeQuantStart;
-            /* if we spent more times, than steplimit - execute callback */
-            if (timeSpent > steplimit) {
-                /* note - if viewHeightExceed == false - break loop if onProgress() returns false */
-                if (!onProgress(result, y + collectedHeight, false)) {
-                    return;
-                }
-                timeQuantStart = currentTime;
-            }
-
-            int spanHeight = 0;
-            int spanLeading = 0;
-            int spanDescent = 0;
-            leadingMargin = span.margin;
-
-            workPaint.set(paint);
-
-            if (span.isDrawable) {
-                if (span.width == 0)
-                    LineSpan.measure(span, text, workPaint);
-            } else if (span.widths == null) {
-
-                LineSpan.measure(span, text, workPaint);
-            }
-
-            // FIXME: move handling of LeadingMarginSpan2 from draw here
-
-            if (span.paragraphStyles != paragraphStyles) {
-                leadingMarginSpan = null;
-                if (span.paragraphStyles != null)
-                    for (ParagraphStyle paragraphStyle : span.paragraphStyles) {
-                        if (paragraphStyle instanceof LeadingMarginSpan) {
-                            leadingMarginSpan = (LeadingMarginSpan) paragraphStyle;
-                            if (leadingMarginSpan != actualLeadingMarginSpan) {
-                                actualLeadingMarginSpan = leadingMarginSpan;
-                            }
-                        }
-                    }
-                paragraphStyles = span.paragraphStyles;
-            }
-
-            if (!span.isDrawable) {
-                spanLeading = (int) span.leading;
-                spanHeight = (int) (span.height + span.descent + (spanLeading * lineSpacingMultiplier) + lineSpacingAdd);
-                spanDescent = span.descent;
-            }
-
-            if (spanHeight > state.height) state.height = spanHeight;
-            if (spanLeading > state.leading) state.leading = spanLeading;
-            if (spanDescent > state.descent) state.descent = spanDescent;
-
-            if (!span.isDrawable && height > -1 && (y + state.height > height)) {
-                break recursion;
-            }
-
-            int lineMargin = leadingMargin;
-
-            if (state.lineWidth == 0f && (leadingMargin > 0 || span.paragraphStart)) {
-                lineMargin = leadingMargin;
-                if (span.paragraphStart && span != lastParagraphStarts) {
-                    lastParagraphStarts = span;
-                    lineMargin += span.paragraphStartMargin;
-                    state.height += span.paragraphTopMargin;
-                }
-                state.lineWidth = lineMargin;
-            }
-
-            /* flag */
-            boolean drawableScaleBreak = false;
-
-            // begin handle span
-            /* forceBreak required if we revert char sequence due to hyphenation/linebreak algorygthm */
-            processing:
-            while (state.character < span.end || forceBreak) {
-                if (state.skipWhitespaces) { // handle skip whitespaces
-                    state.doSkipWhitespaces(text);
-                    if (lineStartAt < state.character) // skipWhitespaces must works only at lineStart, so actually, this code execute after line ends
-                        lineStartAt = state.character;
-                    forceBreak = false; // cancel forcebreak
-                    // restore heights and checking if new line exeed view Height
-                    if (state.character < span.end) { // guard
-                        // recover spanHeight
-                        if (!span.isDrawable) {
-                            spanLeading = (int) span.leading;
-                            spanHeight = (int) (span.height + span.descent + (spanLeading * lineSpacingMultiplier) + lineSpacingAdd);
-                            spanDescent = span.descent;
-                        }
-
-                        if (spanHeight > state.height) state.height = spanHeight;
-                        if (spanLeading > state.leading) state.leading = spanLeading;
-                        if (spanDescent > state.descent) state.descent = spanDescent;
-                        // check if new line exceed view height (height defined and collected height exceed)
-                        if (height > -1 && collectedHeight + y + state.height + (carrierReturn ? forcedParagraphTopMargin : 0) > height) {
-                            break recursion;
-                        }
-                        if (viewHeightLeft - state.height < 0 && !span.isDrawable) {
-                            if (viewHeight > -1 && !onProgress(result, y, true)) {
-                                break recursion;
-                            } else if (viewHeight > -1 && updateGeometry(geometry)) {
-                                /* special case - ask geometry for next portion */
-                                    width = geometry[0];
-                                    viewHeight = geometry[1];
-                            }
-
-                            if (viewHeight > -1) { // TODO: reorganize conditions
-                                collectedHeight += y;
-                                y = 0;  // y zeroed only if viewHeight greater than -1
-                                viewHeightLeft = viewHeight - viewHeightDec;
-                                wrapWidth = width - lineWidthDec;
-                                wrapHeight = 0;
-                                wrapMargin = 0;
-                            }
-
-                            /* handle deffered images */
-                            if (deffered.size() > 0) {
-                                LineSpan defferedSpan = deffered.remove(0);
-                                DynamicDrawableSpan defferedDrawableSpan = defferedSpan.getDrawable();
-                                int placement = imagePlacementHandler.place(defferedDrawableSpan, viewHeightLeft, width, width, -1, scale, paddings, false);
-                                int gravity = LineSpan.imageAlignmentToGravity(ImagePlacementHandler.getAlignment(placement));
-
-                                if (imagePlacementHandler.isWrapText(placement)) {
-                                    wrappedSpan = defferedSpan;
-                                    wrapHeight = scale.y + paddings.top + paddings.bottom;
-                                /* need to store y+wrapHeight as minimum height for layout */
-                                    wrapEnd = collectedHeight + y + wrapHeight;
-
-                                    int paddingWidth = paddings.right + paddings.left;
-                                    wrapWidth = width - scale.x - paddingWidth;
-
-                                    if (gravity == Gravity.LEFT)
-                                        wrapMargin = width - wrapWidth;
-
-                                    result.add(new TextLine(defferedSpan, scale.y, scale.x + paddingWidth, gravity));
-
-                                    lineStartAt = state.character + 1;
-                                } else if (imagePlacementHandler.isNewLineAfter(placement)) {
-                                    TextLine ld;
-
-                                    if (state.height < scale.y) {
-                                        state.height = scale.y + paddings.top + paddings.bottom;
-                                    }
-
-                                    y += state.height;
-                                    viewHeightLeft -= state.height;
-                                    span.gravity = gravity;
-                                    if (height > -1 && y > height - 1) {
-                                        // Log.v(TAG, "9 break recursion height=" + height + ", y=" + y);
-                                        break recursion;
-                                    }
-
-                                    ld = new TextLine(defferedSpan, scale.x, scale.y);
-                                    ld.margin = lineMargin;
-                                    result.add(ld);
-                                } else {
-                                    Log.w(TAG, "unsupported placement for deffered image: " + placement);
-                                    continue processing;
-                                }
-                                defferedSpan.drawableScaledWidth = scale.x;
-                                defferedSpan.drawableScaledHeight = scale.y;
-                                Drawable dds = defferedDrawableSpan.getDrawable();
-                                if (dds != null) {
-                                    dds.setBounds(paddings.left, paddings.top, paddings.left + scale.x, paddings.top + scale.y);
-                                } else {
-                                    Log.w(TAG, "no drawable on DynamicDrawableSpan: " + defferedDrawableSpan);
-                                }
-                            } // END HANDLING DEFFERED IMAGES
-                        } else if (viewHeightLeft - state.height < 0) {
-
-                        }
-                    }
-                    continue processing;
-                } // end handle whitespaces block
-
-
-                // view line width exceed or force break
-                if (span==null || span.widths==null) {
-                    Log.e(TAG,"Noooo");
-                }
-                if ((forceBreak || state.lineWidth + span.widths[state.character - span.start] > wrapWidth) && !drawableScaleBreak) {
-
-                    if (span.isDrawable) {
-                        drawableScaleBreak = true;
-                        continue processing;
-                    }
-                    if (state.character <= lineStartAt) {
-                        Log.v(TAG, "line exceed at first character");
-                        state.character++;
-                    }
-                    // TODO: need special processing for large images (scaling, depends on ImagePlacementHandler response)
-
-                    if (!forceBreak) // if forceBreak - lineBreakVal ALREADY contains position
-                        lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
-
-                    // int lineBreakVal = forceBreak ? breakPosition : lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
-                    int breakPosition = LineBreaker.getPosition(lineBreakVal);
-                    if (state.character == state.lastWhitespace) {
-                        // Log.w(TAG, "first character on line does not fit to given width");
-                        breakPosition = state.character;
-                    }
-                    boolean hyphen = LineBreaker.isHyphen(lineBreakVal);
-                    if (breakPosition < state.lastWhitespace) {
-                        // Log.e(TAG, "possible crash in future: error in lineBreaker:(" + lineBreaker + ") - nearestLineBreak(text,start,end,limit) must returns value, that greater or equal start");
-                    }
-                    if (breakPosition <= lineStartAt) { // in some cases breakPosition<lineStartAt
-                        breakPosition = state.character - 1;
-                        // Log.e(TAG, "lineBreaker (" + lineBreaker + ") returns breakPosition before lineStarts");
-                    }
-                    forceBreak = false; // cancel force break
-                    /* check if breakPosition < span.start (rollback to previous state) */
-                    if (breakPosition < span.start) {
-                        span.breakFirst = null;
-                        // crash here if width too small
-                        state = stack.remove(0);
-                        span = state.span;
-                        spanHeight = state.height;
-                        forceBreak = true;
-                        continue processing;
-                    }
-
-                    /* force close line code - test, if we can move it to procedure */
-                    // local variables used :(
-
-                    TextLine ld;
-                    boolean isWhitespace = text[breakPosition] == ' ';
-
-                    state.rollback(breakPosition);
-
-                    if (hyphen) {
-                        // check if text[breakPosition] + hyphen_width fit line
-                        if (state.lineWidth + span.hyphenWidth > wrapWidth) {
-                            // Log.v(TAG,"hyphen character exeed line width");
-                            lineBreakVal = lineBreaker.nearestLineBreak(text,state.lastWhitespace,breakPosition-1,span.end);
-                            forceBreak = true;
-                            continue processing;
-                        }
-                        state.lineWidth += span.hyphenWidth;
-                    }
-
-
-                    ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-                    ld.margin = lineMargin + wrapMargin;
-                    ld.wrapMargin = wrapMargin;
-                    result.add(ld);
-                    ld.hyphen = hyphen;
-//                    ld.width += hyphen ? span.hyphenWidth : 0;
-                    state.breakLine(isWhitespace, ld); // nb: breakLine does not increment state.character
-
-                    if (justification)
-                        ld.justify(wrapWidth);
-                    // ajust new line margins
-                    if (carrierReturn) {
-                        ld.height += forcedParagraphTopMargin;
-                        y += forcedParagraphTopMargin;
-                        ld.margin += forcedParagraphLeftMargin;
-                        carrierReturn = false;
-                    }
-
-                    /* handle exceed view height */
-                    y += ld.height; // was state.height at 1368 -- DEBUG
-                    viewHeightLeft -= ld.height;
-                    /* handle wrap ends */
-                    wrapHeight -= ld.height;
-                    /* check if wrap around drawable finished */
-                    if (wrapWidth < width && wrapHeight < 1) {
-                        /* adjust vertical wrapped image position here */
-                        if (wrappedSpan != null) {
-                            /* calculate actual heights, occupied by lines */
-                            int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
-                            wrappedSpan.baselineShift = (int) (actualHeight - wrappedSpan.drawableScaledHeight);
-                            wrappedSpan = null;
-                        }
-
-                        wrapWidth = width - lineWidthDec;
-                        wrapMargin = 0;
-                        wrapHeight = height > viewHeight ? height : viewHeight;
-                    }
-
-                    if (span.paragraphStart && lastParagraphStarts == span && lineMargin > span.margin) {
-                        lineMargin = span.margin;
-                    }
-
-                    if (lineMargin > 0 || span.paragraphStart) {
-                        state.lineWidth = lineMargin;
-                    }
-                    state.character++; // nb: breakline does not increment state.character
-                    state.skipWhitespaces = true;
-                    lineStartAt = state.character;
-                    linesAddedInParagraph++;
-
-                } else if (text[state.character] == '\n') {
-                    // handle force carrier return
-                    try {
-                        state.processedWidth += span.widths[state.character - span.start];
-                    } catch (IndexOutOfBoundsException e) {
-                        // FIXME: dirty hack with try/catch
-                        // TODO: fix \n immediately after drawable span
-                        // Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
-                    }
-                    /* eliminate empty line only if non-empty-lines-count > threshold */
-                    if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
-                        TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-
-                        state.carrierReturn(ld); // TODO: fix invalid height calculation with filterEmptyLines option
-                        linesAddedInParagraph = 0;
-                    } else {
-                        TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-                        if (options.isFilterEmptyLines() && state.character == lineStartAt) {
-                            linesAddedInParagraph = 0;
-                            ld.height = options.getEmptyLineHeightLimit();
-                        } else
-                            linesAddedInParagraph++;
-                        y += ld.height;
-                        /* handle exceed view height */
-                        viewHeightLeft -= ld.height;
-                        result.add(ld);
-
-                        ld.margin = lineMargin + wrapMargin;
-                        ld.wrapMargin = wrapMargin;
-                        ld.wrapMargin = wrapMargin;
-
-
-                        /* handle wrap ends */
-                        wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
-                        // state.carrierReturns ZEROES ld.height
-                        state.carrierReturn(ld);
-
-                        if (wrapWidth < width && wrapHeight < 1) {
-                            if (wrappedSpan != null) {
-                            /* calculate actual heights, occupied by lines */
-                                int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
-                                wrappedSpan.baselineShift = (int) (actualHeight - wrappedSpan.drawableScaledHeight - textPaddings.top);
-                                wrappedSpan = null;
-                            }
-
-                            wrapWidth = width - lineWidthDec;
-                            wrapMargin = 0;
-                            wrapHeight = height > viewHeight ? height : viewHeight;
-                            /* FIXME: adjust vertical wrapped image position here ? */
-                        }
-                    }
-
-                    if (lineMargin > 0 || span.paragraphStart) {
-                        state.lineWidth = lineMargin;
-                    }
-
-                    carrierReturn = true;
-                    state.lineWidth += forcedParagraphLeftMargin;
-                    lineStartAt = state.character;
-                    state.skipWhitespaces = true;
-                } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR
-                    state.lastWhitespace = state.character; // force object replacement character as last whitespace
-                    drawableScaleBreak = false;
-                    forceBreak = false;
-
-                    boolean collectHeights = true;
-                    DynamicDrawableSpan dds = span.getDrawable();
-
-                    if (imagePlacementHandler != null) { // if we have image placement handler
-                        if (dds != null) {
-                            float leftWidth = width - state.lineWidth;
-                            int placement = imagePlacementHandler.place(dds, height > 0 ? ((int) (height - y - 1)) : viewHeightLeft, (int) (leftWidth), width, (int) x, scale, paddings, viewHeight > 0);
-                            if (scale.x + paddings.left + paddings.top > leftWidth) {
-                                // Log.w(TAG, "error in imagePlacementHandler = scale.x (width paddings) > width (" + scale.x + " > " + leftWidth + ")");
-                                // Drawable drawable = dds.getDrawable();
-                                float __width = scale.x;
-                                float __height = scale.y;
-                                float __ratio = __height / __width;
-                                scale.x = (int) leftWidth - paddings.left - paddings.right;
-                                scale.y = (int) (__ratio * scale.x);
-                                // Log.v(TAG, "fixed x=" + scale.x + ", y=" + scale.y);
-                            }
-                            if (placement == ImagePlacementHandler.DEFER) {
-                                deffered.add(span);
-                                if (state.character == lineStartAt) {
-                                    lineStartAt++;
-                                }
-                                state.character++;
-                                continue processing;
-                            }
-                            boolean finishLine = false;
-                            if (ImagePlacementHandler.isNewLineBefore(placement) || lineStartAt == state.character ||
-                                    (ImagePlacementHandler.isWrapText(placement) && wrapHeight > 0)) {
-                                finishLine = true;
-                            }
-
-                            if (finishLine) {
-                                if (lineStartAt < state.character) {
-                                    TextLine ld;
-
-                                    y += state.height;
-                                    viewHeightLeft -= state.height;
-
-                                    if (height > -1 && y > height - 1) {
-                                        // Log.v(TAG, "4 break recursion while finish line");
-                                        break recursion;
-                                    }
-
-                                    ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-                                    ld.margin = lineMargin + wrapMargin;
-                                    ld.wrapMargin = wrapMargin;
-                                    ld.end--;
-                                    result.add(ld);
-                                    wrapHeight -= ld.height;
-                                    // state.carrierReturn ZEROES ld.height
-                                    state.carrierReturn(ld);
-                                    state.character--; // correct shifted by carrierReturn() position;
-                                    // WARN: do not execute justification on line before images
-                                    lineStartAt = state.character;
-                                /* handle wrap ends */
-
-                                } else if (lineStartAt == state.character) {
-                                    if (wrappedSpan !=null && wrapHeight > 0) {
-                                        result.add(new TextLine(null, 0, wrapHeight));   // TODO: need correctly handle in draw()
-                                        wrapHeight = 0;
-                                        wrapMargin = 0;
-                                        wrappedSpan = null;
-                                    }
-                                }
-                            }
-
-                            int gravity = LineSpan.imageAlignmentToGravity(ImagePlacementHandler.getAlignment(placement));
-
-                            if (ImagePlacementHandler.isWrapText(placement) && scale.x < leftWidth) {
-                                collectHeights = false;
-                                if (wrappedSpan != null && wrapHeight > 0) {
-                                    // before, we must close active wrap
-                                    result.add(new TextLine(null, 0, wrapHeight));
-
-                                    /**
-                                     * need correctly handle case, if current line calculated for wrap, and looks like
-                                     * 'ccccccI', where ccccc - collected characters, and I - current DynamicDrawableSpan
-                                     *
-                                     * if previous wrapWidth may be less, than wrapWidth for current DynamicDrawableSpan - it may be
-                                     * error in ImagePlacementHandler, if 'cccccI' in wrapped mode does not fit 'width' of view
-                                     * - need check, force close 'ccccc' and starts 'I' with new line
-                                     *
-                                     */
-                                    wrapMargin = 0;
-                                    /*
-                                        closing algorythm:
-                                            close current line (move under 'if ( .isWrapText()) condition
-                                            if wrapHeight > 0 - create fake line with height = wrapHeight
-                                     */
-                                } /* wrapHeight closed */
-                                wrappedSpan = span;
-                                wrapHeight = scale.y + paddings.top + paddings.bottom;
-                                /* need to store y+wrapHeight as minimum height for layout */
-                                wrapEnd = collectedHeight + y + wrapHeight;
-
-                                int paddingWidth = paddings.right + paddings.left;
-                                wrapWidth = width - scale.x - paddingWidth - lineWidthDec;
-
-                                if (gravity == Gravity.LEFT)
-                                    wrapMargin = width - wrapWidth - lineWidthDec;
-                                TextLine ld = new TextLine(span, scale.y, scale.x + paddingWidth, gravity);
-                                result.add(ld);
-
-                                // if (scale.x+paddingWidth+state.lineWidth>)
-                                state.skipWhitespaces = true;
-                                lineStartAt = state.character + 1;
-                            } else if (imagePlacementHandler.isWrapText(placement)) {
-                                // Log.v(TAG, "processed last!");
-                                // image at the end of line, which is stars wrap,
-                                // so - close line, shift lineStartsAt and set values for wrapWidth etc
-                                int paddingWidth = paddings.right + paddings.left;
-
-                                result.add(new TextLine(span, scale.y, scale.x + paddingWidth, gravity));
-
-                                // add fake image 'line'
-
-                                TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-
-                                wrapWidth = width - scale.x - paddingWidth;
-
-                                if (gravity == Gravity.LEFT)
-                                    wrapMargin = width - wrapWidth;
-
-                                ld.margin = lineMargin + wrapMargin;
-                                ld.wrapMargin = wrapMargin;
-                                ld.end--;
-                                result.add(ld);
-                                state.carrierReturn(ld); // finish line before image
-                                state.character--;
-                                lineStartAt = state.character + 1;
-                                wrappedSpan = span;
-                                wrapHeight = scale.y + paddings.top + paddings.bottom;
-                                /* need to store y+wrapHeight as minimum height for layout */
-                                wrapEnd = collectedHeight + y + wrapHeight;
-                            } else {
-                                if (ImagePlacementHandler.isNewLineAfter(placement)) {
-                                    TextLine ld;
-                                    // span.gravity = gravity;
-                                    if (state.height < scale.y) {
-                                        state.height = scale.y + paddings.top + paddings.bottom;
-                                    }
-
-                                    y += state.height;
-                                    viewHeightLeft -= state.height;
-
-                                    if (height > -1 && y > height - 1) {
-                                        Log.v(TAG, "6 break recursion height=" + height + ", y=" + y);
-                                        break recursion;
-                                    }
-
-                                    ld = new TextLine(span, scale.x, scale.y);
-                                    ld.margin = lineMargin;
-                                    ld.gravity = gravity;
-                                    result.add(ld);
-                                    state.carrierReturn(ld);
-                                    state.character--;
-                                    ld.end = span.end;
-                                    lineStartAt = state.character + 1;
-                                    state.skipWhitespaces = true;
-                                } else {
-                                    // Log.v(TAG, "inline image placement?");
-                                }
-                            }
-
-                            int baseLineShift = 0;
-
-                            if (span.next != null && !ImagePlacementHandler.isNewLineAfter(placement)) {
-                                baseLineShift = (span.next.height - span.next.descent) / 2;
-                            }
-
-                            span.drawableScaledWidth = scale.x;
-                            span.drawableScaledHeight = scale.y;
-                            Drawable drawable = dds.getDrawable();
-                            if (drawable != null) {
-                                drawable.setBounds(paddings.left, paddings.top + baseLineShift, paddings.left + scale.x, paddings.top + scale.y + baseLineShift);
-                            }
-
-                        } else {
-                            // dds is null, skip
-                            Log.w(TAG, "dynamic drawable span are null");
-                        }
-
-                    } else { // imagePlacementHandler are null
-                        // default inline scaling behavior
-                        // there 'inline' scaling to fit available place example
-                        float leftWidth = wrapWidth - state.lineWidth;
-
-                        if (span.width > leftWidth) {
-                            float ratio = span.height / span.width;
-                            float nH = leftWidth * ratio;
-
-                            span.drawableScaledHeight = nH;
-                            span.drawableScaledWidth = leftWidth;
-
-                            if (height < 0) {
-                                if (viewHeightLeft > 0) {
-                                    // limited view height
-                                    if (span.drawableScaledHeight > viewHeightLeft) {
-                                        // scale down
-                                        span.drawableScaledHeight = viewHeightLeft;
-                                        span.drawableScaledWidth = viewHeightLeft / ratio;
-                                    }
-                                } else {
-                                    // unlimited view height, does not correct
-                                }
-                            }
-                            wrapWidth -= span.drawableScaledWidth;
-                            spanHeight = (int) span.drawableScaledHeight + paddings.top+paddings.bottom;
-                        } else { // drawable width < leftWidth
-                            if (height < 0) {
-                                if (viewHeightLeft > 0) {
-                                    // limited view height
-                                    if (span.height > viewHeightLeft) {
-                                        // do we need break here if scale too small ?
-
-                                    } else {
-                                        span.drawableScaledHeight = span.height;
-                                        span.drawableScaledWidth = span.width;
-                                    }
-                                } else {
-                                    // unlimited view height
-                                    span.drawableScaledHeight = span.height;
-                                    span.drawableScaledWidth = span.width;
-                                }
-                            }
-                            spanHeight = (int) span.drawableScaledHeight + paddings.top+paddings.bottom;
-                            span.baselineShift += paddings.top;
-                            collectHeights = true;
-                        }
-                        // deffered height calculation
-
-                        Drawable drawable = dds.getDrawable();
-                        if (drawable != null) {
-                            drawable.setBounds(paddings.left, paddings.top, (int) span.drawableScaledWidth + paddings.right, (int) span.drawableScaledHeight + paddings.bottom);
-                        }
-                        // state.lineWidth += span.drawableScaledWidth + paddings.left + paddings.right;
-
-                    }
-                    spanHeight += span.descent + (spanLeading * lineSpacingMultiplier) + lineSpacingAdd;
-
-                    if (collectHeights) {
-                        if (spanHeight > state.height) state.height = spanHeight;
-                        if (spanLeading > state.leading) state.leading = spanLeading;
-                        if (spanDescent > state.descent) state.descent = spanDescent;
-                    }
-                    // handle object replacement char
-                    // state.increaseBreak(span.widths[state.character - span.start],span.drawableScaledWidth+paddings.left+paddings.right);
-                    // state.lineWidth += span.drawableScaledWidth+paddings.left+paddings.right;
-                    state.character++;
-                } else if (!lineBreaker.isLetter(text[state.character])) {
-                    // handle non-letter characters (m.b. only spaces?)
-                    state.nonLetterBreak(text[state.character] != ' ' || span.strong);
-                } else if (text[state.character] == '\u200F') { // RTL MARK
-                    Log.v(TAG, "rtl mark!");
-                    /**
-                     * make current span direction RTL (if not)
-                     * and make state.direction = RTL
-                     */
-                    state.character++;
-                } else if (text[state.character] == '\u200E') { // LTR mark
-                    Log.v(TAG, "ltr mark!");
-                    state.character++;
-                } else {
-                    // handle usual character
-                    if (span.widths == null) {
-                        Log.v(TAG, "span widths are null: " + span);
-                    }
-                    state.increaseBreak(span.widths[state.character - span.start]);
-                    state.character++;
-                }
-            }
-            // end handle span (
-
-            if (state.lineWidth == lineMargin) // cancel margin if only margin at new line
-                state.lineWidth = 0f;
-            // handle span switch
-            if (state.skipWhitespaces) {
-                state.processedWidth = state.span.width;
-            } else {
-
-            }
-            stack.add(0, state.finish());
-            if (span.next == null) {
-                // Log.v(TAG, "break recursion at the end of chain");
-                break recursion;
-            }
-
-            /**
-             * TODO: release span.widths (if memory free required)
-             *
-             */
-
-            state = new ReflowState(state, span.next);
-            span = span.next;
-
-            if (span != null && span.breakFirst != null) {
-                // Log.v(TAG, "clean underflow breakFirst");
-                span.breakFirst = null;
-            }
-        }
-        // handle tail of line
-        state.character--;
-        TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
-
-        if (ld.end <= textEnd && (height < 1 || y + ld.height < height + 1)) {
-            result.add(ld);
-        } else
-            state.height = 0;
-        /* if (progress != null) {
-            // Log.v(TAG, "call on Finish()");
-
-        } */
-        onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
     }
 
 
@@ -2359,6 +1601,583 @@ public class TextLayout implements ContentView.OptionsChangeListener {
            // }
            // count++;
             return super.add(line);
+        }
+    }
+
+    private class ReflowContext {
+        private List<LineSpan> deffered = new ArrayList<LineSpan>();
+        private ImagePlacementHandler imagePlacementHandler;
+        private int viewHeightLeft;
+        private int viewHeightDec;
+        private Rect textPaddings;
+        private Rect drawablePaddings = new Rect();
+        private LineSpan wrappedSpan = null;
+        private Point scale = new Point();
+        private int wrapHeight = 0;
+        private int wrapMargin = 0;
+        private int wrapEnd = 0;
+        private int y =0;
+        private int collectedHeight = 0;
+        private int lineWidthDec = 0;
+        private int wrapWidth = 0;
+        private LinesList result = new LinesList();
+        private int lineStartAt = 0;
+        private List<ReflowState> stack = new ArrayList<ReflowState>();
+        private ReflowState state;
+        private LineSpan span;
+        private int lineMargin;
+        private LineBreaker lineBreaker;
+        private float lineSpacingMultiplier = 1f;
+        private int lineSpacingAdd = 0;
+        private boolean forceBreak = false;
+        private int[] geometry = new int[2];
+        private int leadingMargin = 0;
+        private boolean carrierReturn = false;
+        private boolean lineStartsWithRtl = false;
+        private boolean lineContainsRtlSpans = false;
+        private int currentDirection = Layout.DIR_LEFT_TO_RIGHT;
+        private int forcedParagraphLeftMargin = 0;
+        private int forcedParagraphTopMargin = 0;
+        private int linesAddedInParagraph = 0;
+        private LeadingMarginSpan leadingMarginSpan = null;
+        private ContentView.Options options;
+        private long timeQuantStart = System.currentTimeMillis();
+        private LineSpan lastParagraphStarts = null;
+        private ParagraphStyle[] paragraphStyles;
+        private LeadingMarginSpan actualLeadingMarginSpan = null;
+        private int lineBreakVal = -1;
+        private int spanHeight = 0;
+        private int spanLeading = 0;
+        private int spanDescent = 0;
+        private long steplimit = 150;
+        private int textEnd;
+        private int height = -1;
+        private int width;
+        private TextPaint paint;
+        private int viewHeight = -1;
+        public ReflowContext(char[] text, int lineStartAt, int textEnd, LineSpan _startSpan, float x, int width, int height, int viewHeight, TextPaint paint) {
+            this.textEnd = textEnd;
+            this.width = width;
+            this.height = height;
+            this.viewHeight = viewHeight;
+            this.paint = paint;
+            this.span = _startSpan;
+            options = getOptions();
+            lineBreaker = options.getLineBreaker();
+             imagePlacementHandler = options.getImagePlacementHandler();
+            if (imagePlacementHandler==null)
+                imagePlacementHandler = new ImagePlacementHandler.DefaultImagePlacementHandler();
+            textPaddings = options.getTextPaddings();
+            options.getDrawablePaddings(drawablePaddings);
+            lineWidthDec = textPaddings.left+textPaddings.right;
+            viewHeightDec = textPaddings.top+textPaddings.bottom;
+            viewHeightLeft = viewHeight - viewHeightDec;
+            wrapWidth = width - lineWidthDec;
+            wrapEnd = y;
+            this.lineStartAt = lineStartAt;
+            lineSpacingMultiplier = options.getLineSpacingMultiplier();
+            lineSpacingAdd = options.getLineSpacingAdd();
+            justification = options.isJustification();
+            if (width < 1) {
+                if (updateGeometry(geometry)) {
+                    this.width = geometry[0];
+                    this.viewHeight = geometry[1];
+                } else {
+                    throw new IllegalArgumentException("reflow called with argument 'width' < 1");
+                }
+            }
+            state = new ReflowState(span, x);
+            state.startSpan = span;
+            state.carrierReturnSpan = span;
+            if (span.start < lineStartAt) {
+                if (span.end <= lineStartAt) {
+                    Log.e(TAG, "incorrect start span");
+                    return;
+                } else {
+                    if (span.widths == null)
+                        LineSpan.measure(span, text, workPaint, true);
+                    for (int i = span.start; i < lineStartAt; i++) {
+                        state.processedWidth += span.widths[i - span.start];
+                    }
+                }
+                state.character = lineStartAt;
+                state.lastWhitespace = lineStartAt;
+            }
+            forcedParagraphLeftMargin = options.getNewLineLeftMargin();
+            forcedParagraphTopMargin = options.getNewLineTopMargin();
+            steplimit = options.getReflowQuantize();
+        }
+
+        public void deferDrawable(LineSpan span) {
+            deffered.add(span);
+        }
+
+        public boolean handleDefferedImages() {
+            if (deffered.size()>0) {
+                LineSpan defferedSpan = deffered.remove(0);
+                DynamicDrawableSpan defferedDrawableSpan = defferedSpan.getDrawable();
+                return handleImages(defferedSpan, defferedDrawableSpan, false);
+            }
+            return true;
+        }
+
+        public boolean handleImages(LineSpan span, DynamicDrawableSpan dds,boolean allowDefer) {
+            int placement = imagePlacementHandler.place(dds, viewHeightLeft, width, width, -1, scale, drawablePaddings, allowDefer);
+            if (placement==ImagePlacementHandler.DEFER) {
+                deffered.add(span);
+                state.character++;
+                return true;
+            }
+
+            int gravity = LineSpan.imageAlignmentToGravity(ImagePlacementHandler.getAlignment(placement));
+
+            if (imagePlacementHandler.isWrapText(placement)) {
+                wrappedSpan = span;
+                wrapHeight = scale.y + drawablePaddings.top + drawablePaddings.bottom;
+                /* need to store y+wrapHeight as minimum height for layout */
+                wrapEnd = collectedHeight + y + wrapHeight;
+
+                int paddingWidth = drawablePaddings.right + drawablePaddings.left;
+                wrapWidth = width - scale.x - paddingWidth;
+
+                if (gravity == Gravity.LEFT)
+                wrapMargin = width - wrapWidth;
+
+                result.add(new TextLine(span, scale.y, scale.x + paddingWidth, gravity));
+
+                lineStartAt = state.character + 1;
+            } else if (imagePlacementHandler.isNewLineAfter(placement)) {
+                TextLine ld;
+
+                if (state.height < scale.y) {
+                    state.height = scale.y + drawablePaddings.top + drawablePaddings.bottom;
+                }
+
+                y += state.height;
+                viewHeightLeft -= state.height;
+                span.gravity = gravity;
+                if (height > -1 && y > height - 1) {
+                    // Log.v(TAG, "9 break recursion height=" + height + ", y=" + y);
+                    return false;
+                }
+
+                ld = new TextLine(span, scale.x, scale.y);
+                ld.margin = lineMargin;
+                result.add(ld);
+            } else {
+                Log.w(TAG, "unsupported placement for deffered image: " + placement);
+                return true;
+            }
+            span.drawableScaledWidth = scale.x;
+            span.drawableScaledHeight = scale.y;
+            Drawable dr = dds.getDrawable();
+            if (dr != null) {
+                dr.setBounds(0, 0, scale.x, scale.y);
+            } else {
+                Log.w(TAG, "no drawable on DynamicDrawableSpan: " + span);
+            }
+            return true;
+        }
+
+        public void handleCarrierReturn() {
+            // handle force carrier return
+            try {
+                state.processedWidth += span.widths[state.character - span.start];
+            } catch (IndexOutOfBoundsException e) {
+                // FIXME: dirty hack with try/catch
+                // TODO: fix \n immediately after drawable span
+                // Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
+            }
+                    /* eliminate empty line only if non-empty-lines-count > threshold */
+            if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
+                TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+                state.carrierReturn(ld);
+                linesAddedInParagraph = 0;
+            } else { // filterEmptyLines disabled, or state.character > lineStartAt, or linesAddedInParagraph >= emptyLinesTreshold
+                TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+                if (options.isFilterEmptyLines() && state.character == lineStartAt) {
+                    linesAddedInParagraph = 0;
+                    ld.height = options.getEmptyLineHeightLimit();
+                } else
+                    linesAddedInParagraph++;
+                y += ld.height;
+                        /* handle exceed view height */
+                viewHeightLeft -= ld.height;
+                result.add(ld);
+
+                ld.margin = lineMargin + wrapMargin;
+                ld.wrapMargin = wrapMargin;
+                ld.wrapMargin = wrapMargin;
+
+
+                        /* handle wrap ends */
+                wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
+                // state.carrierReturns ZEROES state.height
+                state.carrierReturn(ld);
+
+                if (wrapWidth < (width-lineWidthDec) && wrapHeight < 1) {
+                    if (wrappedSpan != null) {
+                            /* calculate actual heights, occupied by lines */
+                        int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
+                        wrappedSpan.baselineShift = (int) (actualHeight - wrappedSpan.drawableScaledHeight - textPaddings.top);
+                        wrappedSpan = null;
+                    }
+
+                    wrapWidth = width - lineWidthDec;
+                    wrapMargin = 0;
+                    wrapHeight = height > viewHeight ? height : viewHeight;
+                            /* FIXME: adjust vertical wrapped image position here ? */
+                }
+            }
+
+            if (lineMargin > 0 || span.paragraphStart) {
+                state.lineWidth = lineMargin;
+            }
+
+            carrierReturn = true;
+            state.lineWidth += forcedParagraphLeftMargin;
+            lineStartAt = state.character;
+            state.skipWhitespaces = true;
+        }
+
+        public boolean nextSpan() {
+            if (span.next==null) return false;
+            span = span.next;
+            /* clear span-depended varialbles */
+            return true;
+        }
+
+        public boolean nextLine() {
+            return true;
+        }
+
+        public void process(char[] text) {
+            /* recursion function port */
+            recursion:
+            while (span != null) {
+                span.clearCache(true);
+                long currentTime = System.currentTimeMillis();
+                long timeSpent = currentTime - timeQuantStart;
+            /* if we spent more times, than steplimit - execute callback */
+                if (timeSpent > steplimit) {
+                /* note - if viewHeightExceed == false - break loop if onProgress() returns false */
+                    if (!onProgress(result, y + collectedHeight, false)) {
+                        return;
+                    }
+                    timeQuantStart = currentTime;
+                }
+
+                leadingMargin = span.margin;
+
+                workPaint.set(paint);
+
+                if (span.isDrawable) {
+                    if (span.width == 0)
+                        LineSpan.measure(span, text, workPaint);
+                } else if (span.widths == null) {
+
+                    LineSpan.measure(span, text, workPaint);
+                }
+
+                // FIXME: move handling of LeadingMarginSpan2 from draw here
+
+                if (span.paragraphStyles != paragraphStyles) {
+                    leadingMarginSpan = null;
+                    if (span.paragraphStyles != null)
+                        for (ParagraphStyle paragraphStyle : span.paragraphStyles) {
+                            if (paragraphStyle instanceof LeadingMarginSpan) {
+                                leadingMarginSpan = (LeadingMarginSpan) paragraphStyle;
+                                if (leadingMarginSpan != actualLeadingMarginSpan) {
+                                    actualLeadingMarginSpan = leadingMarginSpan;
+                                }
+                            }
+                        }
+                    paragraphStyles = span.paragraphStyles;
+                }
+
+                if (!span.isDrawable) {
+                    spanLeading = (int) span.leading;
+                    spanHeight = (int) (span.height + span.descent + (spanLeading * lineSpacingMultiplier) + lineSpacingAdd);
+                    spanDescent = span.descent;
+                }
+
+                if (spanHeight > state.height) state.height = spanHeight;
+                if (spanLeading > state.leading) state.leading = spanLeading;
+                if (spanDescent > state.descent) state.descent = spanDescent;
+
+                if (!span.isDrawable && height > -1 && (y + state.height > height)) {
+                    break recursion;
+                }
+
+                int lineMargin = leadingMargin;
+
+                if (state.lineWidth == 0f && (leadingMargin > 0 || span.paragraphStart)) {
+                    // lineMargin = leadingMargin;
+                    if (span.paragraphStart && span != lastParagraphStarts) {
+                        lastParagraphStarts = span;
+                        lineMargin += span.paragraphStartMargin;
+                        state.height += span.paragraphTopMargin;
+                    }
+
+                }
+
+
+            /* flag */
+                boolean drawableScaleBreak = false;
+
+                // begin handle span
+            /* forceBreak required if we revert char sequence due to hyphenation/linebreak algorygthm */
+                processing:
+                while (state.character < span.end || forceBreak) {
+                    if (state.skipWhitespaces) { // handle skip whitespaces
+                        if (carrierReturn)
+                            state.lineWidth = lineMargin;
+                        state.doSkipWhitespaces(text);
+                        if (lineStartAt < state.character) // skipWhitespaces must works only at lineStart, so actually, this code execute after line ends
+                            lineStartAt = state.character;
+                        forceBreak = false; // cancel forcebreak
+                        // restore heights and checking if new line exeed view Height
+                        if (state.character < span.end) { // guard
+                            // recover spanHeight
+                            if (!span.isDrawable) {
+                                spanLeading = (int) span.leading;
+                                spanHeight = (int) (span.height + span.descent + (spanLeading * lineSpacingMultiplier) + lineSpacingAdd);
+                                spanDescent = span.descent;
+                            }
+
+                            if (spanHeight > state.height) state.height = spanHeight;
+                            if (spanLeading > state.leading) state.leading = spanLeading;
+                            if (spanDescent > state.descent) state.descent = spanDescent;
+                            // check if new line exceed view height (height defined and collected height exceed)
+                            if (height > -1 && collectedHeight + y + state.height + (carrierReturn ? forcedParagraphTopMargin : 0) > height) {
+                                break recursion;
+                            }
+                            if (viewHeightLeft - state.height < 0 && !span.isDrawable) {
+                                if (viewHeight > -1 && !onProgress(result, y, true)) {
+                                    break recursion;
+                                } else if (viewHeight > -1 && updateGeometry(geometry)) {
+                                /* special case - ask geometry for next portion */
+                                    width = geometry[0];
+                                    viewHeight = geometry[1];
+                                }
+
+                                if (viewHeight > -1) { // TODO: reorganize conditions
+                                    collectedHeight += y;
+                                    y = 0;  // y zeroed only if viewHeight greater than -1
+                                    viewHeightLeft = viewHeight - viewHeightDec;
+                                    wrapWidth = width - lineWidthDec;
+                                    wrapHeight = 0;
+                                    wrapMargin = 0;
+                                }
+
+                            /* handle deffered images */
+                                if (deffered.size() > 0) {
+                                    if (!handleDefferedImages())
+                                        break recursion;
+                                } // END HANDLING DEFFERED IMAGES
+                            } else if (viewHeightLeft - state.height < 0) {
+                                // span are drawable, but no sufficient height here
+                                Log.e(TAG,"no sufficient height for drawable");
+                            }
+                        }
+                        continue processing;
+                    } // end handle whitespaces block
+
+
+                    // view line width exceed or force break
+                    if (span==null || span.widths==null) {
+                        Log.e(TAG,"Noooo");
+                    }
+                    if ((forceBreak || state.lineWidth + span.widths[state.character - span.start] > wrapWidth) && !drawableScaleBreak) {
+
+                        if (span.isDrawable) {
+                            drawableScaleBreak = true;
+                            continue processing;
+                        }
+                        if (state.character <= lineStartAt) {
+                            Log.v(TAG, "line exceed at first character");
+                            state.character++;
+                        }
+
+                        if (!forceBreak) // if forceBreak - lineBreakVal ALREADY contains position
+                            lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
+
+                        // int lineBreakVal = forceBreak ? breakPosition : lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
+                        int breakPosition = LineBreaker.getPosition(lineBreakVal);
+                        if (state.character == state.lastWhitespace) {
+                            // Log.w(TAG, "first character on line does not fit to given width");
+                            breakPosition = state.character;
+                        }
+                        boolean hyphen = LineBreaker.isHyphen(lineBreakVal);
+                        if (breakPosition < state.lastWhitespace) {
+                            // Log.e(TAG, "possible crash in future: error in lineBreaker:(" + lineBreaker + ") - nearestLineBreak(text,start,end,limit) must returns value, that greater or equal start");
+                        }
+                        if (breakPosition <= lineStartAt) { // in some cases breakPosition<lineStartAt
+                            breakPosition = state.character - 1;
+                            // Log.e(TAG, "lineBreaker (" + lineBreaker + ") returns breakPosition before lineStarts");
+                        }
+                        forceBreak = false; // cancel force break
+                    /* check if breakPosition < span.start (rollback to previous state) */
+                        if (breakPosition < span.start) {
+                            span.breakFirst = null;
+                            // crash here if width too small
+                            state = stack.remove(0);
+                            span = state.span;
+                            spanHeight = state.height;
+                            forceBreak = true;
+                            continue processing;
+                        }
+
+                    /* force close line code - test, if we can move it to procedure */
+                        // local variables used :(
+
+                        TextLine ld;
+                        boolean isWhitespace = text[breakPosition] == ' ';
+                        state.rollback(breakPosition);
+
+                        if (hyphen) {
+                            // check if text[breakPosition] + hyphen_width fit line
+                            if (state.lineWidth + span.hyphenWidth > wrapWidth) {
+                                // Log.v(TAG,"hyphen character exceed line width");
+                                lineBreakVal = lineBreaker.nearestLineBreak(text,state.lastWhitespace,breakPosition-1,span.end);
+                                forceBreak = true;
+                                continue processing;
+                            }
+                            state.lineWidth += span.hyphenWidth;
+                        }
+
+
+                        ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+                        ld.margin = lineMargin + wrapMargin;
+                        ld.wrapMargin = wrapMargin;
+                        result.add(ld);
+                        ld.hyphen = hyphen;
+//                    ld.width += hyphen ? span.hyphenWidth : 0;
+                        state.breakLine(isWhitespace, ld); // nb: breakLine does not increment state.character
+
+                        // if this line starts after '\n' - threat it as new paragraph starts
+                        if (carrierReturn) {
+                            ld.height += forcedParagraphTopMargin;
+                            y += forcedParagraphTopMargin;
+                            if (leadingMarginSpan==null) { // apply paragraph margins only to lines without leading margin
+                                ld.margin += forcedParagraphLeftMargin;
+                                ld.width += forcedParagraphLeftMargin;
+                            }
+                            leadingMarginSpan = null;
+                            carrierReturn = false;
+                        }
+
+                        if (justification)
+                            ld.justify(wrapWidth);
+
+                    /* handle exceed view height */
+                        y += ld.height; // was state.height at 1368 -- DEBUG
+                        viewHeightLeft -= ld.height;
+                    /* handle wrap ends */
+                        wrapHeight -= ld.height;
+                    /* check if wrap around drawable finished */
+                        if (wrapWidth < (width-lineWidthDec) && wrapHeight < 1) {
+                        /* adjust vertical wrapped image position here */
+                            if (wrappedSpan != null) {
+                            /* calculate actual heights, occupied by lines */
+                                int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
+                                wrappedSpan.baselineShift = (int) (actualHeight - wrappedSpan.drawableScaledHeight);
+                                wrappedSpan = null;
+                            }
+
+                            wrapWidth = width - lineWidthDec;
+                            wrapMargin = 0;
+                            wrapHeight = (height > viewHeight ? height : viewHeight);
+                        }
+
+                        if (span.paragraphStart && lastParagraphStarts == span && lineMargin > span.margin) {
+                            lineMargin = span.margin;
+                        }
+
+                        if (lineMargin > 0 || span.paragraphStart) {
+                            state.lineWidth = lineMargin;
+                        }
+                        state.character++; // nb: breakline does not increment state.character
+                        state.skipWhitespaces = true;
+                        lineStartAt = state.character;
+                        linesAddedInParagraph++;
+                    } else if (text[state.character] == '\n') {
+                        handleCarrierReturn();
+                    } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR
+                        // if (!handleImages(true)) break recursion;
+                        state.character++;
+                    } else if (!lineBreaker.isLetter(text[state.character])) {
+                        // handle non-letter characters (m.b. only spaces?)
+                        state.nonLetterBreak(text[state.character] != ' ' || span.strong);
+                    } else if (text[state.character] == '\u200F') { // RTL MARK
+                        Log.v(TAG, "rtl mark!");
+                        /**
+                         * make current span direction RTL (if not)
+                         * and make state.direction = RTL
+                         */
+                        if (state.character==lineStartAt) {
+                            lineStartsWithRtl = true;
+                        }
+                        lineContainsRtlSpans = true;
+                        currentDirection = Layout.DIR_RIGHT_TO_LEFT;
+                        span.direction = Layout.DIR_RIGHT_TO_LEFT;
+                        state.character++;
+                    } else if (text[state.character] == '\u200E') { // LTR mark
+                        Log.v(TAG, "ltr mark!");
+                        if (state.character==lineStartAt) {
+
+                        }
+                        currentDirection = Layout.DIR_LEFT_TO_RIGHT;
+
+                        state.character++;
+                    } else {
+                        // handle usual character
+                        if (span.widths == null) {
+                            Log.v(TAG, "span widths are null: " + span);
+                        }
+                        state.increaseBreak(span.widths[state.character - span.start]);
+                        state.character++;
+                    }
+
+                }
+                // end handle span (
+
+                if (state.lineWidth == lineMargin) // cancel margin if only margin at new line
+                    state.lineWidth = 0f;
+                // handle span switch
+                if (state.skipWhitespaces) {
+                    state.processedWidth = state.span.width;
+                } else {
+
+                }
+                stack.add(0, state.finish());
+                if (span.next == null) {
+                    // Log.v(TAG, "break recursion at the end of chain");
+                    break recursion;
+                }
+
+                /**
+                 * TODO: release span.widths (if memory free required)
+                 *
+                 */
+
+                state = new ReflowState(state, span.next);
+                span = span.next;
+
+                if (span != null && span.breakFirst != null) {
+                    // Log.v(TAG, "clean underflow breakFirst");
+                    span.breakFirst = null;
+                }
+            }
+            // handle tail of line
+            state.character--;
+            TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+
+            if (ld.end <= textEnd && (height < 1 || y + ld.height < height + 1)) {
+                result.add(ld);
+            } else
+                state.height = 0;
+            onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
         }
     }
 
