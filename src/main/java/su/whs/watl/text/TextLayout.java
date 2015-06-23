@@ -1486,7 +1486,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         while (span != null && drawStart < line.end) {
             // if (span.widths==null)
             //    LineSpan.measure(span,getChars(),measurePaint,true);
-            drawStop = span.end < line.end ? span.end : line.end;
+            // drawStop = span.end < line.end ? span.end : line.end;
             if (span.isDrawable) {
                 if (atX > x && atX <= (x + span.width)) return span.start;
                 x += span.drawableScaledWidth;
@@ -1569,37 +1569,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0) + textLine.margin);
     }
 
-    /*
-        each onHeightExceed()==true increments viewsCount
-     */
-
-    // public int getExceedsCount() {
-    //    return mViewsCount;
-    // }
-
     public class Options extends ContentView.Options {
         private ContentView.Options mParent;
     }
 
     private static class LinesList extends ArrayList<TextLine> {
-        // int count = 0;
-        int total = 0;
         public boolean add(TextLine line) {
-           /* if (line.start < lineEnd) {
-                Log.e(TAG,"added line that start before previous line end");
-            } else if (line.span.get().start < lineEnd) {
-                Log.e(TAG,"line start correct, but line span start - not");
-            }
-
-            lineEnd = line.end;*/
-           //  if (line.start==line.end || count==5) {
-           //     Log.v(TAG,"line.start==line.end");
-           // }
-           // if (count<30) {
-           //     total += line.height;
-           //     Log.v(TAG,"line: " + count + " height = "+line.height + " total height = " + total);
-           // }
-           // count++;
             return super.add(line);
         }
     }
@@ -1655,6 +1630,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         private int width;
         private TextPaint paint;
         private int viewHeight = -1;
+
         public ReflowContext(char[] text, int lineStartAt, int textEnd, LineSpan _startSpan, float x, int width, int height, int viewHeight, TextPaint paint) {
             this.textEnd = textEnd;
             this.width = width;
@@ -1716,20 +1692,37 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (deffered.size()>0) {
                 LineSpan defferedSpan = deffered.remove(0);
                 DynamicDrawableSpan defferedDrawableSpan = defferedSpan.getDrawable();
-                return handleImages(defferedSpan, defferedDrawableSpan, false);
+                return handleImage(defferedSpan, defferedDrawableSpan, false);
             }
             return true;
         }
 
-        public boolean handleImages(LineSpan span, DynamicDrawableSpan dds,boolean allowDefer) {
-            int placement = imagePlacementHandler.place(dds, viewHeightLeft, width, width, -1, scale, drawablePaddings, allowDefer);
+        public boolean handleImage(LineSpan span, DynamicDrawableSpan dds,boolean allowDefer) {
+            int placement = imagePlacementHandler.place(dds,
+                    viewHeightLeft,
+                    viewHeight,
+                    wrapWidth,
+                    width,
+                    -1,
+                    scale,
+                    drawablePaddings,
+                    allowDefer);
+
             if (placement==ImagePlacementHandler.DEFER) {
                 deffered.add(span);
+                state.character++;
+                return true;
+            } else if (placement==ImagePlacementHandler.PLACEHOLDER) {
+                span.noDraw = true;
                 state.character++;
                 return true;
             }
 
             int gravity = LineSpan.imageAlignmentToGravity(ImagePlacementHandler.getAlignment(placement));
+
+            if (imagePlacementHandler.isNewLineBefore(placement)) {
+                // finish line
+            }
 
             if (imagePlacementHandler.isWrapText(placement)) {
                 wrappedSpan = span;
@@ -1776,7 +1769,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } else {
                 Log.w(TAG, "no drawable on DynamicDrawableSpan: " + span);
             }
+
             return true;
+        }
+
+        private void handleImageOld() {
+
         }
 
         public void handleCarrierReturn() {
@@ -1801,7 +1799,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 } else
                     linesAddedInParagraph++;
                 y += ld.height;
-                        /* handle exceed view height */
+                /* handle exceed view height */
                 viewHeightLeft -= ld.height;
                 result.add(ld);
 
@@ -1810,7 +1808,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 ld.wrapMargin = wrapMargin;
 
 
-                        /* handle wrap ends */
+                /* handle wrap ends */
                 wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
                 // state.carrierReturns ZEROES state.height
                 state.carrierReturn(ld);
@@ -1843,11 +1841,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         public boolean nextSpan() {
             if (span.next==null) return false;
             span = span.next;
-            /* clear span-depended varialbles */
+            /* clear span-depended fields */
             return true;
         }
 
         public boolean nextLine() {
+            /* clear line-depended fields */
             return true;
         }
 
@@ -1875,7 +1874,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     if (span.width == 0)
                         LineSpan.measure(span, text, workPaint);
                 } else if (span.widths == null) {
-
                     LineSpan.measure(span, text, workPaint);
                 }
 
@@ -1909,7 +1907,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     break recursion;
                 }
 
-                int lineMargin = leadingMargin;
+                lineMargin = leadingMargin;
 
                 if (state.lineWidth == 0f && (leadingMargin > 0 || span.paragraphStart)) {
                     // lineMargin = leadingMargin;
@@ -2104,7 +2102,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     } else if (text[state.character] == '\n') {
                         handleCarrierReturn();
                     } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR
-                        // if (!handleImages(true)) break recursion;
+                        if (!handleImage(span,span.getDrawable(),true)) break recursion;
                         state.character++;
                     } else if (!lineBreaker.isLetter(text[state.character])) {
                         // handle non-letter characters (m.b. only spaces?)
@@ -2178,48 +2176,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } else
                 state.height = 0;
             onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
-        }
-    }
-
-    private class LinesCollector {
-        private int mHeightLimit;
-        private int mViewHeightLimit;
-        private int mViewHeightLeft;
-        private int mCollectedHeight;
-        private LinesList mLines = new LinesList();
-
-        public LinesCollector() {
-
-        }
-
-        public void setHeightLimit(int heightLimit) {
-            mHeightLimit = heightLimit;
-        }
-
-        public void setViewHeightLimit(int viewHeightLimit) {
-            mViewHeightLimit = viewHeightLimit;
-            mViewHeightLeft = viewHeightLimit;
-        }
-
-        public boolean push(TextLine line) {
-            boolean result = false;
-            if (mViewHeightLimit>-1) {
-                if (mViewHeightLeft<line.height) {
-                    result = onProgress(mLines,mCollectedHeight,true);
-                    mViewHeightLeft = mViewHeightLimit;
-                }
-                mLines.add(line);
-
-            } else {
-                if (mHeightLimit>-1) {
-
-                }
-                mLines.add(line);
-            }
-            if (line.span==null) {
-                mLines.add(line);
-            }
-            return result;
         }
     }
 }

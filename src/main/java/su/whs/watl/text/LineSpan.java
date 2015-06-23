@@ -65,6 +65,7 @@ public class LineSpan {
     boolean isDrawable = false;     // is cache ?
 
     public int descent;
+    public boolean noDraw = false;
 
 //    /* copy constructor */
 //

@@ -79,6 +79,11 @@ class ReflowState {
         if (span.breakFirst == null) {
             span.breakFirst = lineBreak;
         } else {
+            if (lastBreak==null) {
+                LineSpanBreak lsb = span.breakFirst;
+                while(lsb.next!=null) lsb = lsb.next;
+                lastBreak = lsb;
+            }
             lastBreak.next = lineBreak;
         }
 
@@ -161,6 +166,9 @@ class ReflowState {
         } else {
             if (lastBreak == null) {
                 Log.e(TAG, "breakFirst!=null, but lastBreak==null!");
+                LineSpanBreak lsb = span.breakFirst;
+                while(lsb.next!=null) lsb = lsb.next;
+                lastBreak = lsb;
             }
             lastBreak.next = lineBreak;
             lastBreak = lineBreak;

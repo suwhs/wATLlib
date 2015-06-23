@@ -43,9 +43,64 @@ public abstract class ImagePlacementHandler {
          * @param paddings     - accept result 'paddings' for drawable
          * @return
          */
+
         @Override
-        public int place(DynamicDrawableSpan drawableSpan, int /* unused - but may be -1 */ height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
-            return PLACEHOLDER;
+        public int place(DynamicDrawableSpan drawableSpan, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
+            /* default behavior */
+            // if instrictWidth < width && instrictHeight < height - leave as inline
+            Drawable dr = drawableSpan.getDrawable();
+            if (dr==null)
+                return PLACEHOLDER;
+            int iW = dr.getIntrinsicWidth();
+            int iH = dr.getIntrinsicHeight();
+            int sW = paddings.left + paddings.top;
+            int sH = paddings.top + paddings.bottom;
+
+            if (iW<1 || iH < 1)
+                return PLACEHOLDER;
+
+            float ratio = iH / iW;
+
+            scale.x = iW;
+            scale.y = iH;
+
+            int targetWidth = viewWidth;
+            int targetHeight = viewHeight < 0 ? (height < 0 ? scale.y : height) : viewHeight;
+
+            boolean fitWidth = false;
+            boolean fitHeight = false;
+
+            if (scale.x<width) {
+                targetWidth = scale.x;
+                fitWidth = true;
+            } else if (scale.x<viewWidth) {
+                targetWidth = viewWidth;
+            }
+            if (scale.y<height) {
+                targetHeight = scale.y;
+                fitHeight = true;
+            } else if (scale.y<viewHeight) {
+                targetHeight = viewHeight;
+            }
+
+            float rH = targetHeight / scale.y;
+            float rW = targetWidth / scale.x;
+            float scaleFactor = rW > rH ? rH : rW;
+            /*
+            if (rW>rH) {
+                // scale to fit targetHeight
+               scaleFactor = rH;
+            } else {
+                // scale to fit targetWidth
+            } */
+            scale.x *= scaleFactor;
+            scale.y *= scaleFactor;
+            if (fitWidth) {
+                if (fitHeight)
+                    return INLINE;
+                return EXCLUSIVE;
+            }
+            return EXCLUSIVE;
         }
 
         public int place__old(DynamicDrawableSpan drawableSpan, int /* unused - but may be -1 */ height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
@@ -187,15 +242,16 @@ public abstract class ImagePlacementHandler {
     /**
      * @param drawable  - DynamicDrawableSpan to place in layout
      * @param height    - available height (or -1 if no limit)
+     * @param viewHeight - view height (if > -1 )
      * @param width     - available width (to end of line)
-     * @param viewWidth - layout width
+     * @param viewWidth - view width
      * @param offset    - character position in text, given to TextLayout
      * @param scale     - accept result 'size' of drawable
      * @param paddings  - accept result 'paddings' for drawable
      * @return encoded rule
      */
 
-    public abstract int place(DynamicDrawableSpan drawable, int height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer);
+    public abstract int place(DynamicDrawableSpan drawable, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer);
 
     public static boolean isNewLineBefore(int value) {
         return (value & EXCLUSIVE) == EXCLUSIVE;
