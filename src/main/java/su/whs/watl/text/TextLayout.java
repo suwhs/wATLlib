@@ -24,6 +24,7 @@ import android.view.View;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -158,6 +159,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     public int getWidth() {
         return width;
+    }
+
+    public LinesIterator getLinesIterator() {
+        return new LinesIterator();
     }
 
     /**
@@ -2176,6 +2181,52 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } else
                 state.height = 0;
             onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
+        }
+    }
+
+    public class LinesIterator implements Iterator<TextLine> {
+        private int mCurrent = 0;
+        private TextLine current = null;
+        int mSize = 0;
+
+        public LinesIterator() {
+            mSize = TextLayout.this.lines.size();
+            if (mSize>0) {
+                next();
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return mCurrent < mSize;
+        }
+
+        @Override
+        public TextLine next() {
+            current = TextLayout.this.lines.get(mCurrent);
+            mCurrent++;
+            return current;
+        }
+
+        @Override
+        public void remove() {
+
+        }
+
+        public int getHeight() {
+            return current.height;
+        }
+
+        public int getStart() {
+            return current.start;
+        }
+
+        public int getEnd() {
+            return current.end;
+        }
+
+        public int getSize() {
+            return mSize;
         }
     }
 }

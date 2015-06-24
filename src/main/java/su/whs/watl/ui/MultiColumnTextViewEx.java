@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -36,6 +38,9 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private int mDefaultColumnsCount = 1;
     private boolean mColumnsCountChanged = false;
     private boolean mTextReady = false;
+    private boolean mRecalculateHeightOnFinish = false;
+    private boolean mAutoHeightCalculated = false;
+    private int mAutoHeight = 0;
 
     public MultiColumnTextViewEx(Context context) {
         this(context, null, 0);
@@ -58,12 +63,17 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     protected void prepareLayout(int textLayoutWidth, int textLayoutHeight) {
         mTextLayoutHeight = textLayoutHeight;
-        if (mMinColumnWidth>-1 || mMaxColumnWidth > -1) {
-            calculateColumns(textLayoutWidth);
-        } else if (mColumnWidth==0) {
-            setColumnsCount(mColumnsCount);
-            calculateColumns(getMeasuredWidth()-getCompoundPaddingLeft()-getCompoundPaddingRight());
+        if (mColumnWidth<1) {
+            if (mColumnsCount==1 && (mMinColumnWidth>-1 || mMaxColumnWidth > -1)) {
+                mColumnsCount = determineColumnsCount(mMinColumnWidth,mMaxColumnWidth,textLayoutWidth);
+                setColumnsCount(mColumnsCount);
+                calculateColumns(textLayoutWidth);
+            } else if (mColumnWidth==0) {
+                setColumnsCount(mColumnsCount);
+                calculateColumns(getMeasuredWidth()-getCompoundPaddingLeft()-getCompoundPaddingRight());
+            }
         }
+
         getTextLayout().setSize(mColumnWidth, -1, textLayoutHeight);
     }
 
@@ -124,7 +134,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public void onMeasure(int wms, int hms) {
+        if (mAutoHeightCalculated) {
+            hms = MeasureSpec.makeMeasureSpec(mAutoHeight,MeasureSpec.EXACTLY);
+        }
         super.onMeasure(wms, hms);
+        int heightSpec = MeasureSpec.getMode(hms);
+        if (heightSpec == MeasureSpec.UNSPECIFIED) {
+            mRecalculateHeightOnFinish = true;
+        }
     }
 
     @Override
@@ -213,7 +230,27 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
     }
 
+    private int determineColumnsCount(int minColumnWidth, int maxColumnWidth, int viewWidth) {
+        if (maxColumnWidth<0) {
+            if (minColumnWidth<0) {
+                Log.w(TAG,"columns size limits < 0, determineColumnsCount() should be called only if at least one argument > 0");
+                return 1;
+            }
+            if (minColumnWidth<viewWidth/2)
+                return viewWidth / minColumnWidth;
+            return 1;
+        }
+        if (maxColumnWidth<viewWidth/2)
+            return viewWidth / maxColumnWidth;
+
+        if (minColumnWidth>0 && minColumnWidth<viewWidth/2)
+            return viewWidth / minColumnWidth;
+
+        return 1;
+    }
+
     private void calculateColumns(int textLayoutWidth) {
+        // textLayoutWidth == measured width - compound paddings
         if (mTextReady)
             Log.e(TAG,"calculate columns _after_ onTextReady()");
         if (mColumnsCount==0) {
@@ -249,14 +286,50 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public void onTextReady() {
         mTextReady = true;
-        // Log.v(TAG,""+this+" onTextReady");
         super.onTextReady();
         // TODO: need to calculate individual columns vertical shift to make text more accuracy
         // arrange by most frequent horizontals
         // we need actual heights (sum of line.height for each column
-        if (getLineCount() > 0) {
+        if (mRecalculateHeightOnFinish && getLineCount() > 0) {
+            int counter = 0;
             int accumulator = 0;
-            // TODO: at least mLinesHeightsOnColumns required for translate coordinates
+            mColumnsReady = 1;
+
+            int totalHeight = getTextLayout().getHeight();
+            int requiredHeight = totalHeight / mColumnsCount;
+            int maxRequiredHeight = requiredHeight;
+
+            TextLayout.LinesIterator iter = getTextLayout().getLinesIterator();
+            int[] linesHeights = new int[iter.getSize()];
+            int processedHeight = 0;
+
+            for (; iter.hasNext(); iter.next()) {
+                // increase height of current column until left_height / left_columns_count > require
+                int height = iter.getHeight();
+                linesHeights[counter] = height;
+                if (accumulator+height > maxRequiredHeight) {
+                    int leftColumns = mColumnsCount-mColumnsReady;
+                    if (leftColumns*maxRequiredHeight<totalHeight-processedHeight) {
+                        maxRequiredHeight+=height;
+                    } else {
+                        mLinesHeightsOnColumns[mColumnsReady-1] = accumulator;
+                        mColumnsLinesStarts[mColumnsReady] = counter;
+                        mColumnsReady++;
+                        accumulator = 0;
+                    }
+                }
+                processedHeight+= height;
+                accumulator+=height;
+                counter++;
+            }
+            mAutoHeightCalculated = true;
+            mAutoHeight = maxRequiredHeight;
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    requestLayout();
+                }
+            });
         }
     }
 
@@ -316,6 +389,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         mTextReady = false;
         // Log.v(TAG,""+this+" onTextInfoInvalidated");
         synchronized (this) {
+            mAutoHeightCalculated = false;
+            mAutoHeight = 0;
             mColumnsReady = 0;
             mFirstColumnLine = 0;
             if (storedWidth==0) // FIXME: dirty hack

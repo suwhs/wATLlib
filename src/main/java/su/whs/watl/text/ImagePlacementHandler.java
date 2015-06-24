@@ -29,6 +29,17 @@ public abstract class ImagePlacementHandler {
     public static class DefaultImagePlacementHandler extends ImagePlacementHandler {
         private static final String TAG = "ImagePlacementHandler";
 
+        public enum WRAP {
+            AUTO,
+            LEFT,
+            RIGHT
+        }
+
+        private float mWrapRatioTreshold = 1.0f;
+        private WRAP mForceWrap = WRAP.AUTO;
+        private float mWrapIfWidthLeftLessThan = 0.5f;
+        private float mMinimumScaleFactor = 0.7f;
+
         /**
          * default image placement handler
          * <p/>
@@ -70,22 +81,37 @@ public abstract class ImagePlacementHandler {
             boolean fitWidth = false;
             boolean fitHeight = false;
 
-            if (scale.x<width) {
-                targetWidth = scale.x;
-                fitWidth = true;
-            } else if (scale.x<viewWidth) {
-                targetWidth = viewWidth;
-            }
-            if (scale.y<height) {
-                targetHeight = scale.y;
-                fitHeight = true;
-            } else if (scale.y<viewHeight) {
-                targetHeight = viewHeight;
+            float sWm = scale.x * mMinimumScaleFactor;
+            float sHm = scale.y * mMinimumScaleFactor;
+
+            if (mMinimumScaleFactor<1.0f) { // if scaling down allowed
+                if (scale.x < width) {
+                    targetWidth = scale.x;
+                    fitWidth = true;
+                } else if (scale.x < viewWidth) {
+                    targetWidth = viewWidth;
+                }
+                if (scale.y < height) {
+                    targetHeight = scale.y;
+                    fitHeight = true;
+                } else if (scale.y < viewHeight) {
+                    targetHeight = viewHeight;
+                }
+
+                if (!fitWidth && !fitHeight) {
+                    boolean scaledFitWidth = false;
+                    boolean scaledFitHeight = false;
+                    int scaledTargetWidth = viewWidth;
+                    int scaledTargetHeight = viewHeight;
+                    // select best scale targets
+
+                }
             }
 
             float rH = targetHeight / scale.y;
             float rW = targetWidth / scale.x;
             float scaleFactor = rW > rH ? rH : rW;
+
             /*
             if (rW>rH) {
                 // scale to fit targetHeight
@@ -96,9 +122,20 @@ public abstract class ImagePlacementHandler {
             scale.x *= scaleFactor;
             scale.y *= scaleFactor;
             if (fitWidth) {
-                if (fitHeight)
-                    return INLINE;
+                if (fitHeight) {
+                    if (ratio>=mWrapRatioTreshold) {
+                        return WRAP_TEXT;
+                    }
+                    return EXCLUSIVE;
+                }
                 return EXCLUSIVE;
+            } else {
+                if (fitHeight) {
+                    float widthLeftRatio = viewWidth / width;
+                    if (widthLeftRatio<mWrapIfWidthLeftLessThan) {
+
+                    }
+                }
             }
             return EXCLUSIVE;
         }

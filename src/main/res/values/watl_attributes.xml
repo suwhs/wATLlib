@@ -8,10 +8,21 @@
         <attr name="url_highlight_color" format="color"></attr>
     </declare-styleable>
     <declare-styleable name="TextViewEx">
-
+        <attr name="justificationEnabled" format="boolean"/>
+        <attr name="filterEmptyLines" format="boolean"/>
+        <attr name="emptyLinesFilterTreshold" format="integer"/>
+        <attr name="paragraphMarginTop" format="dimension"/>
+        <attr name="paragraphMarginLeft" format="dimension"/>
+        <attr name="enableImageWrap" format="boolean"/>
+        <attr name="minimumImageScaleFactor" format="float"/>
+        <attr name="wrapIfWidthLeftLess" format="float"/>
     </declare-styleable>
     <declare-styleable name="MultiColumnTextViewEx">
-        
+        <attr name="minColumnWidth" format="dimension"></attr>
+        <attr name="maxColumnWidth" format="dimension"></attr>
+        <attr name="columnCount" format="integer"></attr>
+        <attr name="columnSpacing" format="dimension"></attr>
+        <attr name="columnSeparatorDrawable" format="reference"></attr>
     </declare-styleable>
     <declare-styleable name="ContentViewOptions">
         
