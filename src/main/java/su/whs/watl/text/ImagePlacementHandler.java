@@ -103,7 +103,7 @@ public abstract class ImagePlacementHandler {
                     boolean scaledFitHeight = false;
                     int scaledTargetWidth = viewWidth;
                     int scaledTargetHeight = viewHeight;
-                    // select best scale targets
+                    // TODO: select best scale targets
 
                 }
             }

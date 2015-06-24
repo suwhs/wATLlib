@@ -36,7 +36,7 @@ public interface ContentView {
         private boolean mFilterEmptyLines = true;
         private boolean mJustification = true;
         private int mDefaultDirection = 0;
-        private Rect mDrawablePaddings = new Rect(5, 0, 5, 0);
+        private Rect mDrawablePaddings = new Rect(25, 25, 25, 25);
         private ImagePlacementHandler mImagePlacementHandler = null;
         private LineBreaker mLineBreaker = null;
         private int mReflowTimeQuant = 300;

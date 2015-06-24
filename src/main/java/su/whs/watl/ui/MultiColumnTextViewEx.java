@@ -171,22 +171,23 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      */
 
     private int translateCoordinates(float x, float y, PointF translated) {
-        int left = getCompoundPaddingLeft();
-        int top = getCompoundPaddingTop();
-        int startLine = 0;
-        int actualColumnWidth = mColumnWidth + mColumnSpacing;
-        if (x > (left + actualColumnWidth)) {
-            int atColumn = (int) ((x - left) / actualColumnWidth);
-            translated.x = ((x - left) % actualColumnWidth);
-            translated.y = y;
-            for (int i = 0; i < atColumn; i++) {
-                // translated.y += mLinesHeightsOnColumns[i];
-            }
-            startLine = mColumnsCount > 1 ? mColumnsLinesStarts[atColumn] : 0;
-        } else {
-            translated.x = x;
-            translated.y = y;
+        // FIXME: ERROR HERE - wrong line number returned
+
+        // we need to lookup correct columns first, than substract lines height for previous columns
+        // and increment y/decrement x carefully
+        int layoutWidth = mColumnWidth+mColumnSpacing;
+        int viewWidth = getMeasuredWidth() - getCompoundPaddingLeft() - getCompoundPaddingTop();
+        int viewHeight = getTextLayout().getHeight();
+        int column = 0;
+        if (x>0) {
+            column = (int) (x / layoutWidth);
         }
+        int startLine = column < mColumnsCount ? mColumnsLinesStarts[column] : mColumnsCount-1;
+
+        translated.x = x - (column*layoutWidth);
+        translated.y = y;
+        for (int i=0; i< column; i++, translated.y+=mLinesHeightsOnColumns[i]);
+
         return startLine;
     }
 
@@ -199,35 +200,6 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         // Log.v(TAG,""+this+" setColumnsCount " + forcedColumnCount);
         mColumnsCount = forcedColumnCount;
         mColumnsCountChanged = true;
-    }
-
-    private void calculateColumns2(int width) {
-        int fits = mColumnsCount;
-        if (mMaxColumnWidth > -1 && mMaxColumnWidth < width) {
-            fits = 1 + (width-mColumnSpacing) / (mMaxColumnWidth+mColumnSpacing);
-        } else if (mMinColumnWidth > -1) {
-            fits = (width-mColumnSpacing) / mMinColumnWidth;
-            if (fits<1) fits = 1;
-        }
-
-        if (fits!=mColumnsCount) {
-            mColumnsCountChanged = false;
-            if (mColumnsLinesStarts!=null) {
-                // Log.w(TAG,"re-initialization required");
-            } else {
-                mColumnsVerticalShifts = new int[mColumnsCount];
-                mLinesHeightsOnColumns = new int[mColumnsCount];
-                mColumnsLinesStarts = new int[mColumnsCount];
-            }
-            int q = (width / fits);
-            if (q > 1) {
-                Rect textPaddings = getOptions().getTextPaddings();
-                int spacingSum = (mColumnSpacing+textPaddings.left+textPaddings.right) * (mColumnsCount - 1);
-                mColumnWidth = (fits - spacingSum) / mColumnsCount;
-            } else {
-                mColumnWidth = q; // q = 1, so no spacing
-            }
-        }
     }
 
     private int determineColumnsCount(int minColumnWidth, int maxColumnWidth, int viewWidth) {
@@ -415,23 +387,28 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         return primary + (mColumnWidth+mColumnSpacing) * shift;
     }
 
+
     @Override
     public int getLineBounds(int line, Rect bounds) {
-        int baseLine = super.getLineBounds(line, bounds);
+
         int paddingTop = getOptions().getTextPaddings().top;
         int deltaY = 0;
         int deltaX = 0;
         int height = getMeasuredHeight() - getCompoundPaddingTop() - getCompoundPaddingBottom();
+        int baseLine;
         if (mColumnsCount > 1) {
-            int column = 1;
-            while (column < mColumnsCount && line > mColumnsLinesStarts[column]) {
-                column++;
-            }
+            int column = 0;
+            // TODO: DETERMINE WICH COLUMN HOLDS LINE 'line'
+            // column last line calc as mColumnLineStarts[column]-1
+            for (;column<mColumnsCount && line>mColumnsLinesStarts[column+1]-1; column++)
 
-            for (int i = 1; i < column; i++) {
+            for (int i = 0; i < column; i++) {
                 deltaY += mLinesHeightsOnColumns[i] - paddingTop;
                 deltaX += mColumnWidth + mColumnSpacing;
             }
+            baseLine = super.getLineBounds(line+mColumnsLinesStarts[column], bounds);
+        } else {
+            baseLine = super.getLineBounds(line, bounds);
         }
         bounds.left += deltaX;
         bounds.right += deltaX;
