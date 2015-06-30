@@ -183,7 +183,6 @@ public class LineSpan {
                             current.gravity = Gravity.LEFT;
                         }
                     }
-                    alignment = null;
                 }
             }
 
@@ -367,7 +366,7 @@ public class LineSpan {
         return new LineSpanBreak();
     }
 
-    public String toString() {
+    public String toString(boolean dumpBreaks) {
         try {
             return String.format("LineSpan: start = %d, end = %d, width = %.2f, widths.length = %d, height = %d, hyphenWidth = %.2f, breakFirst = %s, direction = %d, baseLineShift = %d",
                     this.start,
@@ -376,7 +375,7 @@ public class LineSpan {
                     this.widths == null ? -1 : this.widths.length,
                     this.height,
                     this.hyphenWidth,
-                    breaksToString(this.breakFirst),
+                    dumpBreaks ? breaksToString(this.breakFirst) : this.breakFirst !=null,
                     this.direction,
                     this.baselineShift
             );
@@ -385,7 +384,11 @@ public class LineSpan {
         }
     }
 
-    public String toString(char[] text) {
+    public String toString() {
+        return toString(false);
+    }
+
+    public String toString(char[] text, boolean dumpBreaks) {
         try {
             return String.format("LineSpan: start = %d, end = %d, width = %.2f, widths.length = %d, height = %d, hyphenWidth = %.2f, breakFirst = %s, direction = %d, baseLineShift = %d, %s",
                     this.start,
@@ -394,7 +397,7 @@ public class LineSpan {
                     this.widths == null ? -1 : this.widths.length,
                     this.height,
                     this.hyphenWidth,
-                    breaksToString(this.breakFirst),
+                    dumpBreaks ? breaksToString(this.breakFirst) : this.breakFirst,
                     this.direction,
                     this.baselineShift,
                     dbgString(text, this.start, this.end).replace('\n', '^')
@@ -426,18 +429,18 @@ public class LineSpan {
         return toString() + nextStr;
     }
 
-    public String dump(char[] text, int limit) {
+    public String dump(char[] text, int limit, boolean dumpBreaks) {
         if (limit < -1)
-            return dump(text);
+            return dump(text, dumpBreaks);
         if (limit == 0)
             return "";
-        String nextStr = next == null ? "" : "\n" + next.dump(text, limit - 1);
-        return toString(text) + nextStr;
+        String nextStr = next == null ? "" : "\n" + next.dump(text, limit - 1, dumpBreaks);
+        return toString(text, dumpBreaks) + nextStr;
     }
 
-    public String dump(char[] text) {
-        String nextStr = next == null ? "" : "\n" + next.dump(text);
-        return toString(text) + nextStr;
+    public String dump(char[] text, boolean dumpBreaks) {
+        String nextStr = next == null ? "" : "\n" + next.dump(text, dumpBreaks);
+        return toString(text, dumpBreaks) + nextStr;
     }
 
 

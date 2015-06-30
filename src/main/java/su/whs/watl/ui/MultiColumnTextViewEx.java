@@ -89,23 +89,13 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             int top = getCompoundPaddingTop();
             int bottom = getHeight() - getCompoundPaddingBottom();
             int columnShift = mColumnWidth + mColumnSpacing;
-            /*
-            if (!mRenderDataLogged) {
-                Log.v(TAG,"columnShift="+columnShift);
-                log_column_lines(0);
-            } */
 
             for (int i = 0; i < mColumnsReady; i++) {
-                /* if (!mRenderDataLogged) {
-                    Log.v(TAG, "--draw x=" + (left + columnShift * i) + " startLine=" + mColumnsLinesStarts[i]);
-                    log_column_lines(i);
-                } */
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + top,
                         right + columnShift * i,
                         mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
-            mRenderDataLogged = true;
         canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
@@ -390,15 +380,13 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public int getLineBounds(int line, Rect bounds) {
-
         int paddingTop = getOptions().getTextPaddings().top;
         int deltaY = 0;
         int deltaX = 0;
-        int height = getMeasuredHeight() - getCompoundPaddingTop() - getCompoundPaddingBottom();
         int baseLine;
         if (mColumnsCount > 1) {
             int column = 0;
-            // TODO: DETERMINE WICH COLUMN HOLDS LINE 'line'
+            // TODO: DETERMINE WhICH COLUMN HOLDS LINE 'line'
             // column last line calc as mColumnLineStarts[column]-1
             for (;column<mColumnsCount && line>mColumnsLinesStarts[column+1]-1; column++)
 
@@ -416,41 +404,4 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         bounds.bottom -= deltaY;
         return baseLine - deltaY;
     }
-
-    /*
-    private void calculateColumns(int width) {
-
-        int fits = mDefaultColumnsCount;
-        if (mMaxColumnWidth > -1 && mMaxColumnWidth < width) {
-            fits = 1 + width / mMaxColumnWidth;
-            if (mMinColumnWidth > -1) {
-                int columnWidth = (width-mColumnSpacing*fits) / fits;
-                if (columnWidth<mMinColumnWidth) {
-                    if (mPreferMinColumnWidth) {
-                        fits = width / mMinColumnWidth;
-                    }
-                }
-
-            } else {
-                // only mMaxColumnWidth defined and it's less than width, so at least 2 columns
-
-            }
-        } else {
-            if (mMinColumnWidth > -1) {
-                fits = width / mMinColumnWidth;
-            }
-
-        }
-        setColumnsCount(fits);
-        calculateColumns();
-    } */
-
-    private boolean mRenderDataLogged = false;
-
-    @Override
-    public void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        mRenderDataLogged = false;
-    }
-
 }

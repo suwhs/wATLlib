@@ -13,6 +13,7 @@ import java.util.List;
  */
 class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerAdv {
     private static final String TAG="ProxyLayout";
+    private boolean debug = false;
     private int mPosition = 0;
     private Replies mEvents = null;
     private boolean mFinished = false;
@@ -26,7 +27,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     private boolean mTextInvalidated = false;
 
     public ProxyLayout(TextLayoutEx textLayoutEx, int pageNo) {
-        Log.v(TAG,"create ProxyLayout pageNo="+pageNo);
+        if (debug)
+            Log.v(TAG,"create ProxyLayout pageNo="+pageNo);
         mPosition = pageNo;
         mLayout = textLayoutEx;
         setPaint(textLayoutEx.getPaint());
@@ -40,7 +42,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
      */
 
     public ProxyLayout(TextLayoutEx textLayoutEx,int pageNo, Replies replies) {
-        // Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
+        if (debug)
+            Log.v(TAG,"create ProxyLayout pageNo="+pageNo+" with replies");
         // replay replies when invalidate,
         mViewsCount = 0;
         setPaint(textLayoutEx.getPaint());
@@ -51,8 +54,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
                     mViewsCount++;
             }
 
-
-        // Log.v(TAG,"PL:"+mPosition+" restored viewsCount="+mViewsCount);
+        if (debug)
+            Log.v(TAG,"PL:"+mPosition+" restored viewsCount="+mViewsCount);
         mLayout = textLayoutEx;
 
         ViewHeightExceedEvent first = mEvents.first();
@@ -139,7 +142,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
                 mCGHeight = event.height;
                 mGeometryChanged = true;
                 // we need correct event.lines and event collectedHeight
-                // Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
+                if (debug)
+                    Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
                 // lastLine();
                 event.lines = getLinesCount();
                 event.collectedHeight = collectedHeight;
@@ -148,14 +152,16 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
                 // we need correct event.lines and event collectedHeight
                 event.lines = getLinesCount();
                 event.collectedHeight = collectedHeight;
-                // Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
+                if (debug)
+                    Log.v(TAG,"PL:"+mPosition+" correct lines="+getLinesCount()+", height="+collectedHeight);
                 // firstLine();
                 // lastLine();
                 return true;
             }
             return true;
         } else { // attached
-            // Log.v(TAG, "PL:" + mPosition + " views count increment: " + mViewsCount);
+            if (debug)
+                Log.v(TAG, "PL:" + mPosition + " views count increment: " + mViewsCount);
             mViewsCount++;
             // lastLine();
             boolean result = this.listener.onHeightExceed(collectedHeight);
@@ -234,6 +240,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // avoid nullable this.lines
         if (mEvents==null) {
             Log.e(TAG, "ivalidateMeasurement() called without replies");
+            throw new IllegalStateException(TAG+":invalidateMeasurement() called without 'replies'");
         }
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
@@ -269,7 +276,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         int le = getLineEnd(0);
         try {
             String line = (String) getText().subSequence(ls, le).toString();
-            // Log.v(TAG, "PL:"+mPosition+" first line = '" + line + "'");
+            if (debug)
+                Log.v(TAG, "PL:"+mPosition+" first line = '" + line + "'");
             return line;
         } catch (StringIndexOutOfBoundsException e) {
             // Log.e(TAG,"invalid values");
@@ -283,8 +291,9 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         int ls = getLineStart(ln);
         int le = getLineEnd(ln);
         try {
-            String line = (String) getText().subSequence(ls, le).toString();
-            // Log.v(TAG, "PL:"+mPosition+" last line ("+ln+") = '" + line + "'");
+            String line = getText().subSequence(ls, le).toString();
+            if (debug)
+                Log.v(TAG, "PL:"+mPosition+" last line ("+ln+") = '" + line + "'");
             return line;
         } catch (StringIndexOutOfBoundsException e) {
             // Log.e(TAG,"invalid values");
@@ -411,7 +420,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         // listener may be attached during reflow process on given page geometry - so
         // we need to notify listener about completed views and does not use calls to listener
         // to determine geometry (so we must ignore onViewHeightExceed
-        // Log.d(TAG,"PL:"+mPosition+"mAttached");
+        if (debug)
+            Log.d(TAG,"PL:"+mPosition+"mAttached");
         if (mEvents!=null && !mEvents.a_complete) {
             mPendingListener = listener;
             return;
@@ -475,7 +485,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         if (mEvents!=null && !mEvents.a_complete) {
             throw new RuntimeException("detach view but no replies completed");
         }
-        // Log.v(TAG,"detached!");
+        if (debug)
+            Log.v(TAG,"detached!");
         // doest not call until current attached listener used to determine page geometry
         // so if text is not ready - throw exception
         super.setInvalidateListener(null);

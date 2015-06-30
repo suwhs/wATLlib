@@ -165,8 +165,12 @@ public class HyphenLineBreaker extends LineBreaker {
     @Override
     public int nearestLineBreak(char[] text, int start, int end, int limit) {
         boolean letter = Character.isLetter(text[end]);
+        boolean digit = Character.isDigit(text[end]);
+
         if (letter && lastQueryCache.start==start && lastQueryCache.limit==limit) {
             return nearestLineBreakFromCache(start, end);
+        } else if (digit) {
+            return nearestNonDigit(text,start,end);
         }
         invalidateLastQueryCache();
         // check if end is letter and (end-start)>1 && limit-end > 1
@@ -215,6 +219,17 @@ public class HyphenLineBreaker extends LineBreaker {
             if (!Character.isLetter(text[from])) return from;
         }
         return to;
+    }
+
+    private int nearestNonDigit(char[] text, int start, int end) {
+        for (;end>start;end--) {
+            if (!Character.isDigit(text[end])) break;
+        }
+        return end;
+    }
+
+    private boolean isPunktuation(char ch) {
+        return !(Character.isDigit(ch) || Character.isLetter(ch));
     }
 
 }

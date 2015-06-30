@@ -5,7 +5,6 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.style.DynamicDrawableSpan;
-import android.util.Log;
 
 /**
  * Created by igor n. boulliev on 03.02.15.
@@ -60,23 +59,28 @@ public abstract class ImagePlacementHandler {
             /* default behavior */
             // if instrictWidth < width && instrictHeight < height - leave as inline
             Drawable dr = drawableSpan.getDrawable();
-            if (dr==null)
+            if (dr == null)
                 return PLACEHOLDER;
             int iW = dr.getIntrinsicWidth();
             int iH = dr.getIntrinsicHeight();
             int sW = paddings.left + paddings.top;
             int sH = paddings.top + paddings.bottom;
 
-            if (iW<1 || iH < 1)
+            if (iW < 1 || iH < 1)
                 return PLACEHOLDER;
 
-            float ratio = iH / iW;
+            float ratio = iH / (float) iW;
 
             scale.x = iW;
             scale.y = iH;
 
+            width -= sW;
+            height -= sH;
+            viewWidth -= sW;
+            viewHeight -= sH;
+
             int targetWidth = viewWidth;
-            int targetHeight = viewHeight < 0 ? (height < 0 ? scale.y : height) : viewHeight;
+            int targetHeight = (viewHeight < 0 ? (height < 0 ? scale.y : height) : viewHeight);
 
             boolean fitWidth = false;
             boolean fitHeight = false;
@@ -84,17 +88,17 @@ public abstract class ImagePlacementHandler {
             float sWm = scale.x * mMinimumScaleFactor;
             float sHm = scale.y * mMinimumScaleFactor;
 
-            if (mMinimumScaleFactor<1.0f) { // if scaling down allowed
-                if (scale.x < width) {
+            if (mMinimumScaleFactor < 1.0f) { // if scaling down allowed
+                if (scale.x <= width) {
                     targetWidth = scale.x;
                     fitWidth = true;
-                } else if (scale.x < viewWidth) {
+                } else if (scale.x <= viewWidth) {
                     targetWidth = viewWidth;
                 }
-                if (scale.y < height) {
+                if (scale.y <= height || (height < 0 && viewHeight < 0)) {
                     targetHeight = scale.y;
                     fitHeight = true;
-                } else if (scale.y < viewHeight) {
+                } else if (scale.y <= viewHeight) {
                     targetHeight = viewHeight;
                 }
 
@@ -108,8 +112,8 @@ public abstract class ImagePlacementHandler {
                 }
             }
 
-            float rH = targetHeight / scale.y;
-            float rW = targetWidth / scale.x;
+            float rH = targetHeight / (float) scale.y;
+            float rW = targetWidth / (float) scale.x;
             float scaleFactor = rW > rH ? rH : rW;
 
             /*
@@ -123,7 +127,7 @@ public abstract class ImagePlacementHandler {
             scale.y *= scaleFactor;
             if (fitWidth) {
                 if (fitHeight) {
-                    if (ratio>=mWrapRatioTreshold) {
+                    if (ratio >= mWrapRatioTreshold) {
                         return WRAP_TEXT;
                     }
                     return EXCLUSIVE;
@@ -132,144 +136,13 @@ public abstract class ImagePlacementHandler {
             } else {
                 if (fitHeight) {
                     float widthLeftRatio = viewWidth / width;
-                    if (widthLeftRatio<mWrapIfWidthLeftLessThan) {
+                    if (widthLeftRatio < mWrapIfWidthLeftLessThan) {
 
                     }
                 }
             }
             return EXCLUSIVE;
         }
-
-        public int place__old(DynamicDrawableSpan drawableSpan, int /* unused - but may be -1 */ height, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
-            Drawable drawable = drawableSpan.getDrawable();
-            if (drawable == null) {
-                return 0;
-            }
-            Log.v(TAG, "place(" + drawableSpan + ", height=" + height + ", width=" + width + ", viewWidth=" + viewWidth + ", offset=" + offset);
-            float dW = drawable.getIntrinsicWidth();
-            float dH = drawable.getIntrinsicHeight();
-
-            if (dW == 0 || dH == 0) {
-                return PLACEHOLDER;
-            }
-
-            int paddingLeft = 5;
-            int paddingRight = 5;
-            int paddingTop = 5;
-            int paddingBottom = 5;
-
-            if (height < 0) { // height undefined
-                // if image required < 1/2 viewWidth - than wrap, else - exclusive
-                if (dW < viewWidth / 2) {
-                    // wrap
-                    scale.x = (int) dW;
-                    scale.y = (int) dH;
-                    paddings.set(paddingLeft, paddingTop, 0, paddingBottom);
-                    Log.v(TAG, "(0) WRAP_TEXT | ALIGN_END " + scale.x + "," + scale.y);
-                    return WRAP_TEXT | ALIGN_END;
-                } else {
-                    if ((dW + paddingLeft + paddingRight) > viewWidth) { // need scale to fit width
-                        float drawableRatio = dH / dW;
-                        scale.x = viewWidth;
-                        scale.y = (int) (scale.x * drawableRatio);
-                        paddings.set(0, 0, 0, 0);
-                    } else {
-                        scale.x = (int) dW;
-                        scale.y = (int) dH;
-                        paddings.set(0, 0, 0, 0);
-                    }
-                    Log.v(TAG, "(1) EXCLUSIVE | ALIGN_CENTER " + scale.x + "," + scale.y);
-                    return EXCLUSIVE | ALIGN_CENTER;
-                }
-            } else { // height defined
-                float viewRatio = height / viewWidth;
-                float drawableRatio = dH / dW;
-                if (viewRatio > drawableRatio) {
-                    float ratio = viewWidth / dW;
-                    scale.x = (int) (dW * (viewWidth / dW));
-                    scale.y = (int) (dH * ratio);
-                    return EXCLUSIVE | ALIGN_CENTER;
-                } else {
-                    float ratio = height / dH;
-                    if (ratio<1) {
-                        scale.x = (int) (dW * ratio);
-                        scale.y = (int) (dH * ratio);
-                        return EXCLUSIVE | ALIGN_CENTER;
-                    }
-                    scale.x = (int) dW;
-                    scale.y = (int) dH;
-                    return WRAP_TEXT | ALIGN_START;
-                }
-                /*
-                if (dH > height * 5) {
-                    if (scale.y * 5 < dH) {
-                        Log.v(TAG, "(6) DEFER");
-                        return DEFER;
-                    }
-                    scale.y = height;
-                    scale.x = (int) (viewWidth / drawableRatio);
-                }
-
-                if (scale.x*1.5 > viewWidth) {
-                    if (scale.x > viewWidth) {
-                        scale.x = viewWidth;
-                        scale.y = (int) (scale.x * drawableRatio);
-                    }
-                    if (scale.y > height) {
-                        scale.y = height;
-                        scale.x = (int) (viewWidth / drawableRatio);
-                    }
-                    Log.v(TAG, "(2) EXCLUSIVE | ALIGN_CENTER" + scale.x + "," + scale.y);
-                    return EXCLUSIVE | ALIGN_CENTER;
-                }
-                Log.v(TAG, "(3) WRAP_TEXT | ALIGN_START " + scale.x + "," + scale.y);
-                return WRAP_TEXT | ALIGN_START; */
-            }
-//
-//            if (dW == 0)
-//                return 0;
-//            float ratio = dH / dW;
-//
-//            if (dW > width * .6) {
-//                Log.v(TAG,"most width occupied");
-//                if (dW > viewWidth) {
-//                    scale.y = (int) ((viewWidth) * ratio);
-//                    scale.x = viewWidth;
-//                    paddings.set(0, 0, 0, 0);
-//                    Log.v(TAG,"make drawable exclusive");
-//                    return EXCLUSIVE;
-//                } else if (width < dW * 0.3) {
-//                    if (width > dW) {
-//                        scale.x = (int) dW;
-//                        scale.y = (int) dH;
-//                    } else {
-//                        scale.y = height; // (int) ((viewWidth) * ratio);
-//                        scale.x = (int) (viewWidth / ratio);
-//                    }
-//                    return EXCLUSIVE;
-//                }
-//                scale.y = (int) (width / 2 * ratio);
-//                scale.x = width / 2;
-//            } else {
-//                scale.x = (int) dW;
-//                scale.y = (int) dH;
-//            }
-//
-//            // if scale.x < width/3 - align right, else - aligh left
-//            if (scale.x < viewWidth / 3) {
-//                Log.v(TAG,"drawable width less than 1/3 of view width");
-//                paddings.set(10, 5, 0, 0);
-//                return WRAP_TEXT | ALIGN_END;
-//            }
-//
-//            Log.v(TAG, "align start");
-//            paddings.set(0, 5, 10, 0);
-//            return WRAP_TEXT | ALIGN_START;
-        }
-    }
-
-    private void fitViewPort(int dW, int dH, int vW, int wH, Point scale) {
-
     }
 
     public ImagePlacementHandler() {
