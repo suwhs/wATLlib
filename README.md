@@ -21,7 +21,11 @@ currently include it as git submodule
 
 News
 ======
-UPCOMING NEW VERSION 
+UPDATE 01 Jul 15
+
+ version 1.0a
+
+ now wATL library contains adapter for ViewPager - to show paginated text
 
 UPDATE 06 Apr 15
  added MultiColumnTextViewEx example - widget, that supports automatic columns count calculating depends on screen resolution. limits sets via setColumnLimits(minColumnWidth,maxColumnWidth) or forcing columns count via setColumnsCount(int numOfColumns)
@@ -52,6 +56,8 @@ onClick() method receive view, span position, and coordinates of image within vi
 
 - *su.whs.watl.ui.TextViewEx* - class (replacement for stock TextView) with full text justification support (enabled by default)
     <a href="https://github.com/suwhs/wATL/blob/master/screenshots/TextViewExScrollView1.png">screenshot 2</a>
+
+- *su.whs.watl.text.BaseTextPagerAdapter* - class for using with ViewPager
 
 
 Contacts
