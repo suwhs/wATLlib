@@ -96,7 +96,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                         right + columnShift * i,
                         mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
-        canvas.drawRect(debugClickedLineBound,debugPaint);
+        // canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
     private void log_column_lines(int column) {
