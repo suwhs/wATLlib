@@ -203,7 +203,7 @@ public class TextViewWS extends TextView {
         y += getCompoundPaddingTop();
         int side = start ? mDefaultSelectionCursorWidth : -mDefaultSelectionCursorWidth;
         if (mSelectionCursorDrawableStart != null) {
-            // TODO: implement
+            // TODO: implement resource drawable
             if (start) {
 
             } else {
@@ -221,7 +221,6 @@ public class TextViewWS extends TextView {
         }
 
         cursorPaint.setColor(Color.BLUE);
-        // cursorPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC)); // BUG in hw accelerated devices
         cursorPaint.setStyle(Paint.Style.FILL);
         cursorPaint.setShader(new LinearGradient(x, y, x - side, y+mDefaultSelectionCursorHeight, Color.BLUE, Color.GRAY, Shader.TileMode.CLAMP));
 
@@ -591,14 +590,18 @@ public class TextViewWS extends TextView {
 
     /**
      * calculate horizontal offset of character
-     *
+     *  used from calculateSelectionCrusorPosition()
      * @param line          - lineNumber
      * @param postionAtLine - character index (in getText()). poasitionAtLine >= getLineStart(line) && positionAtLine < getLineEnd(line)
      * @param viewWidth     - current view width (required for calculating offset correctly, with justification and alignment)
      * @return - x-coordinate of left bound of character
      */
+
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
-        return getLayout().getPrimaryHorizontal(postionAtLine) - getLayout().getPrimaryHorizontal(getLayout().getLineStart(line));
+        return getLayout()
+                .getPrimaryHorizontal(postionAtLine)
+                - getLayout()
+                    .getPrimaryHorizontal(getLayout().getLineStart(line));
     }
 
     /**
@@ -686,7 +689,7 @@ public class TextViewWS extends TextView {
         return mTextIsSelectable;
     }
 
-    public void setmClickableSpanListener(ClickableSpanListener listener) {
+    public void setClickableSpanListener(ClickableSpanListener listener) {
         mClickableSpanListener = listener;
     }
 

@@ -306,6 +306,14 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return -1;
     }
 
+    /**
+     *
+     * @param x         - horizontal coordinate
+     * @param y         - vertical coordinate
+     * @param startLine - count from line number (usually 0)
+     * @return
+     */
+
     @Override
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
         Rect paddings = getOptions().getTextPaddings();

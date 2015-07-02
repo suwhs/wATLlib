@@ -1,8 +1,9 @@
 package su.whs.watl.text;
 
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.database.DataSetObserver;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.text.SpannableString;
@@ -10,6 +11,7 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,14 +36,16 @@ import su.whs.watl.ui.TextViewEx;
 public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
 
-    private class DebugTextPaint extends TextPaint {
+    private class DebugTextPaint extends TextPaint { // TODO: remove
         @Override
         public void setTextSize(float size) {
             super.setTextSize(size);
         }
     }
+
+    private Context mContext = null;
     private TextLayoutEx mTextLayout = null;
-    private Spanned mText = null;
+    // private Spanned mText = null;
     private SparseArray<ProxyLayout> mProxies = new SparseArray<ProxyLayout>();
     private OptionsWrapper mOptions = new OptionsWrapper();
     private int mAttachedPagesCounter = 0;
@@ -56,12 +60,12 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private ITextPagesNumber mPagesNumberListener = null;
     private boolean mNeedFontSize = true;
     private FakePagesController mFakePages = new FakePagesController();
-
+    private ViewProxy mPendingViewProxy = null;
     // static initialization
     {
         mTextPaint.setAntiAlias(true);
         mTextPaint.linkColor = Color.BLUE; // required to correctly draw colors
-        mOptions.setTextPaddings(15,15,15,15);
+        mOptions.setTextPaddings(15,15,15,15); // TODO: remove
     }
 
     public BaseTextPagerAdapter(int resourceId) {
@@ -78,16 +82,17 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public void setText(CharSequence text) {
         mCount = 1;
         mMaxPageNumber = 0;
+        Spanned spannedText;
         if (text instanceof Spanned) {
-            mText = (Spanned)text;
+            spannedText = (Spanned)text;
         } else {
-            mText = new SpannableString(text);
+            spannedText = new SpannableString(text);
         }
         if (mTextLayout!=null) {
             mTextLayout.stopReflowIfNeed();
             mTextLayout = null;
         }
-        mTextLayout = new TextLayoutEx(mText,mTextPaint,mOptions,this);
+        mTextLayout = new TextLayoutEx(spannedText,mTextPaint,mOptions,this);
         notifyDataSetChanged();
     }
 
@@ -139,7 +144,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 ViewProxy proxy = mProxyMap.get(object);
                 proxy.updateIndicators();
             }
-            return ((ViewProxy)view).isFromProxy(object);
+            boolean r = ((ViewProxy)view).isFromProxy(object);
+            return r;
         }
         return false;
     }
@@ -156,6 +162,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         int vtype = getViewTypeForPage(position);
 
         // check if we have ProxyLayout instance for page
+        if (mTextLayout==null) {
+            return instantiatePendingItem(container,position);
+        }
         ProxyLayout proxyLayout = getProxyLayoutForPage(position);
 
         View proxiedView = null;
@@ -187,11 +196,26 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         // construct new view
         if (proxiedView==null)
             proxiedView = getViewForPage(position);
-        ViewProxy proxy = new ViewProxy(container.getContext(),proxyLayout);
+        ViewProxy proxy;
+        if (mPendingViewProxy==null) {
+            proxy = new ViewProxy(container.getContext(),proxyLayout);
+            container.addView(proxy);
+        } else {
+            proxy = mPendingViewProxy;
+            mPendingViewProxy = null;
+            proxy.mProxy = proxyLayout;
+        }
+
         mProxyMap.put(proxyLayout, proxy);
         proxy.addRealPage(proxiedView);
-        container.addView(proxy);
+
         return proxyLayout;
+    }
+
+    private Object instantiatePendingItem(ViewGroup container,int position) {
+        mPendingViewProxy = new ViewProxy(container.getContext());
+        container.addView(mPendingViewProxy);
+        return mPendingViewProxy;
     }
 
     @Override
@@ -351,7 +375,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void finalize() throws Throwable {
-        mText = null;
+
         mProxies.clear();
         mProxyMap.clear();
         mUnusedViews.clear();
@@ -372,10 +396,18 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         private TextViewEx mContent;
         private SparseArray<View> mInvisiblePages = new SparseArray<View>();
 
+        public ViewProxy(Context context) {
+            super(context);
+            createProgress();
+        }
         public ViewProxy(Context context, ProxyLayout proxy) {
             super(context);
             mProxy = proxy;
-            mProgress = new ProgressBar(context);
+            createProgress();
+        }
+
+        private void createProgress() {
+            mProgress = new ProgressBar(getContext());
             mProgress.setVisibility(View.VISIBLE);
             mProgress.setIndeterminate(true);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -384,7 +416,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public boolean isFromProxy(Object object) {
-            return object == mProxy && object!=null;
+            return (object == mProxy && object!=null) || object instanceof ViewProxy;
         }
 
         public void replaceProxyLayout(ProxyLayout proxy) {
@@ -462,7 +494,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             if (mAttachedPagesCounter<2) { //
                 onAttachedFirst(getRootView().getContext());
             }
-            if (!mProxy.isLayouted())
+            if (mProxy==null || !mProxy.isLayouted())
                 setLoadingState();
             else
                 resetLoadingState();
@@ -513,6 +545,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     private void onAttachedFirst(Context context) {
         /** ui-thread **/
+        mContext = context;
         if (!mNeedFontSize)
             return;
         Button b = new Button(context);
@@ -525,21 +558,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private void onDetachedLast() {
         /** ui-thread **/
         /** detached all views from mContext **/
-    }
-
-    private int observers = 0;
-
-    @Override
-    public void registerDataSetObserver(DataSetObserver o) {
-        super.registerDataSetObserver(o);
-        observers++;
-    }
-
-    @Override
-    public void unregisterDataSetObserver(DataSetObserver o) {
-        super.unregisterDataSetObserver(o);
-        observers--;
-        if (observers<0)
+        mContext = null;
+        if (mTextLayout!=null)
             mTextLayout.stopReflowIfNeed();
     }
 
@@ -580,6 +600,13 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public void layoutFinished() {
         // Log.v(TAG,"Layout Finished");
+    }
+
+    /* end of ISelectableContentView */
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    public void setCustomSelectionActionModeCallback(ActionMode.Callback actionModeCallback) {
+        // TODO: forward to ViewProxy
     }
 
     private SparseArray<ProxyLayout.Replies> mReplies = new SparseArray<ProxyLayout.Replies>();
@@ -628,10 +655,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
             ViewProxy primaryView = mViewsMap.get(pl);
             if (primaryView==null) {
-                /*
-            * if (mViewsMap.size() < 1) - try to fetch views from mProxyMap
-            */
-
                 if (mViewsMap.size()<1) {
                     for (ViewProxy proxy : mProxyMap.values()) {
                         primaryView = proxy;
@@ -669,7 +692,4 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             return this;
         }
     }
-
-
-
 }

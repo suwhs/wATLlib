@@ -21,6 +21,10 @@ currently include it as git submodule
 
 News
 ======
+UPDATE 02 Jul 15
+ fix Demo App crash on old version of Android (2.3.3)
+ BaseTextPagerAdapter now can be attached to ViewPager before setText() call
+
 UPDATE 01 Jul 15
 
  version 1.0a

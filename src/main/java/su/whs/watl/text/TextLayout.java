@@ -128,6 +128,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         listener.onTextReady();
     }
 
+    /**
+     *
+     * @param y
+     * @param startLine
+     * @return 0 if y above startLine, getLinesCount()-1 if y below lastLine
+     */
+
     public int getLineForVertical(float y, int startLine) {
         int bottom = 0;
         if (lines == null) {
@@ -141,8 +148,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
             bottom += line.height;
         }
-        return -1;
+        return lines.size()-1;
     }
+
+    /**
+     *
+     * @param y-coordinate on canvas
+     * @return number of line for y-coordinate
+     */
 
     public int getLineForVertical(float y) {
         return getLineForVertical(y, 0);
@@ -230,6 +243,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param y              - y coordinate
      * @param startsFromLine
      * @return clicked character offset
+     *
+     * WARNING: getOffsetForCoordinates() does not use paddings! (yet)
      */
 
     public int getOffsetForCoordinates(View view, float x, float y, int startsFromLine) {
@@ -238,20 +253,21 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             Log.e(TAG, "need reflow!");
             return 0;
         }
-        for (int j = startsFromLine; j < lines.size(); j++ /* LineSpan.LineDescription line : lines */) {
+        for (int j = startsFromLine; j < lines.size(); j++) {
             TextLine line = lines.get(j);
-            if (line.wrapHeight > 0 && line.span != null && line.span.get().isDrawable) {
+            LineSpan span = line.span.get();
+            if (line.wrapHeight > 0 && span != null && span.isDrawable) {
                 if (y < bottom || y > (bottom + line.wrapHeight))
                     continue;
-                if (line.span.get().gravity == Gravity.LEFT) {
-                    if (line.span.get().drawableScaledWidth > x)
-                        return line.span.get().start;
-                } else if (line.span.get().gravity == Gravity.RIGHT) {
-                    if (x > width - line.span.get().drawableScaledWidth) {
-                        return line.span.get().start;
+                if (span.gravity == Gravity.LEFT) {
+                    if (span.drawableScaledWidth > x)
+                        return span.start;
+                } else if (span.gravity == Gravity.RIGHT) {
+                    if (x > width - span.drawableScaledWidth) {
+                        return span.start;
                     }
                 } else {
-                    return line.span.get().start;
+                    return span.start;
                 }
                 continue;
             } else if (y > bottom && y < bottom + line.height) {

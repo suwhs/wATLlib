@@ -377,6 +377,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         return primary + (mColumnWidth+mColumnSpacing) * shift;
     }
 
+    /**
+     * used for display selection cursors correctly
+     *
+     * @param line
+     * @param bounds
+     * @return y-coordinate of lines (top of line rect)
+     */
+
 
     @Override
     public int getLineBounds(int line, Rect bounds) {
@@ -389,7 +397,10 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             // TODO: DETERMINE WhICH COLUMN HOLDS LINE 'line'
             // column last line calc as mColumnLineStarts[column]-1
             for (;column<mColumnsCount && line>mColumnsLinesStarts[column+1]-1; column++)
-
+            if (column>mColumnsCount) {
+                Log.w(TAG,"error calculating column for line");
+                return -1;
+            }
             for (int i = 0; i < column; i++) {
                 deltaY += mLinesHeightsOnColumns[i] - paddingTop;
                 deltaX += mColumnWidth + mColumnSpacing;
