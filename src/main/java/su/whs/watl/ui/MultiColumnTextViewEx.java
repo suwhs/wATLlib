@@ -96,7 +96,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                         right + columnShift * i,
                         mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
-        // canvas.drawRect(debugClickedLineBound,debugPaint);
+        canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
     private void log_column_lines(int column) {
@@ -388,15 +388,15 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public int getLineBounds(int line, Rect bounds) {
+        Log.d(TAG,"getLineBounds("+line+",bounds");
         int paddingTop = getOptions().getTextPaddings().top;
         int deltaY = 0;
         int deltaX = 0;
         int baseLine;
         if (mColumnsCount > 1) {
             int column = 0;
-            // TODO: DETERMINE WhICH COLUMN HOLDS LINE 'line'
-            // column last line calc as mColumnLineStarts[column]-1
-            for (;column<mColumnsCount && line>mColumnsLinesStarts[column+1]-1; column++)
+            // column last line calc as mColumnLineStarts[column+1]-1
+            for (;column<mColumnsCount-1 && line>mColumnsLinesStarts[column+1]-1; column++)
             if (column>mColumnsCount) {
                 Log.w(TAG,"error calculating column for line");
                 return -1;
@@ -405,7 +405,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                 deltaY += mLinesHeightsOnColumns[i] - paddingTop;
                 deltaX += mColumnWidth + mColumnSpacing;
             }
-            baseLine = super.getLineBounds(line+mColumnsLinesStarts[column], bounds);
+            baseLine = super.getLineBounds(line, bounds);
         } else {
             baseLine = super.getLineBounds(line, bounds);
         }

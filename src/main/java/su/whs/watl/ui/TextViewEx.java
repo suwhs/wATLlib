@@ -477,7 +477,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
-        Rect p = getOptions().getTextPaddings();
         return getTextLayout().getPrimaryHorizontal(line, postionAtLine, getWidth());
     }
 

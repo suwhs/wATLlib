@@ -824,8 +824,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 TextLine line = lines.get(i);
                 if (line.end > position && line.span != null) // need to skip fake lines with span==null
                     return i;
+                result = i;
             }
-        return -1;
+        return result;
     }
 
     /**
