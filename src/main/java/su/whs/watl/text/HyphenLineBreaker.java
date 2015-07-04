@@ -150,23 +150,28 @@ public class HyphenLineBreaker extends LineBreaker {
 
     private int nearestLineBreakFromCache(int start, int end) {
         int offset = end - start;
-        if (lastQueryCache.hyphens == null || offset>lastQueryCache.hyphens.length || offset < 3) {
+        if (lastQueryCache.hyphens == null || offset>lastQueryCache.hyphens.length) {
             return start;
         }
         for(;offset>1;offset--) {
             if (lastQueryCache.hyphens[offset]==1) {
-                int result = (start + offset) | LineBreaker.HYPHEN;
+                int result = (start + offset);
                 return result;
             }
         }
         return start;
     }
 
+    private boolean letters(char a, char b) {
+        return Character.isLetter(a) && Character.isLetter(b);
+    }
+
     @Override
     public int nearestLineBreak(char[] text, int start, int end, int limit) {
         boolean letter = Character.isLetter(text[end]);
         if (letter && lastQueryCache.start==start && lastQueryCache.limit==limit) {
-            return nearestLineBreakFromCache(start, end);
+            int r = nearestLineBreakFromCache(start, end);
+            return r | (r<limit && letters(text[r],text[r+1]) ? HYPHEN : 0);
         }
         invalidateLastQueryCache();
         // check if end is letter and (end-start)>1 && limit-end > 1
@@ -192,7 +197,8 @@ public class HyphenLineBreaker extends LineBreaker {
                 lastQueryCache.hyphens = new int[length+2];
                 // call hyphenate()
                 hyphenate(word,lastQueryCache.hyphens);
-                return nearestLineBreakFromCache(start,end);
+                int r = nearestLineBreakFromCache(start, end);
+                return r | (r<limit && letters(text[r],text[r+1]) ? HYPHEN : 0);
             }
             return start;
         } else {
