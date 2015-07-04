@@ -1029,22 +1029,29 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected void onFinish(List<TextLine> lines, int height) {
         this.lines = lines;
         int ii = 0;
+        int th = 0;
         for (TextLine line : lines) {
             if (debug && line.start==line.end) {
                 Log.e(TAG,"line.start==line.end " + ii);
             }
+            th += line.height;
             ii++;
         }
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
         setReflowFinished(true);
         if (mNeedTotalHeight && listener != null) {
-            this.height = height + getOptions().getTextPaddings().height();
+            this.height = height + text_paddings_height();
             notifyTextHeightChanged();
             notifyTextReady();
         } else if (listener != null) {
             notifyTextReady();
         }
+    }
+
+    private int text_paddings_height() {
+        Rect h = getOptions().getTextPaddings();
+        return h.top + h.bottom;
     }
     // guard for reflow()
     // WARNING: if make reflow() synchronized on TextLayout.this - we receive deadlock on TextLayoutEx
@@ -1286,9 +1293,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawSelection && span!=null) {
                 if (findSelectionStartX)
-                    selectStartX = calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0)) + line.margin + align;
+                    selectStartX = calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
                 if (findSelectionEndX)
-                    selectEndX = calculateOffset(line.span.get(), line.start, selectionEnd, (justification ? line.justifyArgument : 0)) + line.margin + align;
+                    selectEndX = calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
                 canvas.drawRect(selectStartX + align - leftOffset, y, selectEndX + align - leftOffset, y + line.height, selectionPaint);
             }
 
@@ -1416,9 +1423,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawHighlight) {
                 if (findHighlightStartX)
-                    highlightStartX = calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0)) + line.margin + textPaddings.left;
+                    highlightStartX = calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 if (findHighlightEndX)
-                    highlightEndX = calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0)) + line.margin + textPaddings.left;
+                    highlightEndX = calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 canvas.drawRect(highlightStartX + align, y, highlightEndX+align, y + line.height, highlightPaint);
             }
 
@@ -1459,8 +1466,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * TODO: more work for bidirectional text support
      */
 
-    private static float calculateOffset(LineSpan span, int from, int character, float aa) {
-        return getCharacterOffset(span, from, character) + aa * getSoftBreaks(span, from, character);
+    private static float calculateOffset(LineSpan span, int from, int character, float aa, ContentView.Options opts) {
+        return getCharacterOffset(span, from, character, opts) + aa * getSoftBreaks(span, from, character);
     }
 
     /**
@@ -1470,17 +1477,34 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @return character offset from line start (without justification)
      */
 
-    private static float getCharacterOffset(LineSpan span, int from, int character) {
+    private static float getCharacterOffset(LineSpan span, int from, int character, ContentView.Options opts) {
         float result = 0f;
         for (int i = from; i < character; i++) {
             if (i - span.start + 1 > span.end - span.start) {
                 span = span.next;
                 if (span == null) break;
+                if (span.isDrawable) {
+                    if (span.drawableScaledWidth>0f) {
+                        result += span.drawableScaledWidth + drawable_paddings_width(opts);
+                        if (i<character-1) {
+                            // TODO: solve correct wrapimage paddings
+                        } else {
+                            break;
+                        }
+                        span = span.next;
+                    }
+                }
                 continue;
             }
             result += span.widths[i - span.start];
         }
         return result;
+    }
+
+    private static int drawable_paddings_width(ContentView.Options options) {
+        Rect r = new Rect();
+        options.getDrawablePaddings(r);
+        return r.left + r.right;
     }
 
     /**
@@ -1621,7 +1645,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     // returns x coordinate without padding applied
 
-    public static int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth) {
+    private static int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
         float align = 0f;
         if (textLine.gravity != Gravity.NO_GRAVITY) {
             if (textLine.gravity == Gravity.RIGHT) {
@@ -1630,7 +1654,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 align = (viewWidth / 2) - (textLine.width / 2);
             }
         }
-        return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0) + textLine.margin);
+        return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0, opts) + textLine.margin + textLine.wrapMargin);
+    }
+
+    public int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth) {
+        return getCharacterOffsetX(textLine,position,justification,viewWidth,getOptions());
     }
 
     public class Options extends ContentView.Options {
@@ -1864,7 +1892,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 result.add(ld); // first call here
                 state.breakLineAfterImage();
                 // state.breakLine(false,ld);
-                collectHeights = true;
+                collectHeights = false;
                 lineStartAt = state.span.end;
                 carrierReturn = true;
             } else {
@@ -1901,7 +1929,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (state.character<1) return true;
             if (lineStartAt < state.character) {
                 TextLine ld;
-                // y += state.height;
+                y += state.height;
                 viewHeightLeft -= state.height;
 
                 if (height > -1 && y > height - 1) {
@@ -2305,7 +2333,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 result.add(ld);
             } else
                 state.height = 0;
-            onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + state.height) : wrapEnd);
+            onFinish(result, (y + collectedHeight + state.height) > wrapEnd ? (y + collectedHeight + state.height) : wrapEnd);
         }
 
         private boolean switchSpan() {

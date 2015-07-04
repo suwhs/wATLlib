@@ -277,7 +277,7 @@ public class TextViewWS extends TextView {
         mSelectionCursorEnd.y = getLineBounds(selectionEndsLine, endBounds);
 
         float startCursorOffsetX = getPrimaryHorizontal(selectionStartsLine, selectionStart, want);
-        float endCursorOffsetX = getPrimaryHorizontal(selectionEndsLine, selectionEnds+1, want);
+        float endCursorOffsetX = getPrimaryHorizontal(selectionEndsLine, selectionEnds, want);
 
         mSelectionCursorStart.x = (int) startCursorOffsetX;
 
