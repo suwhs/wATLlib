@@ -39,4 +39,12 @@ public abstract class LineBreaker {
         return Character.isLetter(ch);
     }
 
+    public boolean isPunktuation(char ch) {
+        return ch < 0x7e &&
+                (ch > 0x20 &&
+                        (ch < 0x3f ||
+                                (ch > 0x5b &&
+                                        (ch < 0x60 ||
+                                                ch > 0x7e))));
+    }
 }

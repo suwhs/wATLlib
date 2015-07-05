@@ -47,6 +47,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
     private boolean debug = false;
+    private boolean debug_offset_calcs = true;
     private static char[] mHyphenChar = new char[] { '-' };
     private Spanned mText;
     private int mParagraphStartMargin = 0;
@@ -1386,6 +1387,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 backgroundPaint.setColor(backgroundColor);
 
                 while (lineSpanBreak != null) {
+                    if (debug_offset_calcs) {
+                        float _o = getOffsetXLtr(line, drawStart);
+                        //R(line,drawStart,justification,width,getOptions());
+                        if (_o!=x) {
+                            Log.e(TAG,"[0] error - wrong calculated offset: " + _o + ", expected = " + x);
+                        }
+                    }
                     drawStop = lineSpanBreak.position + 1;
                     drawStop = drawStop > line.end ? line.end : drawStop;
                     if (drawStart < drawStop && drawStart > line.start - 1) {
@@ -1410,12 +1418,32 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     skip = lineSpanBreak.skip;
 
                     lineSpanBreak = lineSpanBreak.next;
+
+                    if (debug_offset_calcs) {
+                        float _o = getOffsetXLtr(line, drawStop);// getCharacterOffsetX(line,drawStop,justification,width,getOptions());
+                        if (_o!=x) {
+                            Log.e(TAG,"[1] error - wrong calculated offset: " + _o + ", expected = " + x);
+                        }
+                    }
+
                 }
 
                 if (tail > 0f) {
                     drawStop = line.end < span.end ? line.end : span.end;
+
                     if (drawStart < drawStop) {
                         canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
+                        if (debug_offset_calcs) {
+                            float _o = getOffsetXLtr(line,drawStart);// getCharacterOffsetX(line,drawStart,justification,width,getOptions());
+                            if (_o!=x) {
+                                Log.e(TAG,"[2] error - wrong calculated offset: " + _o + ", expected = " + x);
+                            }
+                            _o = getOffsetXLtr(line,drawStop); // getCharacterOffsetX(line,drawStop,justification,width,getOptions());
+                            if (_o!=x+tail) {
+                                Log.e(TAG,"[3] error - wrong calculated offset: " + _o + ", expected = " + x);
+                            }
+                        }
+
                         x += tail;
                     }
                 }
@@ -1458,8 +1486,121 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return 0;
     }
 
+    /**
+     * WARNING: this function must works on draw() algorythm
+     * @param line
+     * @param positionAtLine
+     * @return
+     */
+
     private float getOffsetXLtr(TextLine line, int positionAtLine) {
-        return  0;
+        ContentView.Options opts = getOptions();
+        Rect textPaddings = opts.getTextPaddings();
+        Rect drawablePaddings = new Rect();
+        opts.getDrawablePaddings(drawablePaddings);
+        float leftOffset = textPaddings.left;
+        int drawStart = line.start;
+        int drawStop = line.end;
+        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
+            return 0f + getOptions().getTextPaddings().left;
+        }
+
+        float tail = (line.afterBreak == null || line.afterBreak.get()==null) ? 0f : line.afterBreak.get().tail;
+        LineSpan span = line.span.get();
+
+        float x;
+        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
+
+        float align = leftOffset;
+
+        if (line.gravity != Gravity.NO_GRAVITY) {
+            if (line.gravity == Gravity.RIGHT) {
+                align = width - line.width - line.wrapMargin;
+            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
+                align = ((width - line.margin)/ 2) - (line.width / 2);
+            }
+        }
+
+        LineSpanBreak lineSpanBreak = span==null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+        x = line.margin + align;
+        drawStart += skip;
+        if (positionAtLine<=drawStart)
+            return x;
+
+        drawline:
+        while (span != null && drawStart < line.end) {
+            // draw leading drawable only
+            if (span.isDrawable && span.end>line.start) {
+                float drawableWidth = span.width;
+
+                if (span.gravity == Gravity.RIGHT) {
+                    x = width - line.wrapWidth - textPaddings.right;
+                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
+                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
+                } else if (line.start == span.start) {
+                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
+                }
+
+                if (span.drawableScaledWidth > 0f) {
+                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
+                } else {
+                    drawableWidth = span.width;
+                }
+                x += drawableWidth;
+
+                if (span.end==line.end) {
+                    return line.end;
+                }
+                // drawStart ++;
+                span = span.next; // span with drawable always has length == 1
+                continue drawline;
+            }
+
+            while (lineSpanBreak != null) {
+                drawStop = lineSpanBreak.position + 1;
+                drawStop = drawStop > line.end ? line.end : drawStop;
+                if (drawStart < drawStop && drawStart > line.start - 1) {
+                    if (positionAtLine<drawStop) {
+                        for (;drawStart<positionAtLine;x+=span.widths[drawStart-span.start],drawStart++);
+                        return x;
+                    }
+                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
+                }
+                drawStart = drawStop;
+
+
+                if (!lineSpanBreak.strong && justification)
+                    x += line.justifyArgument;
+
+                if (lineSpanBreak.carrierReturn) {
+                    break drawline;
+                }
+
+                tail = lineSpanBreak.tail;
+                skip = lineSpanBreak.skip;
+
+                lineSpanBreak = lineSpanBreak.next;
+            }
+
+            if (tail > 0f) {
+                drawStop = line.end < span.end ? line.end : span.end;
+
+                if (drawStart < drawStop) {
+                    if (positionAtLine<drawStop) {
+                        for (;drawStart<positionAtLine;x+=span.widths[drawStart-span.start],drawStart++);
+                        return x;
+                    }
+                    x += tail;
+                }
+            }
+            span = span.next;
+            if (span != null) {
+                tail = span.width;
+                lineSpanBreak = span.breakFirst;
+                drawStart = span.start + skip;
+            }
+        } // end drawline: loop
+        return x;
     }
 
     /**
@@ -1651,7 +1792,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     // returns x coordinate without padding applied
 
-    private static int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
+    private int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
+        return (int) getOffsetXLtr(textLine,position);
+    }
+
+
+    private static int getCharacterOffsetXOld(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
         float align = 0f;
         if (textLine.gravity != Gravity.NO_GRAVITY) {
             if (textLine.gravity == Gravity.RIGHT) {
@@ -1663,6 +1809,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0, opts) + textLine.margin + textLine.wrapMargin);
     }
 
+    @Deprecated
     public int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth) {
         return getCharacterOffsetX(textLine,position,justification,viewWidth,getOptions());
     }
