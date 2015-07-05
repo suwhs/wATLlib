@@ -173,6 +173,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return new LinesIterator();
     }
 
+    public String getState() {
+        return "";
+    }
+
     /**
      * default LineBreaker implementation
      */
@@ -1028,14 +1032,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     protected void onFinish(List<TextLine> lines, int height) {
         this.lines = lines;
-        int ii = 0;
-        int th = 0;
-        for (TextLine line : lines) {
-            if (debug && line.start==line.end) {
-                Log.e(TAG,"line.start==line.end " + ii);
+        if (debug) {
+            int ii = 0;
+            int th = 0;
+            for (TextLine line : lines) {
+                if (line.start == line.end) {
+                    Log.e(TAG, "line.start==line.end " + ii);
+                }
+                th += line.height;
+                ii++;
             }
-            th += line.height;
-            ii++;
         }
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
@@ -1285,9 +1291,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (line.gravity != Gravity.NO_GRAVITY) {
                 if (line.gravity == Gravity.RIGHT) {
-                    align = width - line.width;
+                    align = width - line.width - line.wrapMargin;
                 } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                    align = (width / 2) - (line.width / 2);
+                    align = ((width - line.margin)/ 2) - (line.width / 2);
                 }
             }
 
@@ -1317,9 +1323,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             final float drawableWidth;
 
                             if (span.gravity == Gravity.RIGHT) {
-                                x = width - line.wrapWidth + textPaddings.right;
+                                x = width - line.wrapWidth - textPaddings.right;
                             } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
-                                x = width / 2 - (span.drawableScaledWidth+drawablePaddingWidth) / 2;
+                                x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
                             } else if (line.start == span.start) {
                                 x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
                             }
@@ -1828,7 +1834,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
 
-            if (imagePlacementHandler.isWrapText(placement)) {
+            if (imagePlacementHandler.isWrapText(placement) && state.gravity != Gravity.CENTER_HORIZONTAL) {
                 if (debug) Log.v(TAG,"wrapText");
                 if (wrapHeight>0) {
                     Log.e(TAG,"close wrap null span");
@@ -1869,7 +1875,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 state.carrierReturnSpan = state.span;
                 state.lastBreak = br;
                 lineStartAt = state.character + 1;
-            } else if (imagePlacementHandler.isNewLineAfter(placement)) {
+            } else if (imagePlacementHandler.isNewLineAfter(placement) || state.gravity == Gravity.CENTER_HORIZONTAL) {
                 if (debug) Log.v(TAG,"newLineAfter");
                 if (finishLine && !__finishLine()) return false;
                 TextLine ld;
@@ -1889,6 +1895,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 ld = new TextLine(span, scale.x, state.height);
                 ld.margin = lineMargin;
+                ld.gravity = state.gravity;
                 result.add(ld); // first call here
                 state.breakLineAfterImage();
                 // state.breakLine(false,ld);

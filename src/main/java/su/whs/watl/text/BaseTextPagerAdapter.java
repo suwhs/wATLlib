@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.text.SpannableString;
@@ -240,14 +241,31 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
     }
 
+    public int getPageStart(int page) {
+        ProxyLayout pl = getProxyLayoutForPage(mPrimaryItem);
+        if (pl!=null && pl.getLinesCount()>0) {
+            return pl.getLineStart(0);
+        }
+        return -1;
+    }
+
+    public int getPageEnd(int page) {
+        ProxyLayout pl = getProxyLayoutForPage(mPrimaryItem);
+        if (pl!=null && pl.getLinesCount()>0) {
+            return pl.getLineEnd(pl.getLinesCount() - 1);
+        }
+        return -1;
+    }
 
     @Override
     public Parcelable saveState() {
         /**
          * save pagination info cache
          */
-
-        return null;
+        Bundle state = new Bundle();
+        state.putString("layout:", mTextLayout.getState());
+        state.putParcelable("parent:",super.saveState());
+        return state;
     }
 
     @Override
@@ -256,6 +274,17 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         /**
          * restore pagination info cache
          * **/
+        if (state!=null) {
+            if (state instanceof Bundle) {
+                Bundle s = (Bundle)state;
+                if (s.containsKey("parent:")) {
+                    super.restoreState(s.getParcelable("parent:"),loader);
+                }
+                if (s.containsKey("layout:")) {
+                    // TODO: use mTextLayout.restoreState()
+                }
+            }
+        }
     }
 
     @Override

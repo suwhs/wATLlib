@@ -20,6 +20,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+/**
+ * supported tags:
+ *  UL
+ *  OL
+ *  DD
+ *  IFRAME (filtered out)
+ *  CENTER
+ *  RIGHT
+ *  RTL
+ *  LTR
+ */
+
 public class HtmlTagHandler implements Html.TagHandler {
     private static final String TAG = "HtmlTagHandler";
     private int mListItemCount = 0;
@@ -27,7 +39,6 @@ public class HtmlTagHandler implements Html.TagHandler {
     private int mIframeStarts = 0;
 
     private class LMS extends LeadingMarginSpan.Standard {
-
         public LMS(int every) {
             super(every);
         }
@@ -75,6 +86,16 @@ public class HtmlTagHandler implements Html.TagHandler {
                 output.delete(mIframeStarts,output.length());
             }
 
+        } else if (tag.equals("rtl")) {
+            if (opening)
+                output.append('\u200F');
+            else
+                output.append('\u200E');
+        } else if (tag.equals("ltr")) {
+            if (opening)
+                output.append('\u200E');
+            else
+                output.append('\u200F');
         }
     }
 

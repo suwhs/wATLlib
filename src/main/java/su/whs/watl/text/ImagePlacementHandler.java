@@ -11,7 +11,7 @@ import android.text.style.DynamicDrawableSpan;
  */
 public abstract class ImagePlacementHandler {
     private static final int THUMBNAIL = 0x01;
-    private static final int EXCLUSIVE = 0x02;
+    public static final int EXCLUSIVE = 0x02;
     private static final int SCROLLABLE = 0x04;
     private static final int WRAP_TEXT = 0x08;
     private static final int ALIGN_CENTER = 0x10;
