@@ -96,7 +96,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                         right + columnShift * i,
                         mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
-        canvas.drawRect(debugClickedLineBound,debugPaint);
+        // canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
     private void log_column_lines(int column) {
@@ -153,7 +153,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     protected void processTouchAt(float x, float y, boolean longTap, int zero) {
         PointF p = new PointF();
         int startLine = translateCoordinates(x, y, p);
-        super.processTouchAt(p.x, p.y, longTap, startLine);
+        super.processTouchAt(p.x, p.y, longTap, 0); // TODO: we already correct Y, so startLine==0
     }
 
     /*
@@ -176,7 +176,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
         translated.x = x - (column*layoutWidth);
         translated.y = y;
-        for (int i=0; i< column; i++, translated.y+=mLinesHeightsOnColumns[i]);
+        for (int i=0; i< column; translated.y+=mLinesHeightsOnColumns[i], i++);
 
         return startLine;
     }
