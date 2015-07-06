@@ -244,7 +244,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int top = getCompoundPaddingTop();
         int bottom = getHeight() - getCompoundPaddingBottom();
         mTextLayout.draw(canvas, left, top, right, bottom);
-        canvas.drawRect(debugClickedLineBound,debugPaint);
     }
 
     @Override
@@ -368,6 +367,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     protected void resetState() {
         setSelection(0, 0, 0);
         setSelected(false);
+        super.invalidateContent();
     }
 
     /**

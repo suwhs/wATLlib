@@ -647,7 +647,24 @@ public class TextViewWS extends TextView {
         drawing functions
      */
 
-    public void onDraw(Canvas canvas) {
+    /* WORKAROUND FOR BUG when onPreDraw() NOT CALLED */
+    private boolean on_pre_draw_called = false;
+    protected void invalidateContent() {
+        on_pre_draw_called = false;
+    }
+
+    @Override
+    public boolean onPreDraw() {
+        boolean r = super.onPreDraw();
+        on_pre_draw_called = true;
+        return r;
+    }
+
+    public final void onDraw(Canvas canvas) {
+        if (!on_pre_draw_called) {
+            if (!onPreDraw())
+                return;
+        }
         super.onDraw(canvas);
         if (isInEditMode()) return;
         drawText(canvas);
