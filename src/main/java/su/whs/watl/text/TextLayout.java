@@ -47,7 +47,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
     private boolean debug = false;
-    private boolean debug_offset_calcs = true;
     private static char[] mHyphenChar = new char[] { '-' };
     private Spanned mText;
     private int mParagraphStartMargin = 0;
@@ -276,7 +275,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 continue;
             } else if (y > bottom && y < bottom + line.height) {
-                int i = getPrimaryHorizontal(line, (int) x, width);
+                int i = getOffsetForHorizontal(line, (int) x);
                 return i;
             }
             bottom += line.height;
@@ -327,12 +326,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      *
      * @param line
      * @param position
-     * @param viewWidth
      * @return
      */
 
-    public int getPrimaryHorizontal(int line, int position, float viewWidth) {
-        return getCharacterOffsetX(lines.get(line), position, getOptions().isJustification(), viewWidth);
+    public int getPrimaryHorizontal(int line, int position) {
+        return (int) getOffsetXLtr(lines.get(line), position);
     }
 
     /**
@@ -1230,14 +1228,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (selection && (selectionStart < line.end && selectionEnd > line.start)) {
                 if (line.start >= selectionStart && line.end < selectionEnd) {
                 /* fill entire background */
-                    selectEndX = line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+                    selectEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
                 } else if (selectionStart < line.start && selectionEnd < line.end) {
                 /* selection starts on previous line, but ends on current line */
                     findSelectionEndX = true;
                 } else if (selectionStart >= line.start && selectionEnd > line.end) {
                 /* selection starts on current line, but ends on next line or below */
                     findSelectionStartX = true;
-                    selectEndX = line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+                    selectEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
                 } else if (selectionStart >= line.start && selectionEnd < line.end) {
                 /* selection starts and ends on current line */
                     findSelectionStartX = true;
@@ -1249,14 +1247,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (highlight && (highlightStart < line.end && highlightEnd > line.start)) {
                 if (line.start >= highlightStart && line.end <= highlightEnd) {
                 /* fill entire background */
-                    highlightEndX = line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
                 } else if (highlightStart <= line.start && highlightEnd <= line.end) {
                 /* highlight starts on previous line, but ends on current line */
                     findHighlightEndX = true;
                 } else if (highlightStart >= line.start && highlightEnd > line.end) {
                 /* highlight starts on current line, but ends on next line or below */
                     findHighlightStartX = true;
-                    highlightEndX = line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
                 } else if (highlightStart >= line.start && highlightEnd <= line.end) {
                 /* highlight starts and ends on current line */
                     findHighlightStartX = true;
@@ -1300,9 +1298,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawSelection && span!=null) {
                 if (findSelectionStartX)
-                    selectStartX = calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
+                    selectStartX = getOffsetXLtr(line,selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
                 if (findSelectionEndX)
-                    selectEndX = calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
+                    selectEndX = getOffsetXLtr(line,selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
                 canvas.drawRect(selectStartX + align - leftOffset, y, selectEndX + align - leftOffset, y + line.height, selectionPaint);
             }
 
@@ -1387,13 +1385,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 backgroundPaint.setColor(backgroundColor);
 
                 while (lineSpanBreak != null) {
-                    if (debug_offset_calcs) {
-                        float _o = getOffsetXLtr(line, drawStart);
-                        //R(line,drawStart,justification,width,getOptions());
-                        if (_o!=x) {
-                            Log.e(TAG,"[0] error - wrong calculated offset: " + _o + ", expected = " + x);
-                        }
-                    }
                     drawStop = lineSpanBreak.position + 1;
                     drawStop = drawStop > line.end ? line.end : drawStop;
                     if (drawStart < drawStop && drawStart > line.start - 1) {
@@ -1418,14 +1409,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     skip = lineSpanBreak.skip;
 
                     lineSpanBreak = lineSpanBreak.next;
-
-                    if (debug_offset_calcs) {
-                        float _o = getOffsetXLtr(line, drawStop);// getCharacterOffsetX(line,drawStop,justification,width,getOptions());
-                        if (_o!=x) {
-                            Log.e(TAG,"[1] error - wrong calculated offset: " + _o + ", expected = " + x);
-                        }
-                    }
-
                 }
 
                 if (tail > 0f) {
@@ -1433,17 +1416,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                     if (drawStart < drawStop) {
                         canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
-                        if (debug_offset_calcs) {
-                            float _o = getOffsetXLtr(line,drawStart);// getCharacterOffsetX(line,drawStart,justification,width,getOptions());
-                            if (_o!=x) {
-                                Log.e(TAG,"[2] error - wrong calculated offset: " + _o + ", expected = " + x);
-                            }
-                            _o = getOffsetXLtr(line,drawStop); // getCharacterOffsetX(line,drawStop,justification,width,getOptions());
-                            if (_o!=x+tail) {
-                                Log.e(TAG,"[3] error - wrong calculated offset: " + _o + ", expected = " + x);
-                            }
-                        }
-
                         x += tail;
                     }
                 }
@@ -1457,9 +1429,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawHighlight) {
                 if (findHighlightStartX)
-                    highlightStartX = calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                    highlightStartX = getOffsetXLtr(line,highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 if (findHighlightEndX)
-                    highlightEndX = calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                    highlightEndX = getOffsetXLtr(line,highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 canvas.drawRect(highlightStartX + align, y, highlightEndX+align, y + line.height, highlightPaint);
             }
 
@@ -1468,8 +1440,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             y += line.height;
-            // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (5)");
-           // if (y > clipRect.bottom-textPaddings.bottom) break linesLoop;
         }
         return 0;
     }
@@ -1613,6 +1583,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * TODO: more work for bidirectional text support
      */
 
+    @Deprecated
     private static float calculateOffset(LineSpan span, int from, int character, float aa, ContentView.Options opts) {
         return getCharacterOffset(span, from, character, opts) + aa * getSoftBreaks(span, from, character);
     }
@@ -1623,7 +1594,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param character
      * @return character offset from line start (without justification)
      */
-
+    @Deprecated
     private static float getCharacterOffset(LineSpan span, int from, int character, ContentView.Options opts) {
         float result = 0f;
         for (int i = from; i < character; i++) {
@@ -1660,7 +1631,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param character
      * @return count of 'soft' breaks for line
      */
-
+    @Deprecated
     private static int getSoftBreaks(LineSpan span, int from, int character) {
         LineSpanBreak lineBreak = span.breakFirst;
         int result = 0;
@@ -1681,12 +1652,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return result;
     }
 
-    public static int getPrimaryHorizontal(TextLayout.TextLine line, int atX, float viewWidth) {
+    /**
+     *
+     * @param line - number of line (<getLinesCount())
+     * @param atX - x-coordinate from line starts
+     * @return
+     */
+
+    public final int getOffsetForHorizontal(TextLayout.TextLine line, int atX) {
         // similar to DRAW, but no actual paint - just determine character position for given x coordinate
 
         int drawStart = line.start;
         int drawStop = line.end;
         int resultChar = line.start;
+        int viewWidth = reflowedWidth;
 
         if (line.afterBreak != null) {
             // assert(drawStart==line.afterBreak.position+line.afterBreak.skip);
@@ -1735,7 +1714,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 drawStop = drawStop > line.end ? line.end : drawStop;
                 if (drawStart < drawStop) {
                     // walk trough span.widths ?
-                    for (int i = drawStart; i < drawStop; i++) {
+                    for (int i = drawStart < span.start ? span.start : drawStart; i < drawStop; i++) {
                         float width = span.widths[i - span.start];
                         if (x + width > atX) return i;
                         x += width;
@@ -1942,6 +1921,26 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
+        private boolean checkViewHeightExceed() {
+            if (viewHeight > -1 && !onProgress(result, y, true)) {
+                return false;
+            } else if (viewHeight > -1 && updateGeometry(geometry)) {
+                                /* special case - ask geometry for next portion */
+                width = geometry[0];
+                viewHeight = geometry[1];
+            }
+
+            if (viewHeight > -1) { // TODO: reorganize conditions
+                collectedHeight += y;
+                y = 0;  // y zeroed only if viewHeight greater than -1
+                viewHeightLeft = viewHeight - viewHeightDec;
+                wrapWidth = width - lineWidthDec;
+                wrapHeight = 0;
+                wrapMargin = 0;
+            }
+            return true;
+        }
+
         public boolean handleImage(LineSpan span, DynamicDrawableSpan dds,boolean allowDefer) {
             int placement = imagePlacementHandler.place(dds,
                     viewHeightLeft,
@@ -2031,6 +2030,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     state.height = scale.y + drawablePaddings.top + drawablePaddings.bottom;
                 }
 
+                if (viewHeightLeft < state.height) {
+                    if (!checkViewHeightExceed()) return false;
+                }
                 y += state.height;
                 viewHeightLeft -= state.height;
                 span.gravity = gravity;

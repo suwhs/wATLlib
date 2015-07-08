@@ -43,11 +43,11 @@ import su.whs.watl.text.TextLayoutListener;
 
 public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextView {
     private static final String TAG = "TextViewEx";
-
+    private ContentView.Options mPendingOptions = new ContentView.Options();
     private boolean mDebug = BuildConfig.DEBUG;
 
     private TextLayout mTextLayout;
-
+    private boolean mHeightWrapContent = false;
     // private boolean mFallBackMode = false;
     private boolean mTextIsSelectable = true;
     // @Attribute
@@ -99,7 +99,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public ContentView.Options getOptions() {
-        return mTextLayout.getOptions();
+        return mTextLayout==null ? mPendingOptions : mTextLayout.getOptions();
     }
 
     @Override
@@ -112,11 +112,19 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         super.setText("", BufferType.NORMAL);
         if (_text == null || _text.length() < 1) return;
+
+        if (mTextLayout==null && mPendingOptions == null) {
+                mPendingOptions = new ContentView.Options();
+        }
+
         mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
-                mTextLayout==null ? new ContentView.Options() : mTextLayout.getOptions() ,
+                getOptions() ,
                 this);
         mTextLayout.getOptions().setImagePlacementHandler(mImagePlacementHandler);
-        invalidate();
+        if (mHeightWrapContent)
+            requestLayout();
+        else
+            invalidate();
     }
 
     /**
@@ -192,12 +200,17 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int want = width - (cpL + cpR);
 
         if (height < 0) { // if WRAP_CONTENT - sttart layout process immediately
-            if (!mTextLayout.isLayouted()) {
-                prepareLayout(want, -1);
-                // mTextLayout.setSize(want, -1);
-                height = -1;
-            } else if (mNeedTotalHeight) {
-                height = mTextLayout.getHeight();
+            mHeightWrapContent = true;
+            if (mTextLayout != null) {
+                if (!mTextLayout.isLayouted()) {
+                    prepareLayout(want, -1);
+                    // mTextLayout.setSize(want, -1);
+                    height = -1;
+                } else if (mNeedTotalHeight) {
+                    height = mTextLayout.getHeight();
+                }
+            } else {
+
             }
         } else {
             mNeedTotalHeight = false;
@@ -364,6 +377,14 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return mTextLayout.getLinesCount();
     }
 
+    @Override
+    public void setSelected(boolean selected) {
+        super.setSelected(selected);
+        if (!selected) {
+            mTextLayout.setSelection(0,0,0);
+        }
+    }
+
     protected void resetState() {
         setSelection(0, 0, 0);
         setSelected(false);
@@ -468,8 +489,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         Rect p = getOptions().getTextPaddings();
         outBounds.top = l.getLineTop(line);
-        outBounds.left = (int) l.getPrimaryHorizontal(line, l.getLineStart(line), getWidth());
-        outBounds.right = (int) l.getPrimaryHorizontal(line, l.getLineEnd(line), getWidth());
+        outBounds.left = (int) l.getPrimaryHorizontal(line, l.getLineStart(line));
+        outBounds.right = (int) l.getPrimaryHorizontal(line, l.getLineEnd(line));
         outBounds.bottom = l.getLineBottom(line);
         return (int) (outBounds.bottom - l.getLineDescent(line));
     }
@@ -477,7 +498,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
-        return getTextLayout().getPrimaryHorizontal(line, postionAtLine, getWidth());
+        return getTextLayout().getPrimaryHorizontal(line, postionAtLine);
     }
 
     /* we need completely disable original TextView call to assumeLayout() from onPreDraw() */

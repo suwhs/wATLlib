@@ -555,7 +555,10 @@ public class TextViewWS extends TextView {
             super.setSelected(selected);
             if (!selected && getText() instanceof Spannable) {
                 Selection.removeSelection((Spannable) getText());
-                mSelectModeActive = false;
+
+            }
+            mSelectModeActive = selected;
+            if (!selected) {
                 mSelectionStart = 0;
                 mSelectionEnd = 0;
             }

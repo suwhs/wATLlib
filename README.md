@@ -6,7 +6,7 @@ licensed under GPL v3
 *wATL* is a library for android applications with support for formatted text justification, image wrapping and more 
 
 
-(OLD VERSION - as PoC) Demo Application available on Google Play
+Demo Application available on Google Play
 
 <a href="https://play.google.com/store/apps/details?id=su.whs.watl.samples">
 <img src="https://developer.android.com/images/brand/en_generic_rgb_wo_45.png" alt="Get it on Google Play" />
