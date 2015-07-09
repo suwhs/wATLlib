@@ -46,7 +46,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     private Context mContext = null;
     private TextLayoutEx mTextLayout = null;
-    // private Spanned mText = null;
     private SparseArray<ProxyLayout> mProxies = new SparseArray<ProxyLayout>();
     private OptionsWrapper mOptions = new OptionsWrapper();
     private int mAttachedPagesCounter = 0;
@@ -175,7 +174,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             View vp = mFakePages.remove(proxyLayout);
             if (vp!=null) {
                 // proxiedView = vp.detachInvisiblePage(proxyLayout.getPosition());
-
+                // TODO: implement multiple pages types
             }
         }
 

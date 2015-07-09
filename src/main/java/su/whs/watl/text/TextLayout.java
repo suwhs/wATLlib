@@ -1577,21 +1577,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param span
      * @param from
      * @param character
-     * @param aa
-     * @return correct offset in pixels from left border
-     * <p/>
-     * TODO: more work for bidirectional text support
-     */
-
-    @Deprecated
-    private static float calculateOffset(LineSpan span, int from, int character, float aa, ContentView.Options opts) {
-        return getCharacterOffset(span, from, character, opts) + aa * getSoftBreaks(span, from, character);
-    }
-
-    /**
-     * @param span
-     * @param from
-     * @param character
      * @return character offset from line start (without justification)
      */
     @Deprecated
@@ -1661,7 +1646,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     public final int getOffsetForHorizontal(TextLayout.TextLine line, int atX) {
         // similar to DRAW, but no actual paint - just determine character position for given x coordinate
-
+        // TODO: use code from getOffsetXLtr()
         int drawStart = line.start;
         int drawStop = line.end;
         int resultChar = line.start;
@@ -1775,23 +1760,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return (int) getOffsetXLtr(textLine,position);
     }
 
-
-    private static int getCharacterOffsetXOld(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
-        float align = 0f;
-        if (textLine.gravity != Gravity.NO_GRAVITY) {
-            if (textLine.gravity == Gravity.RIGHT) {
-                align = viewWidth - textLine.width;
-            } else if (textLine.gravity == Gravity.CENTER_HORIZONTAL) {
-                align = (viewWidth / 2) - (textLine.width / 2);
-            }
-        }
-        return (int) (align + calculateOffset(textLine.span.get(), textLine.start, position, justification ? textLine.justifyArgument : 0, opts) + textLine.margin + textLine.wrapMargin);
-    }
-
-    @Deprecated
-    public int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth) {
-        return getCharacterOffsetX(textLine,position,justification,viewWidth,getOptions());
-    }
 
     public class Options extends ContentView.Options {
         private ContentView.Options mParent;
@@ -1959,7 +1927,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 deffered.add(span);
                 if (state.character==lineStartAt) {
                     lineStartAt++;
-                }
+                } // use __finishLine and return
                 state.character++;
                 return true;
             } else if (placement==ImagePlacementHandler.PLACEHOLDER) {

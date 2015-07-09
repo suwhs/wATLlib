@@ -1,10 +1,10 @@
 package su.whs.watl.text;
 
 /**
- * interface for linebreaker-v2 library
+ *
  *
  * @author igor n. boulliev <igor@whs.su>
- * @hide
+ *
  *
  */
 public abstract class LineBreaker {

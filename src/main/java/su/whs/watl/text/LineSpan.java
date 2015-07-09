@@ -26,10 +26,10 @@ import java.util.List;
  */
 
 /* package */
-public class LineSpan {
+class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
     public int gravity = Gravity.LEFT;
-    public int direction = Layout.DIR_LEFT_TO_RIGHT;
+    public int direction = Layout.DIR_LEFT_TO_RIGHT; // TODO: use Bidi on prepare() ?
     public boolean strong = false;
     public boolean paragraphStart = false; // this span are first span in paragraph
     public boolean paragraphEnd = false; // this span are last span in paragraph
@@ -59,7 +59,7 @@ public class LineSpan {
     public float drawableClipWidth = 0f;
     public float drawableClipHeight = 0f;
     public int skip = 0;
-    /* TODO: move to options */
+    /* options ? */
     public int paragraphStartMargin;
     public int paragraphTopMargin;
     boolean isDrawable = false;     // is cache ?

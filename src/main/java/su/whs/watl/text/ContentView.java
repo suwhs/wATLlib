@@ -7,6 +7,7 @@ import android.text.TextPaint;
 /**
  * Created by igor n. boulliev on 10.02.15.
  */
+
 public interface ContentView {
 
     interface OptionsChangeListener {
@@ -16,6 +17,11 @@ public interface ContentView {
         void setTextSize(float size);
         TextPaint getTextPaint();
     }
+
+    /**
+     * Options for ContentView implementations
+     * each setter returns Options
+     */
 
     class Options {
         private static final String FILTER_EMPTY_LINES_ENABLED = "FELE";
@@ -80,6 +86,11 @@ public interface ContentView {
                 mListener.invalidateMeasurement();
         }
 
+        /**
+         * set options from bundle
+         * @param in - android.os.Bundle
+         */
+
         public void set(Bundle in) {
             mFilterEmptyLines = in.getBoolean(FILTER_EMPTY_LINES_ENABLED,true);
             mJustification = in.getBoolean(JUSTIFICATION_ENABLED,true);
@@ -94,6 +105,11 @@ public interface ContentView {
             mNewLineTopMargin = in.getInt(PARAGRAPH_MARGIN_TOP);
             rectFromBundle(TEXT_PADDINGS,in,mTextPaddings);
         }
+
+        /**
+         *
+         * @return android.os.Bundle with serialized options
+         */
 
         public Bundle getState() {
             Bundle state = new Bundle();
@@ -112,6 +128,11 @@ public interface ContentView {
             return state;
         }
 
+        /**
+         * sets object, which must handle notifications about options updated
+         * @param listener - instance of OptionsChangeListener
+         */
+
         public void setChangeListener(OptionsChangeListener listener) {
             mListener = listener;
         }
@@ -124,42 +145,86 @@ public interface ContentView {
             mInvalidateLines = false;
             mInvalidateMeasurement = false;
         }
+
+        /**
+         * if true - ContentView will skip lines with zero length, if sufficient lines
+         * was added to paragraph (see setEmptyLinesThreashold)
+         * @param filter
+         * @return
+         */
+
         public Options setFilterEmptyLines(boolean filter) {
             if (mFilterEmptyLines!=filter) _il();
             mFilterEmptyLines = filter;
             return this;
         }
 
+        /**
+         *
+         * @return true, if empty lines filter enabled
+         */
         public boolean isFilterEmptyLines() {
             return mFilterEmptyLines;
         }
 
+        /**
+         * enable/disable full text justification
+         * @param justification
+         * @return
+         */
         public Options enableJustification(boolean justification) {
             if (mJustification!=justification) _ii();
             mJustification = justification;
             return this;
         }
 
+        /**
+         * set default text direction (NOT SUPPORTED YET)
+         * @param direction
+         * @return
+         */
         public Options setDefaultDirection(int direction) {
             if (mDefaultDirection!=direction) _im();
             mDefaultDirection = direction;
             return this;
         }
 
+        /**
+         *
+         * @return 1 if LTR, -1 if RTL
+         */
         public int getDefaultDirection() {
             return mDefaultDirection;
         }
 
+        /**
+         * set paddings, applied to all drawables in text
+         * (text and drawables has separated paddings)
+         * @param left
+         * @param top
+         * @param right
+         * @param bottom
+         * @return
+         */
         public Options setDrawablePaddings(int left, int top, int right, int bottom) {
             if (mDrawablePaddings.left!=left||mDrawablePaddings.top!=top||mDrawablePaddings.right!=right||mDrawablePaddings.bottom!=bottom) _im();
             mDrawablePaddings.set(left,top,right,bottom);
             return this;
         }
 
+        /**
+         *
+         * @param rect - this Rect instance will be contain paddings after call
+         */
         public void getDrawablePaddings(Rect rect) {
             rect.set(mDrawablePaddings);
         }
 
+        /**
+         *
+         * @param handler - implementation of ImagePlacementHandler
+         * @return
+         */
         public Options setImagePlacementHandler(ImagePlacementHandler handler) {
             if (isSameClass(mImagePlacementHandler,handler)) {
                 return this;
@@ -170,10 +235,19 @@ public interface ContentView {
             }
         }
 
+        /**
+         *
+         * @return current instance of ImagePlacementHandler
+         */
         public ImagePlacementHandler getImagePlacementHandler() {
             return mImagePlacementHandler;
         }
 
+        /**
+         *
+         * @param lineBreaker - LineBreaker instance
+         * @return
+         */
         public Options setLineBreaker(LineBreaker lineBreaker) {
             if (isSameClass(mLineBreaker,lineBreaker)) {
                 return this;
@@ -183,51 +257,99 @@ public interface ContentView {
             return this;
         }
 
+        /**
+         *
+         * @return active LineBreaker
+         */
         public LineBreaker getLineBreaker() {
             return mLineBreaker;
         }
 
+        /**
+         *
+         * @param mult - multiply argument for calculating linespacing (by default 1.0)
+         * @return
+         */
         public Options setLineSpacingMultiplier(float mult) {
             if (mLineSpacingMultiplier!=mult) _il();
             mLineSpacingMultiplier = mult;
             return this;
         }
 
+        /**
+         *
+         * @return current linespacing multiplier
+         */
         public float getLineSpacingMultiplier() {
             return mLineSpacingMultiplier;
         }
 
+        /**
+         *
+         * @param add - additional space between lines (in pixels)
+         * @return
+         */
         public Options setLineSpacingAdd(int add) {
             if (mLineSpacingAdd!=add) _il();
             mLineSpacingAdd = add;
             return this;
         }
 
+        /**
+         *
+         * @return current additional space between lines (in pixels)
+         */
         public int getLineSpacingAdd() {
             return mLineSpacingAdd;
         }
 
+        /**
+         *
+         * @param milliseconds - maximum time between calling onProgress()
+         * @return
+         */
         public Options setReflowQuantize(int milliseconds) {
             mReflowTimeQuant = milliseconds;
             return this;
         }
 
+        /**
+         *
+         * @return maximum time between calling onProgress()
+         */
         public int getReflowQuantize() {
             return mReflowTimeQuant;
         }
 
+        /**
+         *
+         * @return true, if justification enabled
+         */
         public boolean isJustification() {
             return mJustification;
         }
 
+        /**
+         * empty lines height must be less or equals to limit
+         * @return maximum empty line's height
+         */
         public int getEmptyLineHeightLimit() {
             return mEmptyLineHeightLimit;
         }
 
+        /**
+         *
+         * @return how much lines with len>0 must be added, before line with len=0 will be added to view
+         */
         public int getEmptyLinesThreshold() {
             return mEmptyLinesThreshold;
         }
 
+        /**
+         *
+         * @param margin - additional start padding to each line after '\n'
+         * @return
+         */
         public Options setNewLineLeftMargin(int margin) {
             if (mNewLineLeftMargin!=margin) _im();
             mNewLineLeftMargin = margin;
@@ -236,6 +358,11 @@ public interface ContentView {
 
         public int getNewLineLeftMargin() { return mNewLineLeftMargin; }
 
+        /**
+         *
+         * @param margin - additional top padding to each line after '\n'
+         * @return
+         */
         public Options setNewLineTopMargin(int margin) {
             if (mNewLineTopMargin!=margin) _im();
             mNewLineTopMargin = margin;
@@ -244,6 +371,9 @@ public interface ContentView {
 
         public int getNewLineTopMargin() { return mNewLineTopMargin; }
 
+        /**
+         * notify change listener about invalidation level
+         */
         public void apply() {
             if (mListener != null) {
                 if (mInvalidateMeasurement) {
@@ -274,6 +404,13 @@ public interface ContentView {
             return false;
         }
 
+        /**
+         * set text paddings (in additional to view's padding)
+         * @param left
+         * @param top
+         * @param right
+         * @param bottom
+         */
         public void setTextPaddings(int left, int top, int right, int bottom) {
             if (diff(mTextPaddings,new Rect(left,top,right,bottom))) _im();
             mTextPaddings.set(left,top,right,bottom);
@@ -281,6 +418,11 @@ public interface ContentView {
 
         public Rect getTextPaddings() { return mTextPaddings; }
 
+        /**
+         * change base text size
+         * @param size
+         * @return
+         */
         public Options setTextSize(float size) {
             if (mListener!=null) {
                 if (mListener.getTextPaint().getTextSize()==size) return this;

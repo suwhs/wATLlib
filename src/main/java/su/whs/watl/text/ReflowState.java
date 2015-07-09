@@ -6,7 +6,7 @@ import android.util.Log;
  * Created by igor n. boulliev on 13.03.15.
  */
 
-
+/* @hide */
 class ReflowState {
     private static final String TAG = "ReflowState";
     private boolean debug = false;
