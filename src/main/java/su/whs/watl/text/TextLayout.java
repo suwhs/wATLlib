@@ -1917,7 +1917,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     width,
                     state.character,
                     scale,
-                    drawablePaddings,
+                    options,
                     allowDefer);
 
             boolean collectHeights = false;

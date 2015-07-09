@@ -38,11 +38,13 @@ public interface ContentView {
         private static final String PARAGRAPH_MARGIN_LEFT = "PMLFT";
         private static final String PARAGRAPH_MARGIN_TOP = "PMTOP";
         private static final String TEXT_PADDINGS = "TPAD";
-
+        private static final String DRAWABLE_MINIMUM_SCALE_FACTOR = "DRMSF";
+        private static final String DRAWABLE_WRAP_RATIO_TRESHOLD = "DRWRT";
+        private static final String DRAWABLE_WRAP_WIDTH_TRESHOLD = "DRWWT";
         private boolean mFilterEmptyLines = true;
         private boolean mJustification = true;
         private int mDefaultDirection = 0;
-        private Rect mDrawablePaddings = new Rect(25, 25, 25, 25);
+        private Rect mDrawablePaddings = new Rect(5, 5, 5, 5);
         private ImagePlacementHandler mImagePlacementHandler = null;
         private LineBreaker mLineBreaker = null;
         private int mReflowTimeQuant = 300;
@@ -53,6 +55,10 @@ public interface ContentView {
         private int mNewLineLeftMargin = 0;
         private int mNewLineTopMargin = 0;
         private Rect mTextPaddings = new Rect(5,5,5,5);
+        private float mDrawableWrapWidthTreshold = 0.6f;
+        private float mDrawableWrapRatioTreshold = 1.0f;
+        private float mDrawableMinimumScaleFactor = 0.5f;
+
         /* non-serializable */
         protected boolean mInvalidateMeasurement = false;
         protected boolean mInvalidateLines = false;
@@ -82,6 +88,9 @@ public interface ContentView {
             mListener = source.mListener;
             mNewLineLeftMargin = source.mNewLineLeftMargin;
             mNewLineTopMargin = source.mNewLineTopMargin;
+            mDrawableMinimumScaleFactor = source.mDrawableMinimumScaleFactor;
+            mDrawableWrapWidthTreshold = source.mDrawableWrapWidthTreshold;
+            mDrawableWrapRatioTreshold = source.mDrawableWrapRatioTreshold;
             if (mListener!=null)
                 mListener.invalidateMeasurement();
         }
@@ -104,6 +113,9 @@ public interface ContentView {
             mNewLineLeftMargin = in.getInt(PARAGRAPH_MARGIN_LEFT);
             mNewLineTopMargin = in.getInt(PARAGRAPH_MARGIN_TOP);
             rectFromBundle(TEXT_PADDINGS,in,mTextPaddings);
+            mDrawableWrapRatioTreshold = in.getFloat(DRAWABLE_WRAP_RATIO_TRESHOLD,0.5f);
+            mDrawableWrapWidthTreshold = in.getFloat(DRAWABLE_WRAP_WIDTH_TRESHOLD,0.5f);
+            mDrawableMinimumScaleFactor = in.getFloat(DRAWABLE_MINIMUM_SCALE_FACTOR,1.0f);
         }
 
         /**
@@ -125,6 +137,9 @@ public interface ContentView {
             state.putInt(PARAGRAPH_MARGIN_LEFT,mNewLineLeftMargin);
             state.putInt(PARAGRAPH_MARGIN_TOP,mNewLineTopMargin);
             rectToBundle(TEXT_PADDINGS,mTextPaddings,state);
+            state.putFloat(DRAWABLE_MINIMUM_SCALE_FACTOR,mDrawableMinimumScaleFactor);
+            state.putFloat(DRAWABLE_WRAP_WIDTH_TRESHOLD,mDrawableWrapWidthTreshold);
+            state.putFloat(DRAWABLE_WRAP_RATIO_TRESHOLD,mDrawableWrapRatioTreshold);
             return state;
         }
 
@@ -444,6 +459,50 @@ public interface ContentView {
             int[] r = in.getIntArray(name);
             out.set(r[0],r[1],r[2],r[3]);
         }
+
+        /**
+         *
+         * @return minimum scale factor allowed to drawable
+         */
+
+        public float getDrawableMinimumScaleFactor() {
+            return mDrawableMinimumScaleFactor;
+        }
+
+        public Options setDrawableMinimumScaleFactor(float factor) {
+            mDrawableMinimumScaleFactor = factor;
+            return this;
+        }
+
+        /**
+         *
+         * @return drawable wrap ratio treshold - allow wrap, if image scaled to > treshold
+         */
+
+        public float getDrawableWrapRatioTreshold() {
+            return mDrawableWrapRatioTreshold;
+        }
+
+        public Options setDrawableWrapRatioTreshold(float treshold) {
+            mDrawableWrapRatioTreshold = treshold;
+            return this;
+        }
+
+
+        /**
+         *
+         * @return left width (from 1.0f to 0.f), where wrapping are allowed
+         */
+
+        public float getDrawableWrapWidthTreshold() {
+            return mDrawableWrapWidthTreshold;
+        }
+
+        public Options setDrawableWrapWidthTreshold(float treshold) {
+            mDrawableWrapWidthTreshold = treshold;
+            return this;
+        }
+
 
     }
 

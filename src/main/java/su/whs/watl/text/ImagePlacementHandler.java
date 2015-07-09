@@ -34,10 +34,10 @@ public abstract class ImagePlacementHandler {
             RIGHT
         }
 
-        private float mWrapRatioTreshold = 1.0f;
+        // private float mWrapRatioTreshold = 1.0f;
         private WRAP mForceWrap = WRAP.AUTO;
-        private float mWrapIfWidthLeftLessThan = 0.5f;
-        private float mMinimumScaleFactor = 0.7f;
+        // private float mWrapIfWidthLeftLessThan = 0.6f;
+        // private float mMinimumScaleFactor = 0.5f;
 
         /**
          * default image placement handler
@@ -50,15 +50,17 @@ public abstract class ImagePlacementHandler {
          * @param viewWidth    - layout width (total)
          * @param offset       - character position in text, given to TextLayout
          * @param scale        - accept result 'size' of drawable
-         * @param paddings     - accept result 'paddings' for drawable
+         * @param options      - TextLayout's ContentView.Options
          * @return
          */
 
         @Override
-        public int place(DynamicDrawableSpan drawableSpan, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer) {
+        public int place(DynamicDrawableSpan drawableSpan, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, ContentView.Options options, boolean allowDefer) {
             /* default behavior */
             // if instrictWidth < width && instrictHeight < height - leave as inline
             Drawable dr = drawableSpan.getDrawable();
+            Rect paddings = new Rect();
+            options.getDrawablePaddings(paddings);
             if (dr == null)
                 return PLACEHOLDER;
             int iW = dr.getIntrinsicWidth();
@@ -85,21 +87,21 @@ public abstract class ImagePlacementHandler {
             boolean fitWidth = false;
             boolean fitHeight = false;
 
-            float sWm = scale.x * mMinimumScaleFactor;
-            float sHm = scale.y * mMinimumScaleFactor;
+            float sWm = scale.x * options.getDrawableMinimumScaleFactor();
+            float sHm = scale.y * options.getDrawableMinimumScaleFactor();
 
-            if (mMinimumScaleFactor < 1.0f) { // if scaling down allowed
-                if (scale.x <= width) {
-                    targetWidth = scale.x;
+            if (options.getDrawableMinimumScaleFactor() < 1.0f) { // if scaling down allowed
+                if (sWm <= width) {
+                    targetWidth = width < scale.x ? width : scale.x;
                     fitWidth = true;
-                } else if (scale.x <= viewWidth) {
-                    targetWidth = viewWidth;
+                } else if (sWm <= viewWidth) {
+                    targetWidth = viewWidth < scale.x ? viewWidth : scale.x;
                 }
-                if (scale.y <= height || (height < 0 && viewHeight < 0)) {
-                    targetHeight = scale.y;
+                if (sHm <= height || (height < 0 && viewHeight < 0)) {
+                    targetHeight = height < scale.y && height > -1 ? height : scale.y;
                     fitHeight = true;
-                } else if (scale.y <= viewHeight) {
-                    targetHeight = viewHeight;
+                } else if (sHm <= viewHeight) {
+                    targetHeight = viewHeight < scale.y && viewHeight > 0 ? viewHeight : scale.y;
                 }
 
                 if (!fitWidth && !fitHeight) {
@@ -127,7 +129,7 @@ public abstract class ImagePlacementHandler {
             scale.y *= scaleFactor;
             if (fitWidth) {
                 if (fitHeight) {
-                    if (ratio >= mWrapRatioTreshold) {
+                    if (ratio >= options.getDrawableWrapRatioTreshold()) {
                         return WRAP_TEXT;
                     }
                     return EXCLUSIVE;
@@ -136,7 +138,7 @@ public abstract class ImagePlacementHandler {
             } else {
                 if (fitHeight) {
                     float widthLeftRatio = viewWidth / width;
-                    if (widthLeftRatio < mWrapIfWidthLeftLessThan) {
+                    if (widthLeftRatio < options.getDrawableWrapWidthTreshold()) {
 
                     }
                 }
@@ -157,11 +159,11 @@ public abstract class ImagePlacementHandler {
      * @param viewWidth - view width
      * @param offset    - character position in text, given to TextLayout
      * @param scale     - accept result 'size' of drawable
-     * @param paddings  - accept result 'paddings' for drawable
+     * @param options   - ContentView.Options
      * @return encoded rule
      */
 
-    public abstract int place(DynamicDrawableSpan drawable, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, Rect paddings, boolean allowDefer);
+    public abstract int place(DynamicDrawableSpan drawable, int height, int viewHeight, int width, int viewWidth, int offset, Point scale, ContentView.Options options, boolean allowDefer);
 
     public static boolean isNewLineBefore(int value) {
         return (value & EXCLUSIVE) == EXCLUSIVE;
