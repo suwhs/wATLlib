@@ -97,6 +97,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         mTextLayout.setTextSize(value);
     }
 
+    public void setTextViewLayoutListener(TextViewLayoutListener l) {
+        mLayoutListener = l;
+    }
+
     @Override
     public ContentView.Options getOptions() {
         return mTextLayout==null ? mPendingOptions : mTextLayout.getOptions();
