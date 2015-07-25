@@ -16,11 +16,19 @@ Quick Start
 ======
 Usage:
 
-currently include it as git submodule
+wATLlib published on jcenter repository, so just
+
+add to dependencies :
+```gradle
+compile 'su.whs:wATLlib:+'
+```
 
 
 News
 ======
+UPDATE 25 Jul 16
+ version 1.1.3 published on jcenter.bintray.com
+
 UPDATE 02 Jul 15
  fix Demo App crash on old version of Android (2.3.3)
  BaseTextPagerAdapter now can be attached to ViewPager before setText() call
