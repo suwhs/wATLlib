@@ -1,6 +1,6 @@
 wATL open source parts 
 ==========
-[![Project Status](https://stillmaintained.com/suwhs/wATLlib.png)](https://stillmaintained.com/suwhs/wATLlib)
+![Project Status](https://stillmaintained.com/suwhs/wATLlib.png)
 
 
 licensed under GPL v3 
