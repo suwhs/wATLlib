@@ -1,12 +1,20 @@
-wATL open source parts 
+wATL for Android 
 ==========
-![Project Status](https://stillmaintained.com/suwhs/wATLlib.png)
+
+License
+=====
+ GPL v3 (<a href="https://www.bountysource.com/teams/whssu/fundraiser">You may support opensource project on bountysource.com</a>)
 
 
-licensed under GPL v3 
-
-*wATL* is a library for android applications with support for formatted text justification, image wrapping and more 
-
+Description
+======
+*wATL* is a library for android applications with features:
+  - formatted text full justification,
+  - wrap text around images, 
+  - auto-hyphenation,
+  - adapter for show paginated article with stock ViewPager
+  - supported Android version - 2.3 - 5.1+ (both runtimes - ART and DALVIK)
+ 
 
 Demo Application available on Google Play
 
