@@ -33,10 +33,14 @@ add to dependencies :
 compile 'su.whs:wATLlib:+'
 ```
 
+more detailed <a href="http://whs.su/products/watl-widgets-library-for-android/watl-library-quickstart-guide/">quick start guide</a>
+
+
+<a href="http://whs.su">commercial license for non-gpl project on whs.su</a>
 
 News
 ======
-UPDATE 25 Jul 16
+UPDATE 25 Jul 15
  version 1.1.3 published on jcenter.bintray.com
 
 UPDATE 02 Jul 15
