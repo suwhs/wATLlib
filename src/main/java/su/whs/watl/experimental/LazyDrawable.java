@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -34,6 +35,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private boolean mBoundsApplied = false;
     private boolean mLoadingInProgress = false;
     protected boolean mLoadingError = false;
+    private Drawable.Callback mCallbackCompat = null;
 
     public LazyDrawable(int srcWidth, int srcHeight) {
         mSrcWidth = srcWidth;
@@ -185,46 +187,6 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         return false;
     }
 
-    ///**
-    // * called from non-ui thread
-    // * @param mimeType - mimeType from http header
-    // * @param is
-    // */
-
-//    public void onStreamReady(String mimeType,InputStream is) {
-//        try {
-//            mTemporaryCache = mLoader.queryTemporaryStore(mId);
-//        } catch (IOException e) {
-//            // e.printStackTrace();
-//            // non-writable filesystem ?
-//            mDrawable = mLoader.readPreviewDrawable(mId);
-//            invalidateSelfOnUiThread();
-//            return;
-//        }
-//        try {
-//            mLoader.cacheMedia(mId, is);
-//        } catch (IOException e) {
-//            // e.printStackTrace();
-//            // unsufficient disc space ?
-//            mDrawable = mLoader.readPreviewDrawable(mId);
-//            invalidateSelfOnUiThread();
-//            return;
-//        }
-//
-//        // recursive call!
-//        // here can be - bitmap or gif
-//        // so we can store inputStream to temporaryCache (if need)
-//        // and create GifDrawable from
-//        // or
-//
-//        Drawable drawable = readFullDrawable();
-//        if (drawable==null) {
-//            Log.e(TAG, "could not load media from cache");
-//            return;
-//        }
-//        setDrawable(drawable);
-//    }
-
     protected synchronized void setDrawable(Drawable drawable) {
         if (mDrawable!=null && isRunning()) stop();
         mDrawable = drawable;
@@ -239,20 +201,33 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     @Override
     public void invalidateDrawable(Drawable who) {
-        if (getCallback()!=null)
-            getCallback().invalidateDrawable(this);
+        if (getCallbackCompat()!=null)
+            getCallbackCompat().invalidateDrawable(this);
     }
 
     @Override
     public void scheduleDrawable(Drawable who, Runnable what, long when) {
-        if (getCallback()!=null)
-            getCallback().scheduleDrawable(this, what, when);
+        if (getCallbackCompat()!=null)
+            getCallbackCompat().scheduleDrawable(this, what, when);
     }
 
     @Override
     public void unscheduleDrawable(Drawable who, Runnable what) {
-        if (getCallback()!=null)
-            getCallback().unscheduleDrawable(this, what);
+        if (getCallbackCompat()!=null)
+            getCallbackCompat().unscheduleDrawable(this, what);
+    }
+
+    private Drawable.Callback getCallbackCompat() {
+        if (Build.VERSION.SDK_INT>10) return getCallback();
+        return mCallbackCompat;
+    }
+
+    public void setCallbackCompat(Drawable.Callback cb) {
+        if (Build.VERSION.SDK_INT>10) {
+            setCallback(cb);
+            return;
+        }
+        mCallbackCompat = cb;
     }
 
     protected void invalidateSelfOnUiThread() {

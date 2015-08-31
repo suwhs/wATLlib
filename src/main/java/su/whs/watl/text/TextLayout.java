@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Layout;
@@ -31,6 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import su.whs.watl.experimental.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -82,7 +85,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     private boolean mNeedTotalHeight = false;
     private boolean mReflowFinished = false;
     private boolean mIsLayouted = false;
-
+    private boolean mCompatDrawableCallback = Build.VERSION.SDK_INT<11;
     /* selection handling vars */
     private int mSelectionStart = 0;
     private int mSelectionEnd = 0;
@@ -1357,8 +1360,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (!visibleDrawables.contains(dr)) {
                                 visibleDrawables.add(dr);
                                 visibleDrawableOffsets.put(dr, new Point((int) x, sY));
-                                visibleDrawableBounds.put(dr,new Rect(dr.getBounds()));
-                                dr.setCallback(mDrawableCallback);
+                                visibleDrawableBounds.put(dr, new Rect(dr.getBounds()));
+                                if (mCompatDrawableCallback && dr instanceof LazyDrawable)
+                                    ((LazyDrawable)dr).setCallbackCompat(mDrawableCallback);
+                                else
+                                    dr.setCallback(mDrawableCallback);
                             } else {
                                 processedDrawables.remove(dr);
                             } // TODO: end profile
