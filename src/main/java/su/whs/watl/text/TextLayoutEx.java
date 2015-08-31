@@ -83,6 +83,13 @@ class TextLayoutEx extends TextLayout {
             public boolean onHeightExceed(int collectedHeight) {
                 return true;
             }
+
+            @Override
+            public void invalidate(int left, int right, int top, int bottom) {
+                // calculate page no for transform top and bottom to
+                // alternative : move drawable tracking code to protected methods, and override it in proxyLayout (for example)
+                throw new RuntimeException("invalidate not implemented yet");
+            }
         });
         mBuilder = builder;
     }

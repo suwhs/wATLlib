@@ -9,4 +9,5 @@ import android.view.View;
  */
 public interface DynamicDrawableInteractionListener {
     void onClicked(DynamicDrawableSpan span, RectF bounds, View view);
+    void onLongClick(DynamicDrawableSpan span, RectF bounds, View view);
 }

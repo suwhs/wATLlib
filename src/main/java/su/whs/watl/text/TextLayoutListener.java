@@ -34,4 +34,9 @@ public interface TextLayoutListener {
      */
 
     boolean onHeightExceed(int collectedHeight);
+
+    /**
+     * allow TextLayout to call repaint on anitmation events
+     */
+    void invalidate(int left, int right, int top, int bottom);
 }

@@ -112,7 +112,23 @@ public abstract class ImagePlacementHandler {
                     // TODO: select best scale targets
 
                 }
+            } else {
+                if (sWm <= width) {
+                    targetWidth = width < scale.x ? width : scale.x;
+                    fitWidth = true;
+                } else if (sWm <= viewWidth) {
+                    targetWidth = viewWidth < scale.x ? viewWidth : scale.x;
+                }
+                if (sHm <= height || (height < 0 && viewHeight < 0)) {
+                    targetHeight = height < scale.y && height > -1 ? height : scale.y;
+                    fitHeight = true;
+                } else if (sHm <= viewHeight) {
+                    targetHeight = viewHeight < scale.y && viewHeight > 0 ? viewHeight : scale.y;
+                }
             }
+
+            if (viewHeight<1)
+                fitHeight = true;
 
             float rH = targetHeight / (float) scale.y;
             float rW = targetWidth / (float) scale.x;

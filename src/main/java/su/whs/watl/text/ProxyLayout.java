@@ -176,6 +176,11 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     }
 
     @Override
+    public void invalidate(int left, int right, int top, int bottom) {
+        throw new RuntimeException("invalidate not implemented yet");
+    }
+
+    @Override
     public boolean updateGeometry(int[] geometry) {
         if (!mAttached) {
             if (mGeometryChanged) {

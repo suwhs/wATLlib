@@ -25,8 +25,12 @@ import android.view.View;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -916,7 +920,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int rW = reflowedWidth;
         int rH = reflowedHeight;
         invalidateMeasurementInternal();
-        setSize(rW,rH,viewHeight);
+        setSize(rW, rH, viewHeight);
     }
 
     /**
@@ -1128,6 +1132,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     Paint selectionPaint = new Paint();
     Rect drawablePaddings = new Rect();
 
+    Set<Drawable> visibleDrawables = new HashSet<Drawable>();
+    Set<Drawable> processedDrawables = new HashSet<Drawable>();
+    Map<Drawable,Point> visibleDrawableOffsets = new HashMap<Drawable, Point>(); // use for handling 'invalidateSelf'
+    Map<Drawable,Rect> visibleDrawableBounds = new HashMap<Drawable,Rect>();
+
     public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
         if (lines == null || lines.size() < 1) {
             // Log.w(TAG, "lines==null || lines.size() < 1");
@@ -1136,6 +1145,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         Rect clipRect = canvas.getClipBounds();
         Rect textPaddings = getOptions().getTextPaddings();
         getOptions().getDrawablePaddings(drawablePaddings);
+
+        processedDrawables.clear();
+        processedDrawables.addAll(visibleDrawables);
 
         if (debugDraw) {
             backgroundPaint.setStyle(Paint.Style.STROKE);
@@ -1338,9 +1350,18 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                              */
                             Drawable dr = dds.getDrawable();
                             canvas.save();
-                            canvas.translate(x+drawablePaddings.left,sY+drawablePaddings.top);
-                            dr.draw(canvas); // drawable.setBounds() was called in reflow() procedure
+                            canvas.translate(x + drawablePaddings.left, sY + drawablePaddings.top);
+                            dr.draw(canvas);
                             canvas.restore();
+                            // TODO: profile this
+                            if (!visibleDrawables.contains(dr)) {
+                                visibleDrawables.add(dr);
+                                visibleDrawableOffsets.put(dr, new Point((int) x, sY));
+                                visibleDrawableBounds.put(dr,new Rect(dr.getBounds()));
+                                dr.setCallback(mDrawableCallback);
+                            } else {
+                                processedDrawables.remove(dr);
+                            } // TODO: end profile
 
                             if (debugDraw)
                                 canvas.drawRect(x,sY,x+span.drawableScaledWidth+drawablePaddingWidth,sY+span.drawableScaledHeight+drawablePaddingHeight,backgroundPaint);
@@ -1441,8 +1462,37 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             y += line.height;
         }
+        // cleanup visible drawables
+        for (Drawable unprocessed: processedDrawables) {
+            visibleDrawables.remove(unprocessed);
+            visibleDrawableOffsets.remove(unprocessed);
+            visibleDrawableBounds.remove(unprocessed);
+        }
         return 0;
     }
+
+    private Drawable.Callback mDrawableCallback = new Drawable.Callback() {
+        @Override
+        public void invalidateDrawable(Drawable who) {
+            // TODO: drawableList builds on reflow() with save 'bounds'
+            //      - check here, if bounds changes, and call reflow() process again, if drawable size changed
+            //      - use flag 'trackDrawableBounds'
+            if (!visibleDrawables.contains(who)) return;
+            Point p = visibleDrawableOffsets.get(who);
+            Rect bounds = who.getBounds();
+            listener.invalidate(p.x,p.y,p.x+bounds.width(),p.y+bounds.height());
+        }
+
+        @Override
+        public void scheduleDrawable(Drawable who, Runnable what, long when) {
+            new Handler().postAtTime(what,when);
+        }
+
+        @Override
+        public void unscheduleDrawable(Drawable who, Runnable what) {
+            new Handler().removeCallbacks(what,who);
+        }
+    };
 
     private void drawLineRtl(Canvas canvas, float y, TextLine line) {
 

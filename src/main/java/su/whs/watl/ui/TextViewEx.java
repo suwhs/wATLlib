@@ -70,6 +70,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         public void onClicked(DynamicDrawableSpan span, RectF bounds, View view) {
             Toast.makeText(getContext(), "clicked " + span.getDrawable(), Toast.LENGTH_LONG).show();
         }
+
+        @Override
+        public void onLongClick(DynamicDrawableSpan span, RectF bounds, View view) {
+            // TODO: implement calls
+        }
     };
 
     private DynamicDrawableInteractionListener mDynamicDrawableInteractionListener = mDynamicDrawableInteractionListenerDefault;
@@ -480,7 +485,19 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
-        Log.v(TAG, "clicked on drawable: '" + drawable + "'");
+        // Log.v(TAG, "clicked on drawable: '" + drawable + "'");
+        RectF bounds = null;
+        mDynamicDrawableInteractionListener.onClicked(dynamicDrawableSpan,bounds,this);
+    }
+
+    /**
+     * register listener for clicks on Drawables
+     * @param listener
+     */
+
+    public void setDynamicDrawableInteractionListener(DynamicDrawableInteractionListener listener) {
+        if (listener==null) mDynamicDrawableInteractionListener = mDynamicDrawableInteractionListenerDefault;
+        mDynamicDrawableInteractionListener = listener;
     }
 
     public class Options extends ContentView.Options {
