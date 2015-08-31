@@ -109,7 +109,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                 /* draw loading animation */
             drawNextLoadingFrame(canvas);
                 /* */
-            if (getCallback()!=null) {
+            if (getCallbackCompat()!=null) {
                 scheduleSelf(new Runnable() {
                     @Override
                     public void run() {
