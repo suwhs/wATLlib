@@ -1,22 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="TextViewWS">
-        <attr name="selection_cursor_drawable_left" format="reference"></attr>
-        <attr name="selection_cursor_drawable_right" format="reference"></attr>
-        <attr name="selection_color" format="reference"></attr>
-        <attr name="url_highlight_before_open" format="boolean"></attr>
-        <attr name="url_highlight_color" format="color"></attr>
+        <attr name="selectionCursorDrawableLeft" format="reference"></attr>
+        <attr name="selectionCursorDrawableRight" format="reference"></attr>
+        <attr name="selectionColor" format="reference"></attr>
+        <attr name="urlHighlightBeforeOpen" format="boolean"></attr>
+        <attr name="urlHighlightColor" format="color"></attr>
     </declare-styleable>
+
     <declare-styleable name="TextViewEx">
         <attr name="justificationEnabled" format="boolean"/>
         <attr name="filterEmptyLines" format="boolean"/>
         <attr name="emptyLinesFilterTreshold" format="integer"/>
         <attr name="paragraphMarginTop" format="dimension"/>
         <attr name="paragraphMarginLeft" format="dimension"/>
-        <attr name="enableImageWrap" format="boolean"/>
-        <attr name="minimumImageScaleFactor" format="float"/>
-        <attr name="wrapIfWidthLeftLess" format="float"/>
     </declare-styleable>
+
     <declare-styleable name="MultiColumnTextViewEx">
         <attr name="minColumnWidth" format="dimension"></attr>
         <attr name="maxColumnWidth" format="dimension"></attr>
@@ -27,9 +26,22 @@
     <declare-styleable name="ContentViewOptions">
         
     </declare-styleable>
-    <declare-styleable name="DefaultImagePlacementHanlder">
-
+    <declare-styleable name="ImagePlacementHanlder">
+        <attr name="enableImageWrap" format="boolean"/>
+        <attr name="imageMinScaleFactor" format="float"/>
+        <attr name="imageWrapMinRatio" format="float"/>
+        <attr name="imageWrapMaxWidthFraction" format="float"/>
+        <attr name="imagePaddingLeft" format="dimension"/>
+        <attr name="imagePaddingTop" format="dimension"/>
+        <attr name="imagePaddingRight" format="dimension"/>
+        <attr name="imagePaddingBottom" format="dimension"/>
+        <attr name="imageAnimationAutoStart" format="boolean"/>
+        <attr name="imageAnimationOverlayDrawable" format="reference"/>
+        <attr name="startAnimationOnClick" format="boolean"/>
+        <attr name="zoomImageOnClick" format="boolean"/>
+        <attr name="zoomBackDrawable" format="reference"/>
     </declare-styleable>
+
     <declare-styleable name="ViewPagerExt">
 
     </declare-styleable>

@@ -1,8 +1,15 @@
 package su.whs.watl.text;
 
+import android.content.Context;
+import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextPaint;
+import android.util.AttributeSet;
+import android.util.Log;
+
+import su.whs.watl.R;
 
 /**
  * Created by igor n. boulliev on 10.02.15.
@@ -24,6 +31,7 @@ public interface ContentView {
      */
 
     class Options {
+        private static final String TAG="CV.Options";
         private static final String FILTER_EMPTY_LINES_ENABLED = "FELE";
         private static final String JUSTIFICATION_ENABLED = "JE";
         private static final String DEFAULT_DIRECTION = "DD";
@@ -41,8 +49,12 @@ public interface ContentView {
         private static final String DRAWABLE_MINIMUM_SCALE_FACTOR = "DRMSF";
         private static final String DRAWABLE_WRAP_RATIO_TRESHOLD = "DRWRT";
         private static final String DRAWABLE_WRAP_WIDTH_TRESHOLD = "DRWWT";
+
         private boolean mFilterEmptyLines = true;
         private boolean mJustification = true;
+        private int mSelectionColor = Color.BLUE;
+        private int mUrlHighlightColor = Color.YELLOW;
+        private boolean mUrlHighlightBeforeOpen = true;
         private int mDefaultDirection = 0;
         private Rect mDrawablePaddings = new Rect(5, 5, 5, 5);
         private ImagePlacementHandler mImagePlacementHandler = null;
@@ -58,6 +70,12 @@ public interface ContentView {
         private float mDrawableWrapWidthTreshold = 0.6f;
         private float mDrawableWrapRatioTreshold = 1.0f;
         private float mDrawableMinimumScaleFactor = 0.5f;
+        private boolean mDrawableWrapEnabled = true;
+        private boolean mDrawableAnimationZoomOnClick = false;
+        private boolean mDrawableAnimationAutoStart = false;
+        private int mDrawableZoomOverlayBackDrawableResId;
+        private int mSelectionCursorDrawableLeft;
+        private int mSelectionCursorDrawableRight;
 
         /* non-serializable */
         protected boolean mInvalidateMeasurement = false;
@@ -104,7 +122,7 @@ public interface ContentView {
             mFilterEmptyLines = in.getBoolean(FILTER_EMPTY_LINES_ENABLED,true);
             mJustification = in.getBoolean(JUSTIFICATION_ENABLED,true);
             mDefaultDirection = in.getInt(DEFAULT_DIRECTION,0);
-            rectFromBundle(DRAWABLE_PADDINGS,in,mDrawablePaddings);
+            rectFromBundle(DRAWABLE_PADDINGS, in, mDrawablePaddings);
             mReflowTimeQuant = in.getInt(REFLOW_TIME_QUANT_MS,300);
             mLineSpacingMultiplier = in.getFloat(LINESPACING_MULTIPLIER,1f);
             mLineSpacingAdd = in.getInt(LINESPACING_ADD);
@@ -112,7 +130,7 @@ public interface ContentView {
             mEmptyLinesThreshold = in.getInt(EMPTY_LINES_TRESHOLD,3);
             mNewLineLeftMargin = in.getInt(PARAGRAPH_MARGIN_LEFT);
             mNewLineTopMargin = in.getInt(PARAGRAPH_MARGIN_TOP);
-            rectFromBundle(TEXT_PADDINGS,in,mTextPaddings);
+            rectFromBundle(TEXT_PADDINGS, in, mTextPaddings);
             mDrawableWrapRatioTreshold = in.getFloat(DRAWABLE_WRAP_RATIO_TRESHOLD,0.5f);
             mDrawableWrapWidthTreshold = in.getFloat(DRAWABLE_WRAP_WIDTH_TRESHOLD,0.5f);
             mDrawableMinimumScaleFactor = in.getFloat(DRAWABLE_MINIMUM_SCALE_FACTOR,1.0f);
@@ -128,19 +146,91 @@ public interface ContentView {
             state.putBoolean(FILTER_EMPTY_LINES_ENABLED,mFilterEmptyLines);
             state.putBoolean(JUSTIFICATION_ENABLED,mJustification);
             state.putInt(DEFAULT_DIRECTION,mDefaultDirection);
-            rectToBundle(DRAWABLE_PADDINGS,mDrawablePaddings,state);
+            rectToBundle(DRAWABLE_PADDINGS, mDrawablePaddings, state);
             state.putInt(REFLOW_TIME_QUANT_MS,mReflowTimeQuant);
             state.putFloat(LINESPACING_MULTIPLIER,mLineSpacingMultiplier);
             state.putInt(LINESPACING_ADD,mLineSpacingAdd);
             state.putInt(EMPTY_LINES_HEIGHT,mEmptyLineHeightLimit);
-            state.putInt(EMPTY_LINES_TRESHOLD,mEmptyLinesThreshold);
-            state.putInt(PARAGRAPH_MARGIN_LEFT,mNewLineLeftMargin);
-            state.putInt(PARAGRAPH_MARGIN_TOP,mNewLineTopMargin);
-            rectToBundle(TEXT_PADDINGS,mTextPaddings,state);
-            state.putFloat(DRAWABLE_MINIMUM_SCALE_FACTOR,mDrawableMinimumScaleFactor);
+            state.putInt(EMPTY_LINES_TRESHOLD, mEmptyLinesThreshold);
+            state.putInt(PARAGRAPH_MARGIN_LEFT, mNewLineLeftMargin);
+            state.putInt(PARAGRAPH_MARGIN_TOP, mNewLineTopMargin);
+            rectToBundle(TEXT_PADDINGS, mTextPaddings, state);
+            state.putFloat(DRAWABLE_MINIMUM_SCALE_FACTOR, mDrawableMinimumScaleFactor);
             state.putFloat(DRAWABLE_WRAP_WIDTH_TRESHOLD,mDrawableWrapWidthTreshold);
-            state.putFloat(DRAWABLE_WRAP_RATIO_TRESHOLD,mDrawableWrapRatioTreshold);
+            state.putFloat(DRAWABLE_WRAP_RATIO_TRESHOLD, mDrawableWrapRatioTreshold);
             return state;
+        }
+
+        private void fromAttributes(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+            TypedArray ta;
+            /* TextViewWS attrs */
+            ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewWS,defStyleRes,defStyleAttr);
+            for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
+                if (attr == R.styleable.TextViewWS_selectionColor){
+                    mSelectionColor = ta.getColor(attr,Color.BLUE);
+                } else if (attr == R.styleable.TextViewWS_selectionCursorDrawableLeft) {
+                    mSelectionCursorDrawableLeft = ta.getResourceId(attr,0);
+                } else if (attr == R.styleable.TextViewWS_selectionCursorDrawableRight) {
+                    mSelectionCursorDrawableRight = ta.getResourceId(attr,0);
+                } else if (attr == R.styleable.TextViewWS_urlHighlightBeforeOpen) {
+                    mUrlHighlightBeforeOpen = ta.getBoolean(attr,true);
+                } else if (attr == R.styleable.TextViewWS_urlHighlightColor) {
+                    mUrlHighlightColor = ta.getColor(attr,Color.YELLOW);
+                } else {
+                    Log.e(TAG, "unknown TextViewWS attribute index: " + i);
+                }
+            }
+            ta.recycle();
+            /* TextViewEx attrs */
+            ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewEx,defStyleRes,defStyleAttr);
+            for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
+                if (attr == R.styleable.TextViewEx_justificationEnabled) {
+                    mJustification = ta.getBoolean(attr,true);
+                } else if (attr == R.styleable.TextViewEx_filterEmptyLines) {
+                    mFilterEmptyLines = ta.getBoolean(attr,true);
+                } else if (attr == R.styleable.TextViewEx_emptyLinesFilterTreshold) {
+                    mEmptyLinesThreshold = ta.getInt(attr,3);
+                } else if (attr == R.styleable.TextViewEx_paragraphMarginTop) {
+                    mNewLineTopMargin = ta.getInt(attr,0);
+                } else if (attr == R.styleable.TextViewEx_paragraphMarginLeft) {
+                    mNewLineLeftMargin = ta.getInt(attr,0);
+                } else {
+                    Log.e(TAG,"unknown TextViewEx attribute index: " + i);
+                }
+            }
+            ta.recycle();
+            /* ImagePlacementHandler Attributes */
+            ta = context.obtainStyledAttributes(attrs,R.styleable.ImagePlacementHanlder,defStyleRes,defStyleAttr);
+            for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
+                if (attr == R.styleable.ImagePlacementHanlder_enableImageWrap) {
+
+                } if (attr == R.styleable.ImagePlacementHanlder_imagePaddingLeft) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingTop) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingRight) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingBottom) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imageMinScaleFactor) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imageWrapMaxWidthFraction) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imageWrapMinRatio) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_zoomImageOnClick) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_zoomBackDrawable) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imageAnimationAutoStart) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_imageAnimationOverlayDrawable) {
+
+                } else if (attr == R.styleable.ImagePlacementHanlder_startAnimationOnClick) {
+
+                }
+            }
+            ta.recycle();
         }
 
         /**
@@ -505,7 +595,6 @@ public interface ContentView {
 
 
     }
-
 
 
     void setLoadingState(boolean loading);

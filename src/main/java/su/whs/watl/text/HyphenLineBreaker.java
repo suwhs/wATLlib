@@ -80,7 +80,11 @@ public class HyphenLineBreaker extends LineBreaker {
         }
     }
 
-
+    /**
+     * marks soft-hypen positions for given words
+     * @param word
+     * @param hyphens
+     */
     private void hyphenate(char[] word, int[] hyphens) {
 
         int i, j, k, nodePointsLength;
@@ -130,7 +134,6 @@ public class HyphenLineBreaker extends LineBreaker {
     }
 
     /* adaptation code by igor n. boulliev below */
-
 
     private class LastQueryCache {
         int start = -1;

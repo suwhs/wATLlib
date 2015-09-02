@@ -1,14 +1,17 @@
 package su.whs.watl.ui;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 
+import su.whs.watl.R;
 import su.whs.watl.text.TextLayout;
 import su.whs.watl.text.TextLayoutListener;
 
@@ -27,6 +30,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private int mColumnSpacing = 25;
     private int mColumnsCount = 1;
     private int mTextLayoutHeight = -1;
+    private Drawable mColumnSeparatorDrawable = null;
     private int[] mColumnsVerticalShifts = null;
     private int[] mLinesHeightsOnColumns = null;
     private int[] mColumnsLinesStarts = null;
@@ -34,8 +38,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     /* reflow events handling */
     private int mColumnsReady = 0;
     private int mFirstColumnLine = 0;
-    private boolean mPreferMinColumnWidth = true;
-    private int mDefaultColumnsCount = 1;
+    // private boolean mPreferMinColumnWidth = true;
+    // private int mDefaultColumnsCount = 1;
     private boolean mColumnsCountChanged = false;
     private boolean mTextReady = false;
     private boolean mRecalculateHeightOnFinish = false;
@@ -58,6 +62,29 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     public MultiColumnTextViewEx(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        init(context, attrs, defStyle, 0);
+    }
+
+    private void init(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+                    /* MultiColumnTextViewEx */
+        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MultiColumnTextViewEx,defStyleRes,defStyleAttr);
+        for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
+            if (attr == R.styleable.MultiColumnTextViewEx_columnCount) {
+                mColumnsCount = ta.getInt(attr,1);
+            } else if (attr == R.styleable.MultiColumnTextViewEx_columnSpacing) {
+                mColumnSpacing = ta.getInt(attr,25);
+            } else if (attr == R.styleable.MultiColumnTextViewEx_minColumnWidth) {
+                mMinColumnWidth = ta.getInt(attr,-1);
+            } else if (attr == R.styleable.MultiColumnTextViewEx_maxColumnWidth) {
+                mMaxColumnWidth = ta.getInt(attr,-1);
+            } else if (attr == R.styleable.MultiColumnTextViewEx_columnSeparatorDrawable) {
+                mColumnSeparatorDrawable = ta.getDrawable(attr);
+            } else {
+                Log.e(TAG,"unknown MultiColumnTextViewEx attribute index: " + i);
+            }
+        }
+        ta.recycle();
+
     }
 
     @Override

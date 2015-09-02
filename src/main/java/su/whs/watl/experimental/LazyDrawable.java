@@ -25,6 +25,13 @@ import java.util.concurrent.TimeUnit;
  * Created by igor n. boulliev on 29.08.15.
  */
 
+/**
+ * abstract class for support two display mode - 'preview' and 'full'
+ * for example, it may display local cached jpeg as preview, and load high quality png on
+ * request
+ *
+ */
+
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
     private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,3,10, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>());
     private static final String TAG="LazyDrawable";
@@ -37,6 +44,11 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     protected boolean mLoadingError = false;
     private Drawable.Callback mCallbackCompat = null;
 
+    /**
+     * create instance with given size
+     * @param srcWidth
+     * @param srcHeight
+     */
     public LazyDrawable(int srcWidth, int srcHeight) {
         mSrcWidth = srcWidth;
         mSrcHeight = srcHeight;
@@ -60,6 +72,12 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mBounds.set(bounds);
     }
 
+    /**
+     * set size and adjust bounds
+     * @param srcWidth
+     * @param srcHeight
+     */
+
     protected void setSize(int srcWidth, int srcHeight) {
         mSrcWidth = srcWidth;
         mSrcHeight = srcHeight;
@@ -68,6 +86,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mBoundsApplied = false;
     }
 
+    /**
+     * load preview (sync)
+     */
     public void initialLoad() {
         Drawable d = readPreviewDrawable();
         synchronized (LazyDrawable.this) {
@@ -75,6 +96,11 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
             mLoadingInProgress = false;
         }
     }
+
+    /**
+     * if no preview loaded - execute initialLoad() in background and draw 'loadingFrame', if defined
+     * @param canvas
+     */
 
     @Override
     public void draw(Canvas canvas) {
@@ -122,19 +148,35 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         }
     }
 
+    /**
+     * by default - do nothing. Override it to draw loading animation
+     * @param canvas
+     */
     protected void drawNextLoadingFrame(Canvas canvas) {
 
     }
 
+    /**
+     * initiate load full image (sync)
+     */
     public void loadFullImage() {
         synchronized (this) {
             mLoadingError = false;
             mLoadingInProgress = true;
         }
-        Drawable drawable = readFullDrawable();
-        if (drawable!=null)
-            setDrawable(drawable);
-        invalidateSelfOnUiThread();
+        executor.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        Drawable drawable = readFullDrawable();
+                        synchronized (LazyDrawable.this) {
+                            if (drawable != null)
+                                setDrawable(drawable);
+                        }
+                        invalidateSelfOnUiThread();
+                    }
+                }
+        );
     }
 
     @Override
@@ -187,6 +229,10 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         return false;
     }
 
+    /**
+     * replace wrapped drawable (and reset internal flags)
+     * @param drawable
+     */
     protected synchronized void setDrawable(Drawable drawable) {
         if (mDrawable!=null && isRunning()) stop();
         mDrawable = drawable;
@@ -194,6 +240,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mBoundsApplied = false;
     }
 
+    /**
+     * set unrecoverable load error flag
+     */
     protected void onFailure() {
         mLoadingError = true;
         invalidateSelfOnUiThread();
@@ -230,6 +279,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mCallbackCompat = cb;
     }
 
+    /**
+     * run invalidateSelf() on MainLooper
+     */
     protected void invalidateSelfOnUiThread() {
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             invalidateSelf();
@@ -243,8 +295,23 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         }
     }
 
+    /**
+     * abstract method. Implementation must return Drawable fast as possible
+     * @return
+     */
     protected abstract Drawable readPreviewDrawable();
+
+    /**
+     * abstract method. Implementation may load real image from network (not fast),
+     * store to cache (and use it when this drawable required again)
+     * @return
+     */
     protected abstract Drawable readFullDrawable();
+
+    /**
+     * sample implementation - only 'slow method'
+     * generally - for development and debug purposes
+     */
 
     public static class FromURL extends LazyDrawable {
         private String mSrcUrl;
