@@ -288,9 +288,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      */
 
     @Override
-    public CharSequence getText() {
+    public CharSequence getText() { // marshmallow - called before TextLayout created
         if (isInEditMode())
             return super.getText();
+        if (getTextLayout()==null) return super.getText();
         return getTextLayout().getText();
     }
 

@@ -126,7 +126,7 @@ class TextLayoutEx extends TextLayout {
         // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
-            throw new RuntimeException("here is wait on main thread possible");
+            throw new RuntimeException("here is wait on main thread possible - sync mode for TextLayoutEx is not allowed");
         }
             /* list lines always contains ALL lines for TextLayoutEx, and height - contains current viewHeight collected */
         final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);

@@ -465,9 +465,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } catch (InterruptedException e) {
             }
         }
-        mReflowBackgroundTask = new Thread(new ReflowBackgroundTask());
-        mIsLayouted = true;
-        mReflowBackgroundTask.start();
+        if (getOptions().isAsyncReflow()) {
+            mReflowBackgroundTask = new Thread(new ReflowBackgroundTask());
+            mIsLayouted = true;
+            mReflowBackgroundTask.start();
+        } else {
+            new ReflowBackgroundTask().run();
+        }
     }
 
     /**
@@ -2425,9 +2429,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             breakPosition = state.character;
                         }
                         boolean hyphen = LineBreaker.isHyphen(lineBreakVal);
-                        if (breakPosition < state.lastWhitespace) {
-                            // Log.e(TAG, "possible crash in future: error in lineBreaker:(" + lineBreaker + ") - nearestLineBreak(text,start,end,limit) must returns value, that greater or equal start");
-                        }
+//                        if (breakPosition < state.lastWhitespace) {
+//                            // Log.e(TAG, "possible crash in future: error in lineBreaker:(" + lineBreaker + ") - nearestLineBreak(text,start,end,limit) must returns value, that greater or equal start");
+//                        }
                         if (breakPosition <= lineStartAt) { // in some cases breakPosition<lineStartAt
                             breakPosition = state.character - 1;
                             // Log.e(TAG, "lineBreaker (" + lineBreaker + ") returns breakPosition before lineStarts");
@@ -2470,27 +2474,28 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     } else if (!lineBreaker.isLetter(text[state.character])) {
                         // handle non-letter characters (m.b. only spaces?)
                         state.nonLetterBreak(text[state.character] != ' ' || span.strong);
-                    } else if (text[state.character] == '\u200F') { // RTL MARK
-                        if (debug) Log.v(TAG, "rtl mark!");
-                        /**
-                         * make current span direction RTL (if not)
-                         * and make state.direction = RTL
-                         */
-                        if (state.character==lineStartAt) {
-                            lineStartsWithRtl = true;
-                        }
-                        lineContainsRtlSpans = true;
-                        currentDirection = Layout.DIR_RIGHT_TO_LEFT;
-                        span.direction = Layout.DIR_RIGHT_TO_LEFT;
-                        state.character++;
-                    } else if (text[state.character] == '\u200E') { // LTR mark
-                        if (debug) Log.v(TAG, "ltr mark!");
-                        if (state.character==lineStartAt) {
-
-                        }
-                        currentDirection = Layout.DIR_LEFT_TO_RIGHT;
-
-                        state.character++;
+// commented out
+//                    }  else if (text[state.character] == '\u200F') { // RTL MARK
+//                        if (debug) Log.v(TAG, "rtl mark!");
+//                        /**
+//                         * make current span direction RTL (if not)
+//                         * and make state.direction = RTL
+//                         */
+//                        if (state.character==lineStartAt) {
+//                            lineStartsWithRtl = true;
+//                        }
+//                        lineContainsRtlSpans = true;
+//                        currentDirection = Layout.DIR_RIGHT_TO_LEFT;
+//                        span.direction = Layout.DIR_RIGHT_TO_LEFT;
+//                        state.character++;
+//                    } else if (text[state.character] == '\u200E') { // LTR mark
+//                        if (debug) Log.v(TAG, "ltr mark!");
+//                        if (state.character==lineStartAt) {
+//
+//                        }
+//                        currentDirection = Layout.DIR_LEFT_TO_RIGHT;
+//
+//                        state.character++;
                     } else {
                         // handle usual character
                         if (span.widths == null) {

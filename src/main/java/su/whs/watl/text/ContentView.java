@@ -71,16 +71,17 @@ public interface ContentView {
         private float mDrawableWrapRatioTreshold = 1.0f;
         private float mDrawableMinimumScaleFactor = 0.5f;
         private boolean mDrawableWrapEnabled = true;
-        private boolean mDrawableAnimationZoomOnClick = false;
-        private boolean mDrawableAnimationAutoStart = false;
-        private int mDrawableZoomOverlayBackDrawableResId;
-        private int mSelectionCursorDrawableLeft;
-        private int mSelectionCursorDrawableRight;
 
         /* non-serializable */
         protected boolean mInvalidateMeasurement = false;
         protected boolean mInvalidateLines = false;
         protected boolean mInvalidate = false;
+        private boolean mDrawableAnimationZoomOnClick = false;
+        private boolean mDrawableAnimationAutoStart = false;
+        private int mDrawableZoomOverlayBackDrawableResId;
+        private int mSelectionCursorDrawableLeft;
+        private int mSelectionCursorDrawableRight;
+        private boolean mIsAsyncReflow = true;
         protected OptionsChangeListener mListener;
 
         public Options() {
@@ -109,6 +110,7 @@ public interface ContentView {
             mDrawableMinimumScaleFactor = source.mDrawableMinimumScaleFactor;
             mDrawableWrapWidthTreshold = source.mDrawableWrapWidthTreshold;
             mDrawableWrapRatioTreshold = source.mDrawableWrapRatioTreshold;
+            mIsAsyncReflow = source.mIsAsyncReflow;
             if (mListener!=null)
                 mListener.invalidateMeasurement();
         }
@@ -150,7 +152,7 @@ public interface ContentView {
             state.putInt(REFLOW_TIME_QUANT_MS,mReflowTimeQuant);
             state.putFloat(LINESPACING_MULTIPLIER,mLineSpacingMultiplier);
             state.putInt(LINESPACING_ADD,mLineSpacingAdd);
-            state.putInt(EMPTY_LINES_HEIGHT,mEmptyLineHeightLimit);
+            state.putInt(EMPTY_LINES_HEIGHT, mEmptyLineHeightLimit);
             state.putInt(EMPTY_LINES_TRESHOLD, mEmptyLinesThreshold);
             state.putInt(PARAGRAPH_MARGIN_LEFT, mNewLineLeftMargin);
             state.putInt(PARAGRAPH_MARGIN_TOP, mNewLineTopMargin);
@@ -193,7 +195,9 @@ public interface ContentView {
                 } else if (attr == R.styleable.TextViewEx_paragraphMarginTop) {
                     mNewLineTopMargin = ta.getInt(attr,0);
                 } else if (attr == R.styleable.TextViewEx_paragraphMarginLeft) {
-                    mNewLineLeftMargin = ta.getInt(attr,0);
+                    mNewLineLeftMargin = ta.getInt(attr, 0);
+                } else if (attr == R.styleable.TextViewEx_asyncReflow) {
+                    mIsAsyncReflow = ta.getBoolean(attr,true);
                 } else {
                     Log.e(TAG,"unknown TextViewEx attribute index: " + i);
                 }
@@ -547,7 +551,7 @@ public interface ContentView {
 
         private void rectFromBundle(String name, Bundle in, Rect out) {
             int[] r = in.getIntArray(name);
-            out.set(r[0],r[1],r[2],r[3]);
+            out.set(r[0], r[1], r[2], r[3]);
         }
 
         /**
@@ -594,6 +598,13 @@ public interface ContentView {
         }
 
 
+        public boolean isAsyncReflow() {
+            return mIsAsyncReflow;
+        }
+
+        public String getReflowThreadPoolTag() {
+            return "REFLOWTRHEADPOOL";
+        }
     }
 
 
@@ -601,3 +612,4 @@ public interface ContentView {
 
     void contentReady(String uuid, CharSequence content, Options options);
 }
+    

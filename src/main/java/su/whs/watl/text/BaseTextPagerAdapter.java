@@ -719,5 +719,14 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
             return this;
         }
+
+        /**
+         * force async mode
+         * @return
+         */
+        @Override
+        public boolean isAsyncReflow() {
+            return true;
+        }
     }
 }
