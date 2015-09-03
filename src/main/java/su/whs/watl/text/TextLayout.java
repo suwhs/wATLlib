@@ -52,7 +52,7 @@ import su.whs.watl.experimental.LazyDrawable;
 
 public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
-    private boolean debugDraw = false;
+    private boolean debugDraw = true;
     private boolean debug = false;
     private static char[] mHyphenChar = new char[] { '-' };
     private Spanned mText;
@@ -1164,6 +1164,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             backgroundPaint.setColor(Color.GREEN);
             canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
             backgroundPaint.setColor(Color.RED);
+            backgroundPaint.setStrokeWidth(5);
         }
 
         int leftOffset = textPaddings.left;
@@ -1373,8 +1374,29 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 processedDrawables.remove(dr);
                             } // TODO: end profile
 
-                            if (debugDraw)
-                                canvas.drawRect(x,sY,x+span.drawableScaledWidth+drawablePaddingWidth,sY+span.drawableScaledHeight+drawablePaddingHeight,backgroundPaint);
+                            if (debugDraw) {
+                                backgroundPaint.setColor(Color.RED);
+                                canvas.drawRect(
+                                        x + 5 + drawablePaddings.left, sY + 5 + drawablePaddings.top,
+                                        x - 5 + drawablePaddings.left
+                                                + span.drawableScaledWidth
+                                                + drawablePaddingWidth - drawablePaddings.right,
+                                        sY - 5 + drawablePaddings.top
+                                                + span.drawableScaledHeight
+                                                + drawablePaddingHeight - drawablePaddings.bottom,
+                                        backgroundPaint);
+                                backgroundPaint.setColor(Color.YELLOW);
+                                canvas.drawRect(
+                                        x + drawablePaddings.left, sY + drawablePaddings.top,
+                                        x + drawablePaddings.left
+                                                + span.drawableScaledWidth
+                                                + drawablePaddingWidth - drawablePaddings.right,
+                                        sY + drawablePaddings.top
+                                                + span.drawableScaledHeight
+                                                + drawablePaddingHeight - drawablePaddings.bottom,
+                                        backgroundPaint
+                                );
+                            }
 
                             if (span.drawableScaledWidth > 0f) {
                                 drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;

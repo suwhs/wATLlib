@@ -612,4 +612,3 @@ public interface ContentView {
 
     void contentReady(String uuid, CharSequence content, Options options);
 }
-    

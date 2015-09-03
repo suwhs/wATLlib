@@ -67,9 +67,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     }
 
     @Override
-    public void setBounds(Rect bounds) {
+    public void setBounds(int left, int top, int right, int bottom) {
         mBoundsApplied = false;
-        mBounds.set(bounds);
+        mBounds.set(left,top,right,bottom);
     }
 
     /**
@@ -119,6 +119,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         if (!mBoundsApplied) {
             synchronized (this) {
                 mDrawable.setBounds(mBounds);
+                mBoundsApplied = true;
             }
         }
 
