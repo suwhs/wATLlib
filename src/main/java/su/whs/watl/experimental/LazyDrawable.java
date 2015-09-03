@@ -70,6 +70,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     public void setBounds(int left, int top, int right, int bottom) {
         mBoundsApplied = false;
         mBounds.set(left,top,right,bottom);
+        super.setBounds(left,top,right,bottom);
     }
 
     /**
