@@ -92,6 +92,10 @@ public interface ContentView {
             copy(source);
         }
 
+        public Options(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+            fromAttributes(context, attrs, defStyleAttr, defStyleRes);
+        }
+
         public void copy(Options source) {
             mFilterEmptyLines = source.mFilterEmptyLines;
             mJustification = source.mJustification;
@@ -163,7 +167,7 @@ public interface ContentView {
             return state;
         }
 
-        private void fromAttributes(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        public void fromAttributes(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
             TypedArray ta;
             /* TextViewWS attrs */
             ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewWS,defStyleRes,defStyleAttr);
@@ -193,9 +197,9 @@ public interface ContentView {
                 } else if (attr == R.styleable.TextViewEx_emptyLinesFilterTreshold) {
                     mEmptyLinesThreshold = ta.getInt(attr,3);
                 } else if (attr == R.styleable.TextViewEx_paragraphMarginTop) {
-                    mNewLineTopMargin = ta.getInt(attr,0);
+                    mNewLineTopMargin = (int)ta.getDimension(attr,0f);
                 } else if (attr == R.styleable.TextViewEx_paragraphMarginLeft) {
-                    mNewLineLeftMargin = ta.getInt(attr, 0);
+                    mNewLineLeftMargin = (int) ta.getDimension(attr, 0f);
                 } else if (attr == R.styleable.TextViewEx_asyncReflow) {
                     mIsAsyncReflow = ta.getBoolean(attr,true);
                 } else {
@@ -604,6 +608,10 @@ public interface ContentView {
 
         public String getReflowThreadPoolTag() {
             return "REFLOWTRHEADPOOL";
+        }
+
+        public int getSelectionColor() {
+            return mSelectionColor;
         }
     }
 

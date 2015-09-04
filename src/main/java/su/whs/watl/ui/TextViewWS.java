@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.CornerPathEffect;
@@ -31,6 +32,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+
+import su.whs.watl.R;
 
 /**
  * Created by igor n. boulliev on 08.03.15.
@@ -150,13 +153,31 @@ public class TextViewWS extends TextView {
 
     public TextViewWS(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        init(context,attrs,defStyleAttr,0);
         setOnTouchListener(mOnTouchListener);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public TextViewWS(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        init(context,attrs,defStyleAttr,defStyleRes);
         setOnTouchListener(mOnTouchListener);
+    }
+
+    private void init(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        TypedArray  ta = context.obtainStyledAttributes(attrs, R.styleable.TextViewWS,defStyleRes,defStyleAttr);
+        for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
+            if (attr == R.styleable.TextViewWS_selectionColor){
+                mSelectionColor = ta.getColor(attr,Color.BLUE);
+            } else if (attr == R.styleable.TextViewWS_selectionCursorDrawableLeft) {
+                mSelectionCursorDrawableStart = ta.getDrawable(attr);
+            } else if (attr == R.styleable.TextViewWS_selectionCursorDrawableRight) {
+                mSelectionCursorDrawableEnd = ta.getDrawable(attr);
+            } else {
+                Log.e(TAG, "unknown TextViewWS attribute index: " + i);
+            }
+        }
+        ta.recycle();
     }
 
     public TextViewWS setSelectionColor(int color) {
@@ -406,7 +427,7 @@ public class TextViewWS extends TextView {
         while (end < lEnd && Character.isLetter(text.charAt(end)) == letter) end++;
         String __text = getText().subSequence(start, end).toString();
         Log.d(TAG, "long tap text: '" + __text + "'" + end);
-        setSelection(start, end, selectionColor());
+        setSelection(start, end);
         mSelectModeActive = true;
         calculateSelectionCursorPositions();
         onSelectionModeStarts(start, end);
@@ -450,7 +471,7 @@ public class TextViewWS extends TextView {
                 position = activeEnd;
                 activeEnd = a;
             }
-            setSelection(position, activeEnd, selectionColor());
+            setSelection(position, activeEnd);
         } else if (mActiveSelectionCursor == ACTIVE_END_CURSOR && position != activeEnd) {
             // Log.v(TAG,"move end cursor");
             if (position < activeStart) {
@@ -458,7 +479,7 @@ public class TextViewWS extends TextView {
                 position = activeStart;
                 activeStart = a;
             }
-            setSelection(activeStart, position, selectionColor());
+            setSelection(activeStart, position);
         } else {
             return true;
         }
@@ -497,7 +518,7 @@ public class TextViewWS extends TextView {
             }
         }
         /* */
-        setSelection(selectStart, selectEnd, selectionColor());
+        setSelection(selectStart, selectEnd);
         calculateSelectionCursorPositions();
         invalidate();
     }
@@ -530,7 +551,7 @@ public class TextViewWS extends TextView {
     protected void onSelectionModeEnds() {
         if (!mSelectModeActive) return;
         mSelectModeActive = false;
-        setSelection(0, 0, selectionColor());
+        setSelection(0, 0);
         if (mActionMode != null && Build.VERSION.SDK_INT > 10)
             mActionMode.finish();
         super.setSelected(false);
@@ -567,7 +588,7 @@ public class TextViewWS extends TextView {
         }
     }
 
-    public void setSelection(int start, int end, int color) {
+    public void setSelection(int start, int end) {
         // super.setSelected(false);
         /* remove built-in selection used for paint in TextView */
         if (getText() instanceof Spannable) {
@@ -579,7 +600,6 @@ public class TextViewWS extends TextView {
         }
         mSelectionStart = start;
         mSelectionEnd = end;
-        mSelectionColorDraw = color;
     }
 
     /*layout-depended methods */

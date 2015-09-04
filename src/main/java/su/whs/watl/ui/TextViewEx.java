@@ -89,6 +89,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     public TextViewEx(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        mPendingOptions.fromAttributes(context,attrs,defStyle,0);
     }
 
     @Override
@@ -313,8 +314,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     @Override
-    public void setSelection(int start, int end, int color) {
-        getTextLayout().setSelection(start, end, color);
+    public void setSelection(int start, int end) {
+        // super.setSelectionColor(getOptions().getSelectionColor());
+        getTextLayout().setSelection(start, end);
     }
 
     /**
@@ -391,12 +393,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void setSelected(boolean selected) {
         super.setSelected(selected);
         if (!selected) {
-            mTextLayout.setSelection(0,0,0);
+            mTextLayout.setSelection(0,0);
         }
     }
 
     protected void resetState() {
-        setSelection(0, 0, 0);
+        setSelection(0, 0);
         setSelected(false);
         super.invalidateContent();
     }

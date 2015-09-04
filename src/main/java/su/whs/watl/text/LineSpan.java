@@ -19,6 +19,7 @@ import android.view.Gravity;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.text.Bidi;
 import java.util.List;
 
 /**
@@ -29,6 +30,8 @@ import java.util.List;
 /* package */
 class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
+    private static boolean mBidiEnabled = true;
+    public static boolean isBidiEnabled() { return mBidiEnabled; } // TODO: move to Options
     public int gravity = Gravity.LEFT;
     public int direction = Layout.DIR_LEFT_TO_RIGHT; // TODO: use Bidi on prepare() ?
     public boolean strong = false;
@@ -191,8 +194,22 @@ class LineSpan {
             int nextCharacterStyle;
 
             for (int c = p; c < nextParagraph; c = nextCharacterStyle) {
-
                 nextCharacterStyle = text.nextSpanTransition(c, nextParagraph, CharacterStyle.class);
+                if (mBidiEnabled) { // direction on lineSpan-level
+                    String bidiString = new String(text.subSequence(c, nextCharacterStyle).toString());
+                    Bidi bidi = new Bidi(bidiString, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT);
+                    if (bidi.isRightToLeft()) {
+                        current.direction = Layout.DIR_RIGHT_TO_LEFT;
+                    } else if (bidi.isMixed()) {
+                        if (bidi.baseIsLeftToRight()) {
+                            // log base == left to right, but contains right to left parts
+                            current.direction = Layout.DIR_LEFT_TO_RIGHT + 1;
+                        } else {
+                            // log base = right to left, but contains left to right parts
+                            current.direction = Layout.DIR_RIGHT_TO_LEFT - 1;
+                        }
+                    }
+                }
                 current.spans = text.getSpans(c, nextCharacterStyle, CharacterStyle.class);
                 if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
                     forwardsDrawableArray.append(c, (DynamicDrawableSpan) current.spans[0]);

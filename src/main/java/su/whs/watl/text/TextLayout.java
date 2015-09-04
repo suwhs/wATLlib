@@ -89,7 +89,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     /* selection handling vars */
     private int mSelectionStart = 0;
     private int mSelectionEnd = 0;
-    private int mSelectionColor = Color.GRAY;
+
 
     /* highlight handling vars */
     private int mHighlightStart = 0;
@@ -466,7 +466,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } catch (InterruptedException e) {
             }
         }
-        if (getOptions().isAsyncReflow()) {
+        if (getOptions().isAsyncReflow()) { //
             mReflowBackgroundTask = new Thread(new ReflowBackgroundTask());
             mIsLayouted = true;
             mReflowBackgroundTask.start();
@@ -579,14 +579,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param argb  - color (ARGB)
      */
 
-    public void setSelection(int start, int end, int argb) {
+    public void setSelection(int start, int end) {
         mSelectionStart = start;
         mSelectionEnd = end;
-        mSelectionColor = argb;
     }
 
     protected int getSelectionColor() {
-        return mSelectionColor;
+        return getOptions().getSelectionColor();
     }
 
     /**
@@ -1212,9 +1211,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             line = lines.get(i);
             if (height > 0 && (y + line.height > clipRect.bottom) && line.wrapHeight < 1) {
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
-
                 break linesLoop;
             }
+
+            boolean nonLtR = LineSpan.isBidiEnabled() && line.direction != Layout.DIR_LEFT_TO_RIGHT;
             if (line.span == null) { // special case uses for closing image wrap
                 y += line.height;
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
@@ -1334,6 +1334,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             drawline:
             while (span != null && drawStart < line.end) {
                 // draw leading drawable only
+                if (LineSpan.isBidiEnabled()) {
+                    if (span.direction!=Layout.DIR_LEFT_TO_RIGHT) {
+                        Log.d(TAG,"non-LTR span:" + span.direction);
+                    }
+                }
                 if (span.isDrawable && span.end>line.start) {
                     lookupdrawable:
                     for (CharacterStyle style : span.spans) {
