@@ -52,7 +52,7 @@ import su.whs.watl.experimental.LazyDrawable;
 
 public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
-    private boolean debugDraw = true;
+    private boolean debugDraw = false;
     private boolean debug = false;
     private static char[] mHyphenChar = new char[] { '-' };
     private Spanned mText;
