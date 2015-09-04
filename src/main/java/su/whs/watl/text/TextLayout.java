@@ -1216,7 +1216,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 break linesLoop;
             }
             if (line.span == null) { // special case uses for closing image wrap
-                // y += line.height;
+                y += line.height;
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
                 continue;
             }
@@ -1379,20 +1379,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 backgroundPaint.setColor(Color.RED);
                                 canvas.drawRect(
                                         x + 5 + drawablePaddings.left, sY + 5 + drawablePaddings.top,
-                                        x - 5 + drawablePaddings.left
+                                        x - 5
                                                 + span.drawableScaledWidth
                                                 + drawablePaddingWidth - drawablePaddings.right,
-                                        sY - 5 + drawablePaddings.top
+                                        sY - 5
                                                 + span.drawableScaledHeight
                                                 + drawablePaddingHeight - drawablePaddings.bottom,
                                         backgroundPaint);
                                 backgroundPaint.setColor(Color.YELLOW);
                                 canvas.drawRect(
                                         x + drawablePaddings.left, sY + drawablePaddings.top,
-                                        x + drawablePaddings.left
+                                        x
                                                 + span.drawableScaledWidth
                                                 + drawablePaddingWidth - drawablePaddings.right,
-                                        sY + drawablePaddings.top
+                                        sY
                                                 + span.drawableScaledHeight
                                                 + drawablePaddingHeight - drawablePaddings.bottom,
                                         backgroundPaint
@@ -2432,13 +2432,24 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                     // view line width exceed or force break
                     if ((forceBreak || state.lineWidth + span.widths[state.character - span.start] > wrapWidth) && !drawableScaleBreak) {
-
+                        // TODO: while wrap image - we need to check - if too less chars fit to image side
+                        // (wrong image placement handler may cause wrap too big image
                         if (span.isDrawable) {
-                            drawableScaleBreak = true;
+                            drawableScaleBreak = true; // drawable does not fit left width at all
                             continue processing;
                         }
                         if (state.character <= lineStartAt) {
                             if (debug) Log.w(TAG, "line exceed at first character");
+                            if (wrapHeight>0) {
+                                // Log.e(TAG,"we must cancel wrapping!");
+                                Log.e(TAG,"close wrap null span");
+                                result.add(new TextLine(null, 0, wrapHeight));
+                                wrapMargin = 0;
+                                viewHeightLeft -= wrapHeight;
+                                wrapHeight = 0;
+                                wrapWidth = width - lineWidthDec;
+                                continue;
+                            }
                             state.character++;
                         }
 
@@ -2450,6 +2461,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         if (state.character == state.lastWhitespace) {
                             // Log.w(TAG, "first character on line does not fit to given width");
                             breakPosition = state.character;
+
                         }
                         boolean hyphen = LineBreaker.isHyphen(lineBreakVal);
 //                        if (breakPosition < state.lastWhitespace) {
