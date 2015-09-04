@@ -96,7 +96,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     private int mHighlightEnd = 0;
     private int mHighlightColor = Color.YELLOW;
 
-
+    /* forward drawables support */
+    private SparseArray<DynamicDrawableSpan> mDynamicDrawableSpanSparseArray = new SparseArray<DynamicDrawableSpan>();
     public boolean isLayouted() {
         return mIsLayouted;
     }
@@ -233,7 +234,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         this.paint = paint;
-        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin);
+        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin,mDynamicDrawableSpanSparseArray);
     }
 
     public TextLayout() {

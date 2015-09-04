@@ -10,9 +10,9 @@ import android.text.style.DynamicDrawableSpan;
  * Created by igor n. boulliev on 03.02.15.
  */
 public abstract class ImagePlacementHandler {
-    private static final int THUMBNAIL = 0x01;
+    public static final int THUMBNAIL = 0x01;
     public static final int EXCLUSIVE = 0x02;
-    private static final int SCROLLABLE = 0x04;
+    public static final int SCROLLABLE = 0x04;
     private static final int WRAP_TEXT = 0x08;
     private static final int ALIGN_CENTER = 0x10;
     private static final int ALIGN_START = 0x20;

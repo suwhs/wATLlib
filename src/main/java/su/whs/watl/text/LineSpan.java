@@ -13,6 +13,7 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.MetricAffectingSpan;
 import android.text.style.ParagraphStyle;
 import android.text.style.ReplacementSpan;
+import android.util.SparseArray;
 import android.view.Gravity;
 
 import java.io.DataInputStream;
@@ -137,15 +138,16 @@ class LineSpan {
      * @param text  - text
      * @param start - start character
      * @param end   - last character + 1
+     * @param dynamicDrawableSpanSparseArray
      * @return LineSpan linked list
      */
 
     /* geometry-independed calculations */
-    public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin) {
-        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Layout.DIR_LEFT_TO_RIGHT);
+    public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, SparseArray<DynamicDrawableSpan> dynamicDrawableSpanSparseArray) {
+        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Layout.DIR_LEFT_TO_RIGHT,dynamicDrawableSpanSparseArray);
     }
 
-    public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, int defaultDirection) {
+    public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, int defaultDirection, SparseArray<DynamicDrawableSpan> forwardsDrawableArray) {
         // TODO: optimize or make LAZY calculating (too long time for complex html)
         long timeStart = System.currentTimeMillis();
 
@@ -192,6 +194,9 @@ class LineSpan {
 
                 nextCharacterStyle = text.nextSpanTransition(c, nextParagraph, CharacterStyle.class);
                 current.spans = text.getSpans(c, nextCharacterStyle, CharacterStyle.class);
+                if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
+                    forwardsDrawableArray.append(c, (DynamicDrawableSpan) current.spans[0]);
+                }
                 current.start = c;
                 current.end = nextCharacterStyle;
 
