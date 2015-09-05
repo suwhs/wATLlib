@@ -576,7 +576,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      *
      * @param start - range start
      * @param end   - range end
-     * @param argb  - color (ARGB)
      */
 
     public void setSelection(int start, int end) {
@@ -730,6 +729,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (whitespaces > 0) {
                 justifyArgument = (width - this.width - 0.5f) / whitespaces;
             }
+        }
+
+        void setDirection(int direction) {
+            this.direction = direction;
         }
     }
 
@@ -1215,6 +1218,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             boolean nonLtR = LineSpan.isBidiEnabled() && line.direction != Layout.DIR_LEFT_TO_RIGHT;
+
+            if (nonLtR) {
+                // Log.d(TAG,"non LTR line: " + line.direction);
+            }
+
             if (line.span == null) { // special case uses for closing image wrap
                 y += line.height;
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
@@ -1336,7 +1344,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 // draw leading drawable only
                 if (LineSpan.isBidiEnabled()) {
                     if (span.direction!=Layout.DIR_LEFT_TO_RIGHT) {
-                        Log.d(TAG,"non-LTR span:" + span.direction);
+                        Log.d(TAG,"non-LTR span:" + span.direction + " with line direction = "+line.direction);
                     }
                 }
                 if (span.isDrawable && span.end>line.start) {
@@ -2173,7 +2181,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
-        public void handleCarrierReturn() {
+        public int handleCarrierReturn(int direction) {
             // handle force carrier return
             try {
                 state.processedWidth += span.widths[state.character - span.start];
@@ -2230,13 +2238,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.lineWidth += forcedParagraphLeftMargin;
             lineStartAt = state.character;
             state.skipWhitespaces = true;
+            return 0;
         }
 
-        private boolean handleBreakLine(char[] text, int breakPosition, boolean hyphen) {
+        private int handleBreakLine(char[] text, int breakPosition, boolean hyphen, int direction) {
             boolean isWhitespace = text[breakPosition] == ' ';
             TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
             ld.margin = lineMargin + wrapMargin;
             ld.wrapMargin = wrapMargin;
+            ld.direction = direction;
             result.add(ld); //secondCallHere
             ld.hyphen = hyphen;
 //                    ld.width += hyphen ? span.hyphenWidth : 0;
@@ -2288,7 +2298,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.skipWhitespaces = true;
             lineStartAt = state.character;
             linesAddedInParagraph++;
-            return true;
+            return 0; // reset direction
         }
 
         public boolean nextSpan() {
@@ -2303,13 +2313,44 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
+        private final int DIR_LTR = 1;
+        private final int DIR_RTL = -1;
+        private final int DIR_DEFAULT_LTR = 2;
+        private final int DIR_DEFAULT_RTL = -2;
+
+
         public void process(char[] text) {
             /* recursion function port */
+            int direction = 0;
             recursion:
             while (span != null) {
                 span.clearCache(true);
                 long currentTime = System.currentTimeMillis();
                 long timeSpent = currentTime - timeQuantStart;
+                if (span.isBidiEnabled() && span.direction!=direction) {
+                    // if direction changes from 0 to 1 or -1 - force line break on other
+                    if (direction==0)
+                        direction = span.direction;
+                    else
+                    switch (span.direction) {
+                        case DIR_LTR:
+                            switch (direction) {
+                                case DIR_RTL: // mixed, started from RTL
+                                    direction = DIR_DEFAULT_RTL;
+                                    break;
+                            }
+                            break;
+                        case DIR_RTL:
+                            switch (direction) {
+                                case DIR_LTR: // mixed, started from LTR
+                                    direction = DIR_DEFAULT_LTR;
+                                    break;
+                            }
+                            break;
+                    }
+                } else {
+                    direction = Layout.DIR_LEFT_TO_RIGHT;
+                }
             /* if we spent more times, than steplimit - execute callback */
                 if (timeSpent > steplimit) {
                 /* note - if viewHeightExceed == false - break loop if onProgress() returns false */
@@ -2504,10 +2545,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             state.lineWidth += span.hyphenWidth;
                         }
 
-                        handleBreakLine(text,breakPosition,hyphen);
+                        direction = handleBreakLine(text,breakPosition,hyphen,direction);
 
                     } else if (text[state.character] == '\n') {
-                        handleCarrierReturn();
+                        direction = handleCarrierReturn(direction);
                     } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR
                         if (!handleImage(span,span.getDrawable(),true)) break recursion;
 

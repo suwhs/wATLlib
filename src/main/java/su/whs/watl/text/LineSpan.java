@@ -2,9 +2,12 @@ package su.whs.watl.text;
 
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.os.SystemClock;
 import android.text.Layout;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.style.AlignmentSpan;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
@@ -13,6 +16,7 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.MetricAffectingSpan;
 import android.text.style.ParagraphStyle;
 import android.text.style.ReplacementSpan;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Gravity;
 
@@ -47,7 +51,7 @@ class LineSpan {
     public LineSpan next = null; // next LineSpan in chain
     public CharacterStyle[] spans;
     public ParagraphStyle[] paragraphStyles;
-
+    public CharSequence reversed = null;
     // CACHED DATA
     public LineSpanBreak breakFirst = null;
     public int baselineShift = 0;
@@ -147,18 +151,18 @@ class LineSpan {
 
     /* geometry-independed calculations */
     public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, SparseArray<DynamicDrawableSpan> dynamicDrawableSpanSparseArray) {
-        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Layout.DIR_LEFT_TO_RIGHT,dynamicDrawableSpanSparseArray);
+        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT,dynamicDrawableSpanSparseArray);
     }
 
     public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, int defaultDirection, SparseArray<DynamicDrawableSpan> forwardsDrawableArray) {
         // TODO: optimize or make LAZY calculating (too long time for complex html)
-        long timeStart = System.currentTimeMillis();
-
+        long timeStart = SystemClock.uptimeMillis();
+        long bidiSpent = 0;
         LineSpan result = new LineSpan();
         LineSpan prev = null;
         LineSpan current = result;
-
         int nextParagraph;
+        paragraphRun:
         for (int p = start; p < end; p = nextParagraph) {
             nextParagraph = text.nextSpanTransition(p, end, ParagraphStyle.class);
             current.paragraphStyles = text.getSpans(p, nextParagraph, ParagraphStyle.class);
@@ -192,23 +196,65 @@ class LineSpan {
             }
 
             int nextCharacterStyle;
-
+            stylesRun:
             for (int c = p; c < nextParagraph; c = nextCharacterStyle) {
                 nextCharacterStyle = text.nextSpanTransition(c, nextParagraph, CharacterStyle.class);
                 if (mBidiEnabled) { // direction on lineSpan-level
+                    long bidiStart = SystemClock.uptimeMillis();
                     String bidiString = new String(text.subSequence(c, nextCharacterStyle).toString());
-                    Bidi bidi = new Bidi(bidiString, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT);
+                    Bidi bidi = new Bidi(bidiString, defaultDirection);
+
                     if (bidi.isRightToLeft()) {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
+                        current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
+                        bidiSpent += (SystemClock.uptimeMillis() - bidiStart);
+                        Log.d(TAG,
+                                "bidi:runDirection:["
+                                        + c+"," + nextCharacterStyle
+                                        + " dir: " + bidi.getBaseLevel() + " [RTL]"
+                                        + " '" + text.subSequence(c,nextCharacterStyle) + "'" // TextUtils.getReverse(text,c,nextCharacterStyle) + "'"
+                        );
                     } else if (bidi.isMixed()) {
-                        if (bidi.baseIsLeftToRight()) {
-                            // log base == left to right, but contains right to left parts
-                            current.direction = Layout.DIR_LEFT_TO_RIGHT + 1;
-                        } else {
-                            // log base = right to left, but contains left to right parts
-                            current.direction = Layout.DIR_RIGHT_TO_LEFT - 1;
+                        /* int base = bidi.getBaseLevel(); */
+                        int runLimit = c;
+                        for(int run = 0; run < bidi.getRunCount(); run++ ) {
+                            int runStart = bidi.getRunStart(run) + c;
+                            runLimit = bidi.getRunLimit(run) + c;
+                            int runLevel = bidi.getRunLevel(run);
+                            boolean isRtl = runLevel % 2 > 0;
+                            current.direction = isRtl ? Layout.DIR_RIGHT_TO_LEFT : Layout.DIR_LEFT_TO_RIGHT;
+                            Log.d(TAG,
+                                    "bidi:runDirection:["
+                                    + runStart+"," + runLimit
+                                    + " rtl: " + isRtl + " ("+runLevel+")"
+                                    + " '" +  text.subSequence(runStart,runLimit) // (runIsRtl ? TextUtils.getReverse(text,runStart,runLimit) : text.subSequence(runStart,runLimit)) + "'"
+                            );
+                            // inject new span with single direction
+                            current.start = runStart;
+                            current.end = runLimit;
+                            if (runLevel == 2 && Build.VERSION.SDK_INT<14) { // old version does not render RTL correct
+                                current.reversed = TextUtils.getReverse(text,runStart,runLimit);
+                            }
+                            current.spans = text.getSpans(current.start, current.end, CharacterStyle.class);
+                            if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
+                                forwardsDrawableArray.append(c, (DynamicDrawableSpan) current.spans[0]);
+                            }
+
+                            // each linespan within paragraph inherits paragraph margins
+                            current.margin = margin;
+                            current.marginLineCount = marginLineCount;
+                            current.marginEnd = marginEnd;
+
+                            current.next = new LineSpan();
+                            current.next.paragraphStyles = current.paragraphStyles;
+                            current.next.gravity = current.gravity;
+                            prev = current;
+                            current = current.next;
                         }
+                        bidiSpent += (SystemClock.uptimeMillis() - bidiStart);
+                        continue stylesRun;
                     }
+
                 }
                 current.spans = text.getSpans(c, nextCharacterStyle, CharacterStyle.class);
                 if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
@@ -227,7 +273,6 @@ class LineSpan {
                 current.next.gravity = current.gravity;
                 prev = current;
                 current = current.next;
-
             }
             current.paragraphEnd = true;
         }
@@ -236,7 +281,8 @@ class LineSpan {
         }
 
         current.next = null; // remove last lineSpan
-        long timeSpent = System.currentTimeMillis() - timeStart;
+        long timeSpent = SystemClock.uptimeMillis() - timeStart;
+        Log.e(TAG, "prepare time spent: " + timeSpent +", bidi spent: " + bidiSpent);
         return result;
     }
 
