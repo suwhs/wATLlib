@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
@@ -1144,6 +1145,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     Set<Drawable> visibleDrawables = new HashSet<Drawable>();
     Set<Drawable> processedDrawables = new HashSet<Drawable>();
+    Set<Animatable> visibleDrawableAnimations = new HashSet<Animatable>();
     Map<Drawable,Point> visibleDrawableOffsets = new HashMap<Drawable, Point>(); // use for handling 'invalidateSelf'
     Map<Drawable,Rect> visibleDrawableBounds = new HashMap<Drawable,Rect>();
 
@@ -1212,6 +1214,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         for (; i < endLine && y < clipRect.bottom; i++) {
 
             line = lines.get(i);
+            boolean isLineRtl = false;
+            if (LineSpan.isBidiEnabled()) {
+                isLineRtl = (line.direction!=Layout.DIR_LEFT_TO_RIGHT);
+            }
             if (height > 0 && (y + line.height > clipRect.bottom) && line.wrapHeight < 1) {
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
                 break linesLoop;
@@ -1342,11 +1348,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             drawline:
             while (span != null && drawStart < line.end) {
                 // draw leading drawable only
-                if (LineSpan.isBidiEnabled()) {
-                    if (span.direction!=Layout.DIR_LEFT_TO_RIGHT) {
-                        Log.d(TAG,"non-LTR span:" + span.direction + " with line direction = "+line.direction);
-                    }
-                }
+                boolean isSpanRtl = span.direction!=Layout.DIR_LEFT_TO_RIGHT;
                 if (span.isDrawable && span.end>line.start) {
                     lookupdrawable:
                     for (CharacterStyle style : span.spans) {
@@ -1371,19 +1373,37 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                              * TODO:
                              */
                             Drawable dr = dds.getDrawable();
+                            if (span.drawableScaledWidth > 0f) {
+                                drawableWidth = span.drawableScaledWidth + drawablePaddingWidth;
+                            } else {
+                                drawableWidth = span.width + drawablePaddingWidth;
+                            }
                             canvas.save();
-                            canvas.translate(x + drawablePaddings.left, sY + drawablePaddings.top);
+                            if (isLineRtl) {
+                                canvas.translate(width - x - drawableWidth + drawablePaddings.left, sY + drawablePaddings.top);
+                            } else {
+                                canvas.translate(x + drawablePaddings.left, sY + drawablePaddings.top);
+                            }
                             dr.draw(canvas);
                             canvas.restore();
                             // TODO: profile this
                             if (!visibleDrawables.contains(dr)) {
                                 visibleDrawables.add(dr);
-                                visibleDrawableOffsets.put(dr, new Point((int) x, sY));
+                                visibleDrawableOffsets.put(dr,
+                                        isLineRtl ?
+                                                new Point((int) (width - x - drawableWidth + drawablePaddings.left), sY + drawablePaddings.top)
+                                                : new Point((int) x, sY)
+                                );
                                 visibleDrawableBounds.put(dr, new Rect(dr.getBounds()));
                                 if (mCompatDrawableCallback && dr instanceof LazyDrawable)
                                     ((LazyDrawable)dr).setCallbackCompat(mDrawableCallback);
                                 else
                                     dr.setCallback(mDrawableCallback);
+                                // restore animations, if need
+                                if (dr instanceof Animatable && visibleDrawableAnimations.contains(dr)) {
+                                    visibleDrawableAnimations.remove(dr);
+                                    ((Animatable)dr).start();
+                                }
                             } else {
                                 processedDrawables.remove(dr);
                             } // TODO: end profile
@@ -1412,11 +1432,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 );
                             }
 
-                            if (span.drawableScaledWidth > 0f) {
-                                drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
-                            } else {
-                                drawableWidth = span.width;
-                            }
+
                             // TODO: check correct paddings elimination (may be we need handle this in reflow() function)
                             x += drawableWidth;
 
@@ -1455,9 +1471,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     drawStop = lineSpanBreak.position + 1;
                     drawStop = drawStop > line.end ? line.end : drawStop;
                     if (drawStart < drawStop && drawStart > line.start - 1) {
-                        if (backgroundColorSpan)
-                            canvas.drawRect(x,y,x+span.width,y+span.height,backgroundPaint);
-                        canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
+                        if (backgroundColorSpan) {
+                            if (isLineRtl)
+                                canvas.drawRect(width - x - lineSpanBreak.width,y,width-x,y+span.height,backgroundPaint);
+                            else
+                                canvas.drawRect(x, y, x + span.width, y + span.height, backgroundPaint);
+                        }
+                        if (isLineRtl)
+                            canvas.drawText(text,drawStart,drawStop - drawStart,width - x -lineSpanBreak.width,baseLine,workPaint);
+                        else
+                            canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                         x += lineSpanBreak.width; // TODO: \n empty line has width ?
                     } else {
                         // Log.v(TAG,"oops");
@@ -1482,7 +1505,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     drawStop = line.end < span.end ? line.end : span.end;
 
                     if (drawStart < drawStop) {
-                        canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
+                        if (isLineRtl)
+                            canvas.drawText(text, drawStart, drawStop - drawStart, width - x - tail, baseLine, workPaint);
+                        else
+                            canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                         x += tail;
                     }
                 }
@@ -1510,6 +1536,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
         // cleanup visible drawables
         for (Drawable unprocessed: processedDrawables) {
+            if (unprocessed instanceof Animatable) {
+                if (((Animatable)unprocessed).isRunning()) {
+                    // keep 'running state'
+                    visibleDrawableAnimations.add((Animatable)unprocessed);
+                    ((Animatable)unprocessed).stop();
+                }
+            }
             visibleDrawables.remove(unprocessed);
             visibleDrawableOffsets.remove(unprocessed);
             visibleDrawableBounds.remove(unprocessed);
@@ -2183,6 +2216,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
         public int handleCarrierReturn(int direction) {
             // handle force carrier return
+            if (direction!=Layout.DIR_LEFT_TO_RIGHT) {
+                Log.w(TAG,"rtl line");
+            }
             try {
                 state.processedWidth += span.widths[state.character - span.start];
             } catch (IndexOutOfBoundsException e) {
@@ -2193,10 +2229,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     /* eliminate empty line only if non-empty-lines-count > threshold */
             if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+                ld.direction = direction;
                 state.carrierReturn(ld);
                 linesAddedInParagraph = 0;
             } else { // filterEmptyLines disabled, or state.character > lineStartAt, or linesAddedInParagraph >= emptyLinesTreshold
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
+                ld.direction = direction;
                 if (options.isFilterEmptyLines() && state.character == lineStartAt) {
                     linesAddedInParagraph = 0;
                     ld.height = options.getEmptyLineHeightLimit();
@@ -2238,7 +2276,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.lineWidth += forcedParagraphLeftMargin;
             lineStartAt = state.character;
             state.skipWhitespaces = true;
-            return 0;
+            return direction;
         }
 
         private int handleBreakLine(char[] text, int breakPosition, boolean hyphen, int direction) {
@@ -2247,6 +2285,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             ld.margin = lineMargin + wrapMargin;
             ld.wrapMargin = wrapMargin;
             ld.direction = direction;
+            if (direction!=Layout.DIR_LEFT_TO_RIGHT) {
+                Log.w(TAG,"break line == RTL");
+            }
             result.add(ld); //secondCallHere
             ld.hyphen = hyphen;
 //                    ld.width += hyphen ? span.hyphenWidth : 0;
@@ -2298,7 +2339,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.skipWhitespaces = true;
             lineStartAt = state.character;
             linesAddedInParagraph++;
-            return 0; // reset direction
+            return direction;
         }
 
         public boolean nextSpan() {
