@@ -1466,31 +1466,35 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     styles = span.spans;
                 }
                 backgroundPaint.setColor(backgroundColor);
-                if (isLineRtl)
-                    while (lineSpanBreak != null) {
-                        drawStop = lineSpanBreak.position + 1;
-                        drawStop = drawStop > line.end ? line.end : drawStop;
-                        if (drawStart < drawStop && drawStart > line.start - 1) {
-                            if (backgroundColorSpan)
-                                canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
-                            canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
-                            x += lineSpanBreak.width; // TODO: \n empty line has width ?
+                if (isLineRtl) {
+                    if (!isSpanRtl) {
+                        // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
+                        // else - pop offset from stack and draw ltr span in correct order
+                    } else
+                        while (lineSpanBreak != null) {
+                            drawStop = lineSpanBreak.position + 1;
+                            drawStop = drawStop > line.end ? line.end : drawStop;
+                            if (drawStart < drawStop && drawStart > line.start - 1) {
+                                if (backgroundColorSpan)
+                                    canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
+                                canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                                x += lineSpanBreak.width; // TODO: \n empty line has width ?
+                            }
+                            drawStart = drawStop;
+
+                            if (!lineSpanBreak.strong && justification)
+                                x += line.justifyArgument;
+
+                            if (lineSpanBreak.carrierReturn) {
+                                break drawline;
+                            }
+
+                            tail = lineSpanBreak.tail;
+                            skip = lineSpanBreak.skip;
+
+                            lineSpanBreak = lineSpanBreak.next;
                         }
-                        drawStart = drawStop;
-
-                        if (!lineSpanBreak.strong && justification)
-                            x += line.justifyArgument;
-
-                        if (lineSpanBreak.carrierReturn) {
-                            break drawline;
-                        }
-
-                        tail = lineSpanBreak.tail;
-                        skip = lineSpanBreak.skip;
-
-                        lineSpanBreak = lineSpanBreak.next;
-                    }
-                else
+                } else // cycle over LTR line span
                     while (lineSpanBreak != null) {
                         drawStop = lineSpanBreak.position + 1;
                         drawStop = drawStop > line.end ? line.end : drawStop;
