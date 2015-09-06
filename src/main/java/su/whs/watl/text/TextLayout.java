@@ -55,7 +55,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
     private boolean debug = false;
-    private static char[] mHyphenChar = new char[] { '-' };
+    private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
     private int mParagraphStartMargin = 0;
     private int mParagraphTopMargin = 0;
@@ -86,7 +86,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     private boolean mNeedTotalHeight = false;
     private boolean mReflowFinished = false;
     private boolean mIsLayouted = false;
-    private boolean mCompatDrawableCallback = Build.VERSION.SDK_INT<11;
+    private boolean mCompatDrawableCallback = Build.VERSION.SDK_INT < 11;
     /* selection handling vars */
     private int mSelectionStart = 0;
     private int mSelectionEnd = 0;
@@ -99,6 +99,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     /* forward drawables support */
     private SparseArray<DynamicDrawableSpan> mDynamicDrawableSpanSparseArray = new SparseArray<DynamicDrawableSpan>();
+
     public boolean isLayouted() {
         return mIsLayouted;
     }
@@ -138,7 +139,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     /**
-     *
      * @param y
      * @param startLine
      * @return 0 if y above startLine, getLinesCount()-1 if y below lastLine
@@ -157,11 +157,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
             bottom += line.height;
         }
-        return lines.size()-1;
+        return lines.size() - 1;
     }
 
     /**
-     *
      * @param y-coordinate on canvas
      * @return number of line for y-coordinate
      */
@@ -235,7 +234,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         this.paint = paint;
-        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin,mDynamicDrawableSpanSparseArray);
+        lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin, mDynamicDrawableSpanSparseArray);
     }
 
     public TextLayout() {
@@ -256,7 +255,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param y              - y coordinate
      * @param startsFromLine
      * @return clicked character offset
-     *
+     * <p/>
      * WARNING: getOffsetForCoordinates() does not use paddings! (yet)
      */
 
@@ -298,14 +297,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     public int getLineStart(int line) {
-        if (line<0 || line+1>lines.size()) return -1;
+        if (line < 0 || line + 1 > lines.size()) return -1;
         if (lines != null)
             return lines.get(line).start;
         return -1;
     }
 
     public int getLineEnd(int line) {
-        if (line<0 || line+1>lines.size()) return -1;
+        if (line < 0 || line + 1 > lines.size()) return -1;
         if (lines != null)
             return lines.get(line).end;
         return -1;
@@ -315,7 +314,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
      */
     public int getLineTop(int line) {
-        if (lines == null || line > lines.size()-1) return 0;
+        if (lines == null || line > lines.size() - 1) return 0;
         int y = 0;
         for (int i = 0; i < line; i++) {
             TextLine l = lines.get(i);
@@ -325,7 +324,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     public int getLineBottom(int line) {
-       if (lines == null || line > lines.size()-1) return 0;
+        if (lines == null || line > lines.size() - 1) return 0;
         int top = getLineTop(line);
         return top + lines.get(line).height;
     }
@@ -351,7 +350,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     @Override
-    public TextPaint getTextPaint() { return this.paint; }
+    public TextPaint getTextPaint() {
+        return this.paint;
+    }
 
     /**
      * @param size
@@ -360,7 +361,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     public void setTextSize(float size) {
         float oldSize = paint.getTextSize();
         if (oldSize == size || lineSpan == null) {
-           return;
+            return;
         }
         paint.setTextSize(size);
         invalidateMeasurement();
@@ -487,7 +488,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      */
 
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
-        if (endLine<=startLine) return;
+        if (endLine <= startLine) return;
         workPaint.set(paint);
         int state = canvas.save();
         int width = right - left;
@@ -548,11 +549,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         mHighlightStart = start;
         mHighlightEnd = end;
         mHighlightColor = color;
-        addHighlight(start,end,color);
+        addHighlight(start, end, color);
     }
 
     /**
-     *
      * @param start
      * @param end
      * @param color
@@ -563,7 +563,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     /**
-     *
      * @param start
      * @param end
      */
@@ -646,8 +645,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             this.height = state.height; // (int) (state.height + state.descent + state.leading * lineSpacingMultiplier + lineSpacingAdd);
             this.descent = state.descent;
             this.end = state.character + 1;
-            if (debug && start==end) {
-                Log.e(TAG,"start==end");
+            if (debug && start == end) {
+                Log.e(TAG, "start==end");
             }
             this.leadingMargin = leadingMarginSpan;
 
@@ -666,8 +665,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 this.end = span.end;
                 this.span.get().gravity = gravity;
             }
-            if (debug && start==end) {
-                Log.e(TAG,"start==end");
+            if (debug && start == end) {
+                Log.e(TAG, "start==end");
             }
         }
 
@@ -679,21 +678,22 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (span != null) {
                 this.start = span.start;
                 this.end = span.end;
-                if (debug && start==end) {
-                    Log.e(TAG,"start==end");
+                if (debug && start == end) {
+                    Log.e(TAG, "start==end");
                 }
             } // else
-              //  throw new RuntimeException();
+            //  throw new RuntimeException();
         }
 
         /**
          * for debug - dumps span info
+         *
          * @param str - reference to text
          * @return
          */
         public String dump(CharSequence str, boolean dumpBreaks) {
             // String str = new String(chars);
-            if (span.get()==null) return "NULL";
+            if (span.get() == null) return "NULL";
             return "ss=" + span.get().start + ",se=" + span.get().end + " [w/h=" + width + "/" + height + ",w=" + whitespaces + ",(s=" + start + ",e=" + end + "j=" + justifyArgument + ")]: '" + str.subSequence(start, end) + "'\n" + dumpSpans(chars, dumpBreaks);
         }
 
@@ -706,7 +706,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         /**
-         *
          * @param chars
          * @return
          */
@@ -715,14 +714,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             SpannableStringBuilder ssb = new SpannableStringBuilder();
             LineSpan current = this.span.get();
             while (current != null && current.start < end) {
-                ssb.append(current.toString(chars,dumpBreaks) + "\n");
+                ssb.append(current.toString(chars, dumpBreaks) + "\n");
                 current = current.next;
             }
             return ssb.toString();
         }
 
         /**
-         *
          * @param width
          */
 
@@ -815,11 +813,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (listener != null)
                 listener.onTextInfoInvalidated();
-                reflow(chars, mStart, mEnd, lineSpan,
-                        0, width, 0, requestedHeight, viewHeight,
-                        reflowPaint,
-                        getOptions());
-            Log.v(TAG,"reflow finished");
+            reflow(chars, mStart, mEnd, lineSpan,
+                    0, width, 0, requestedHeight, viewHeight,
+                    reflowPaint,
+                    getOptions());
+            Log.v(TAG, "reflow finished");
 
         }
     }
@@ -988,6 +986,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     /**
      * default implementation does not supports geometry change supports
+     *
      * @param geometry
      * @return
      */
@@ -1073,6 +1072,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         Rect h = getOptions().getTextPaddings();
         return h.top + h.bottom;
     }
+
     // guard for reflow()
     // WARNING: if make reflow() synchronized on TextLayout.this - we receive deadlock on TextLayoutEx
     private Object reflowLock = new Object();
@@ -1107,7 +1107,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                           ContentView.Options options) {
         // extract options
         if (debug)
-            Log.v(TAG,"reflow with font size:"+paint.getTextSize());
+            Log.v(TAG, "reflow with font size:" + paint.getTextSize());
 
         synchronized (reflowLock) {
             ReflowContext ctx = new ReflowContext(text, lineStartAt, textEnd, _startSpan, x, width, height, viewHeight, paint);
@@ -1146,8 +1146,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     Set<Drawable> visibleDrawables = new HashSet<Drawable>();
     Set<Drawable> processedDrawables = new HashSet<Drawable>();
     Set<Animatable> visibleDrawableAnimations = new HashSet<Animatable>();
-    Map<Drawable,Point> visibleDrawableOffsets = new HashMap<Drawable, Point>(); // use for handling 'invalidateSelf'
-    Map<Drawable,Rect> visibleDrawableBounds = new HashMap<Drawable,Rect>();
+    Map<Drawable, Point> visibleDrawableOffsets = new HashMap<Drawable, Point>(); // use for handling 'invalidateSelf'
+    Map<Drawable, Rect> visibleDrawableBounds = new HashMap<Drawable, Rect>();
 
     public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
         if (lines == null || lines.size() < 1) {
@@ -1174,8 +1174,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
         int leftOffset = textPaddings.left;
         int topOffset = textPaddings.top;
-        int drawablePaddingWidth = drawablePaddings.left+drawablePaddings.right;
-        int drawablePaddingHeight = drawablePaddings.top+drawablePaddings.bottom;
+        int drawablePaddingWidth = drawablePaddings.left + drawablePaddings.right;
+        int drawablePaddingHeight = drawablePaddings.top + drawablePaddings.bottom;
 
         highlightPaint.setColor(highlightColor);
         selectionPaint.setColor(selectionColor);
@@ -1187,8 +1187,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         boolean selection = false;
         TextLayout.TextLine line = lines.get(startLine);
         // DBG (issue with WeakRef to textLayout lines)
-        if (debug && line==null) {
-            Log.e(TAG,"line are null");
+        if (debug && line == null) {
+            Log.e(TAG, "line are null");
             return 0;
         }
         LeadingMarginSpan actualLeadingMargin = null;
@@ -1216,7 +1216,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             line = lines.get(i);
             boolean isLineRtl = false;
             if (LineSpan.isBidiEnabled()) {
-                isLineRtl = (line.direction!=Layout.DIR_LEFT_TO_RIGHT);
+                isLineRtl = (line.direction != Layout.DIR_LEFT_TO_RIGHT);
             }
             if (height > 0 && (y + line.height > clipRect.bottom) && line.wrapHeight < 1) {
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
@@ -1300,7 +1300,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             int baseLine = y + line.height - line.descent;
-            float tail = (line.afterBreak == null || line.afterBreak.get()==null) ? 0f : line.afterBreak.get().tail;
+            float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
             LineSpan span = line.span.get();
 
             float x;
@@ -1327,29 +1327,29 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (line.gravity == Gravity.RIGHT) {
                     align = width - line.width - line.wrapMargin;
                 } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                    align = ((width - line.margin)/ 2) - (line.width / 2);
+                    align = ((width - line.margin) / 2) - (line.width / 2);
                 }
             }
 
-            if (drawSelection && span!=null) {
+            if (drawSelection && span != null) {
                 if (findSelectionStartX)
-                    selectStartX = getOffsetXLtr(line,selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
+                    selectStartX = getOffsetXLtr(line, selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
                 if (findSelectionEndX)
-                    selectEndX = getOffsetXLtr(line,selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
+                    selectEndX = getOffsetXLtr(line, selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
                 canvas.drawRect(selectStartX + align - leftOffset, y, selectEndX + align - leftOffset, y + line.height, selectionPaint);
             }
 
-            LineSpanBreak lineSpanBreak = span==null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+            LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
             // LineSpanBreak lineSpanBreak = span == null ? null :
             //        (line.afterBreak.get()==null ? span.breakFirst :
-                            // (line.afterBreak.get()));
+            // (line.afterBreak.get()));
             x = line.margin + align;
             drawStart += skip;
             drawline:
             while (span != null && drawStart < line.end) {
                 // draw leading drawable only
-                boolean isSpanRtl = span.direction!=Layout.DIR_LEFT_TO_RIGHT;
-                if (span.isDrawable && span.end>line.start) {
+                boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
+                if (span.isDrawable && span.end > line.start) {
                     lookupdrawable:
                     for (CharacterStyle style : span.spans) {
                         if (style instanceof DynamicDrawableSpan) {
@@ -1366,7 +1366,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             }
                             int sY = y + span.baselineShift;
                             // need to avoid applying all 'character style' to paint before draw drawable
-                            int corrector = dds.getVerticalAlignment()==DynamicDrawableSpan.ALIGN_BASELINE ? paint.getFontMetricsInt().descent : 0;
+                            int corrector = dds.getVerticalAlignment() == DynamicDrawableSpan.ALIGN_BASELINE ? paint.getFontMetricsInt().descent : 0;
 
                             /**
                              * DynamicDrawableSpan.draw(canvas,text,start,end,x,top,y,bottom,paint)
@@ -1396,13 +1396,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 );
                                 visibleDrawableBounds.put(dr, new Rect(dr.getBounds()));
                                 if (mCompatDrawableCallback && dr instanceof LazyDrawable)
-                                    ((LazyDrawable)dr).setCallbackCompat(mDrawableCallback);
+                                    ((LazyDrawable) dr).setCallbackCompat(mDrawableCallback);
                                 else
                                     dr.setCallback(mDrawableCallback);
                                 // restore animations, if need
                                 if (dr instanceof Animatable && visibleDrawableAnimations.contains(dr)) {
                                     visibleDrawableAnimations.remove(dr);
-                                    ((Animatable)dr).start();
+                                    ((Animatable) dr).start();
                                 }
                             } else {
                                 processedDrawables.remove(dr);
@@ -1442,7 +1442,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     // span = span.next;
                     // lineSpanBreak = span.breakFirst;
                     // drawStart = span == null ? 0 : span.start;
-                    if (span.end==line.end) {
+                    if (span.end == line.end) {
                         y += line.height;
                         continue linesLoop;
                     }
@@ -1460,46 +1460,63 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         style.updateDrawState(workPaint);
                         // TODO: move to 'prepare'
                         if (style instanceof BackgroundColorSpan) {
-                            backgroundColor = ((BackgroundColorSpan)style).getBackgroundColor();
+                            backgroundColor = ((BackgroundColorSpan) style).getBackgroundColor();
                         }
                     }
                     styles = span.spans;
                 }
                 backgroundPaint.setColor(backgroundColor);
-
-                while (lineSpanBreak != null) {
-                    drawStop = lineSpanBreak.position + 1;
-                    drawStop = drawStop > line.end ? line.end : drawStop;
-                    if (drawStart < drawStop && drawStart > line.start - 1) {
-                        if (backgroundColorSpan) {
-                            if (isLineRtl)
-                                canvas.drawRect(width - x - lineSpanBreak.width,y,width-x,y+span.height,backgroundPaint);
-                            else
-                                canvas.drawRect(x, y, x + span.width, y + span.height, backgroundPaint);
+                if (isLineRtl)
+                    while (lineSpanBreak != null) {
+                        drawStop = lineSpanBreak.position + 1;
+                        drawStop = drawStop > line.end ? line.end : drawStop;
+                        if (drawStart < drawStop && drawStart > line.start - 1) {
+                            if (backgroundColorSpan)
+                                canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
+                            canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                            x += lineSpanBreak.width; // TODO: \n empty line has width ?
                         }
-                        if (isLineRtl)
-                            canvas.drawText(text,drawStart,drawStop - drawStart,width - x -lineSpanBreak.width,baseLine,workPaint);
-                        else
+                        drawStart = drawStop;
+
+                        if (!lineSpanBreak.strong && justification)
+                            x += line.justifyArgument;
+
+                        if (lineSpanBreak.carrierReturn) {
+                            break drawline;
+                        }
+
+                        tail = lineSpanBreak.tail;
+                        skip = lineSpanBreak.skip;
+
+                        lineSpanBreak = lineSpanBreak.next;
+                    }
+                else
+                    while (lineSpanBreak != null) {
+                        drawStop = lineSpanBreak.position + 1;
+                        drawStop = drawStop > line.end ? line.end : drawStop;
+                        if (drawStart < drawStop && drawStart > line.start - 1) {
+                            if (backgroundColorSpan)
+                                canvas.drawRect(x, y, x + span.width, y + span.height, backgroundPaint);
                             canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
-                        x += lineSpanBreak.width; // TODO: \n empty line has width ?
-                    } else {
-                        // Log.v(TAG,"oops");
+                            x += lineSpanBreak.width; // TODO: \n empty line has width ?
+                        } else {
+                            // Log.v(TAG,"oops");
+                        }
+                        drawStart = drawStop;
+
+
+                        if (!lineSpanBreak.strong && justification)
+                            x += line.justifyArgument;
+
+                        if (lineSpanBreak.carrierReturn) {
+                            break drawline;
+                        }
+
+                        tail = lineSpanBreak.tail;
+                        skip = lineSpanBreak.skip;
+
+                        lineSpanBreak = lineSpanBreak.next;
                     }
-                    drawStart = drawStop;
-
-
-                     if (!lineSpanBreak.strong && justification)
-                        x += line.justifyArgument;
-
-                    if (lineSpanBreak.carrierReturn) {
-                        break drawline;
-                    }
-
-                    tail = lineSpanBreak.tail;
-                    skip = lineSpanBreak.skip;
-
-                    lineSpanBreak = lineSpanBreak.next;
-                }
 
                 if (tail > 0f) {
                     drawStop = line.end < span.end ? line.end : span.end;
@@ -1522,25 +1539,25 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawHighlight) {
                 if (findHighlightStartX)
-                    highlightStartX = getOffsetXLtr(line,highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                    highlightStartX = getOffsetXLtr(line, highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 if (findHighlightEndX)
-                    highlightEndX = getOffsetXLtr(line,highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
-                canvas.drawRect(highlightStartX + align, y, highlightEndX+align, y + line.height, highlightPaint);
+                    highlightEndX = getOffsetXLtr(line, highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                canvas.drawRect(highlightStartX + align, y, highlightEndX + align, y + line.height, highlightPaint);
             }
 
             if (line.hyphen) {
-                canvas.drawText(TextLayout.mHyphenChar,0,1,x,baseLine,workPaint);
+                canvas.drawText(TextLayout.mHyphenChar, 0, 1, x, baseLine, workPaint);
             }
 
             y += line.height;
         }
         // cleanup visible drawables
-        for (Drawable unprocessed: processedDrawables) {
+        for (Drawable unprocessed : processedDrawables) {
             if (unprocessed instanceof Animatable) {
-                if (((Animatable)unprocessed).isRunning()) {
+                if (((Animatable) unprocessed).isRunning()) {
                     // keep 'running state'
-                    visibleDrawableAnimations.add((Animatable)unprocessed);
-                    ((Animatable)unprocessed).stop();
+                    visibleDrawableAnimations.add((Animatable) unprocessed);
+                    ((Animatable) unprocessed).stop();
                 }
             }
             visibleDrawables.remove(unprocessed);
@@ -1559,17 +1576,17 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (!visibleDrawables.contains(who)) return;
             Point p = visibleDrawableOffsets.get(who);
             Rect bounds = who.getBounds();
-            listener.invalidate(p.x,p.y,p.x+bounds.width(),p.y+bounds.height());
+            listener.invalidate(p.x, p.y, p.x + bounds.width(), p.y + bounds.height());
         }
 
         @Override
         public void scheduleDrawable(Drawable who, Runnable what, long when) {
-            new Handler().postAtTime(what,when);
+            new Handler().postAtTime(what, when);
         }
 
         @Override
         public void unscheduleDrawable(Drawable who, Runnable what) {
-            new Handler().removeCallbacks(what,who);
+            new Handler().removeCallbacks(what, who);
         }
     };
 
@@ -1587,6 +1604,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     /**
      * WARNING: this function must works on draw() algorythm
+     *
      * @param line
      * @param positionAtLine
      * @return
@@ -1604,7 +1622,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return 0f + getOptions().getTextPaddings().left;
         }
 
-        float tail = (line.afterBreak == null || line.afterBreak.get()==null) ? 0f : line.afterBreak.get().tail;
+        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
         LineSpan span = line.span.get();
 
         float x;
@@ -1616,20 +1634,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (line.gravity == Gravity.RIGHT) {
                 align = width - line.width - line.wrapMargin;
             } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                align = ((width - line.margin)/ 2) - (line.width / 2);
+                align = ((width - line.margin) / 2) - (line.width / 2);
             }
         }
 
-        LineSpanBreak lineSpanBreak = span==null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
         x = line.margin + align;
         drawStart += skip;
-        if (positionAtLine<=drawStart)
+        if (positionAtLine <= drawStart)
             return x;
 
         drawline:
         while (span != null && drawStart < line.end) {
             // draw leading drawable only
-            if (span.isDrawable && span.end>line.start) {
+            if (span.isDrawable && span.end > line.start) {
                 float drawableWidth = span.width;
 
                 if (span.gravity == Gravity.RIGHT) {
@@ -1647,7 +1665,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 x += drawableWidth;
 
-                if (span.end==line.end) {
+                if (span.end == line.end) {
                     return line.end;
                 }
                 // drawStart ++;
@@ -1659,8 +1677,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 drawStop = lineSpanBreak.position + 1;
                 drawStop = drawStop > line.end ? line.end : drawStop;
                 if (drawStart < drawStop && drawStart > line.start - 1) {
-                    if (positionAtLine<drawStop) {
-                        for (;drawStart<positionAtLine;x+=span.widths[drawStart-span.start],drawStart++);
+                    if (positionAtLine < drawStop) {
+                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+                            ;
                         return x;
                     }
                     x += lineSpanBreak.width; // TODO: \n empty line has width ?
@@ -1685,8 +1704,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 drawStop = line.end < span.end ? line.end : span.end;
 
                 if (drawStart < drawStop) {
-                    if (positionAtLine<drawStop) {
-                        for (;drawStart<positionAtLine;x+=span.widths[drawStart-span.start],drawStart++);
+                    if (positionAtLine < drawStop) {
+                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+                            ;
                         return x;
                     }
                     x += tail;
@@ -1716,9 +1736,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 span = span.next;
                 if (span == null) break;
                 if (span.isDrawable) {
-                    if (span.drawableScaledWidth>0f) {
+                    if (span.drawableScaledWidth > 0f) {
                         result += span.drawableScaledWidth + drawable_paddings_width(opts);
-                        if (i<character-1) {
+                        if (i < character - 1) {
                             // TODO: solve correct wrapimage paddings
                         } else {
                             break;
@@ -1767,9 +1787,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     /**
-     *
      * @param line - number of line (<getLinesCount())
-     * @param atX - x-coordinate from line starts
+     * @param atX  - x-coordinate from line starts
      * @return
      */
 
@@ -1886,7 +1905,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     // returns x coordinate without padding applied
 
     private int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
-        return (int) getOffsetXLtr(textLine,position);
+        return (int) getOffsetXLtr(textLine, position);
     }
 
 
@@ -1912,7 +1931,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         private int wrapHeight = 0;
         private int wrapMargin = 0;
         private int wrapEnd = 0;
-        private int y =0;
+        private int y = 0;
         private int collectedHeight = 0;
         private int lineWidthDec = 0;
         private int wrapWidth = 0;
@@ -1961,13 +1980,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             this.span = _startSpan;
             options = getOptions();
             lineBreaker = options.getLineBreaker();
-             imagePlacementHandler = options.getImagePlacementHandler();
-            if (imagePlacementHandler==null)
+            imagePlacementHandler = options.getImagePlacementHandler();
+            if (imagePlacementHandler == null)
                 imagePlacementHandler = new ImagePlacementHandler.DefaultImagePlacementHandler();
             textPaddings = options.getTextPaddings();
             options.getDrawablePaddings(drawablePaddings);
-            lineWidthDec = textPaddings.left+textPaddings.right;
-            viewHeightDec = textPaddings.top+textPaddings.bottom;
+            lineWidthDec = textPaddings.left + textPaddings.right;
+            viewHeightDec = textPaddings.top + textPaddings.bottom;
             viewHeightLeft = viewHeight - viewHeightDec;
             wrapWidth = width - lineWidthDec;
             wrapEnd = y;
@@ -2010,7 +2029,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         public boolean handleDefferedImages() {
-            if (deffered.size()>0) {
+            if (deffered.size() > 0) {
                 LineSpan defferedSpan = deffered.remove(0);
                 DynamicDrawableSpan defferedDrawableSpan = defferedSpan.getDrawable();
                 return handleImage(defferedSpan, defferedDrawableSpan, false);
@@ -2038,7 +2057,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
-        public boolean handleImage(LineSpan span, DynamicDrawableSpan dds,boolean allowDefer) {
+        public boolean handleImage(LineSpan span, DynamicDrawableSpan dds, boolean allowDefer) {
             int placement = imagePlacementHandler.place(dds,
                     viewHeightLeft,
                     viewHeight,
@@ -2051,15 +2070,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             boolean collectHeights = false;
             if (debug)
-                Log.v(TAG,"handleImage:"+span);
-            if (placement==ImagePlacementHandler.DEFER) {
+                Log.v(TAG, "handleImage:" + span);
+            if (placement == ImagePlacementHandler.DEFER) {
                 deffered.add(span);
-                if (state.character==lineStartAt) {
+                if (state.character == lineStartAt) {
                     lineStartAt++;
                 } // use __finishLine and return
                 state.character++;
                 return true;
-            } else if (placement==ImagePlacementHandler.PLACEHOLDER) {
+            } else if (placement == ImagePlacementHandler.PLACEHOLDER) {
                 span.noDraw = true;
                 state.character++;
                 return true;
@@ -2071,17 +2090,17 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (lineStartAt < state.character &&
                     (imagePlacementHandler.isNewLineBefore(placement) ||
-                    (imagePlacementHandler.isWrapText(placement) && wrapHeight>0))) {
-                if (debug) Log.v(TAG,"newLineBefore()");
+                            (imagePlacementHandler.isWrapText(placement) && wrapHeight > 0))) {
+                if (debug) Log.v(TAG, "newLineBefore()");
                 finishLine = true;
             }
 
 
             if (imagePlacementHandler.isWrapText(placement) && state.gravity != Gravity.CENTER_HORIZONTAL) {
-                if (debug) Log.v(TAG,"wrapText");
-                if (wrapHeight>0) {
-                    Log.e(TAG,"close wrap null span");
-                    result.add(new TextLine(null,0,wrapHeight));
+                if (debug) Log.v(TAG, "wrapText");
+                if (wrapHeight > 0) {
+                    Log.e(TAG, "close wrap null span");
+                    result.add(new TextLine(null, 0, wrapHeight));
                     wrapMargin = 0;
                 }
 
@@ -2098,7 +2117,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 // TODO: use largest margin to split drawable and text (if wrapMargin==0 text left border==textPaddings.left)
                 if (gravity == Gravity.LEFT) { // TODO:  if drawablePadding.right==0 - use textPadding.left instead
                     // wrapMargin = scale.x + paddingWidth - textPaddings.left; // width - wrapWidth - paddingWidth - textPaddings.left;
-                    wrapMargin = width - (wrapWidth+textPaddings.left);
+                    wrapMargin = width - (wrapWidth + textPaddings.left);
                     wrapWidth -= textPaddings.left;
                 } else if (gravity == Gravity.RIGHT) {
                     wrapWidth -= textPaddings.right;
@@ -2106,7 +2125,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 collectHeights = true;
                 TextLine ld = new TextLine(span, scale.y, scale.x + paddingWidth, gravity);
-                state.skipWhitespaces=true;
+                state.skipWhitespaces = true;
                 result.add(ld);
                 /* add image break */
                 LineSpanBreak br = span.newBreak();
@@ -2119,7 +2138,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 state.lastBreak = br;
                 lineStartAt = state.character + 1;
             } else if (imagePlacementHandler.isNewLineAfter(placement) || state.gravity == Gravity.CENTER_HORIZONTAL) {
-                if (debug) Log.v(TAG,"newLineAfter");
+                if (debug) Log.v(TAG, "newLineAfter");
                 if (finishLine && !__finishLine()) return false;
                 TextLine ld;
 
@@ -2150,7 +2169,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 carrierReturn = true;
             } else {
                 // inline/or placeholder
-                spanHeight = scale.y + drawablePaddings.top+drawablePaddings.bottom;
+                spanHeight = scale.y + drawablePaddings.top + drawablePaddings.bottom;
                 Log.e(TAG, "unsupported placement for image: " + placement);
             }
             span.drawableScaledWidth = scale.x;
@@ -2178,8 +2197,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         private boolean __finishLine() {
-            if (debug) Log.v(TAG,"finishLine()");
-            if (state.character<1) return true;
+            if (debug) Log.v(TAG, "finishLine()");
+            if (state.character < 1) return true;
             if (lineStartAt < state.character) {
                 TextLine ld;
                 y += state.height;
@@ -2195,7 +2214,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 ld.wrapMargin = wrapMargin;
                 ld.end--;
 
-                state.breakLine(false,ld); // carrierReturn(ld);
+                state.breakLine(false, ld); // carrierReturn(ld);
                 result.add(ld);
                 // state.character--; // correct shifted by carrierReturn() position;
                 // WARN: do not execute justification on line before images
@@ -2215,10 +2234,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         public int handleCarrierReturn(int direction) {
-            // handle force carrier return
-            if (direction!=Layout.DIR_LEFT_TO_RIGHT) {
-                Log.w(TAG,"rtl line");
-            }
             try {
                 state.processedWidth += span.widths[state.character - span.start];
             } catch (IndexOutOfBoundsException e) {
@@ -2231,6 +2246,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                 ld.direction = direction;
                 state.carrierReturn(ld);
+                if (direction == Layout.DIR_RIGHT_TO_LEFT) {
+                    reorderLeftToRightInnerSpansIfNeed(ld);
+                }
                 linesAddedInParagraph = 0;
             } else { // filterEmptyLines disabled, or state.character > lineStartAt, or linesAddedInParagraph >= emptyLinesTreshold
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
@@ -2253,7 +2271,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 // state.carrierReturns ZEROES state.height
                 state.carrierReturn(ld);
 
-                if (wrapWidth < (width-lineWidthDec) && wrapHeight < 1) {
+                if (direction == Layout.DIR_RIGHT_TO_LEFT) {
+                    reorderLeftToRightInnerSpansIfNeed(ld);
+                }
+
+                if (wrapWidth < (width - lineWidthDec) && wrapHeight < 1) {
                     if (wrappedSpan != null) {
                             /* calculate actual heights, occupied by lines */
                         int actualHeight = (int) (wrappedSpan.drawableScaledHeight + (wrapHeight * -1));
@@ -2276,6 +2298,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.lineWidth += forcedParagraphLeftMargin;
             lineStartAt = state.character;
             state.skipWhitespaces = true;
+
             return direction;
         }
 
@@ -2285,8 +2308,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             ld.margin = lineMargin + wrapMargin;
             ld.wrapMargin = wrapMargin;
             ld.direction = direction;
-            if (direction!=Layout.DIR_LEFT_TO_RIGHT) {
-                Log.w(TAG,"break line == RTL");
+            if (direction != Layout.DIR_LEFT_TO_RIGHT) {
+                Log.w(TAG, "break line == RTL");
             }
             result.add(ld); //secondCallHere
             ld.hyphen = hyphen;
@@ -2297,7 +2320,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (carrierReturn) {
                 ld.height += forcedParagraphTopMargin;
                 y += forcedParagraphTopMargin;
-                if (leadingMarginSpan==null) { // apply paragraph margins only to lines without leading margin
+                if (leadingMarginSpan == null) { // apply paragraph margins only to lines without leading margin
                     ld.margin += forcedParagraphLeftMargin;
                     ld.width += forcedParagraphLeftMargin;
                 }
@@ -2314,7 +2337,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     /* handle wrap ends */
             wrapHeight -= ld.height;
                     /* check if wrap around drawable finished */
-            if (wrapWidth < (width-lineWidthDec) && wrapHeight < 1) {
+            if (wrapWidth < (width - lineWidthDec) && wrapHeight < 1) {
                         /* adjust vertical wrapped image position here */
                 if (wrappedSpan != null) {
                             /* calculate actual heights, occupied by lines */
@@ -2343,7 +2366,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         public boolean nextSpan() {
-            if (span.next==null) return false;
+            if (span.next == null) return false;
             span = span.next;
             /* clear span-depended fields */
             return true;
@@ -2368,27 +2391,27 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 span.clearCache(true);
                 long currentTime = System.currentTimeMillis();
                 long timeSpent = currentTime - timeQuantStart;
-                if (span.isBidiEnabled() && span.direction!=direction) {
+                if (span.isBidiEnabled() && span.direction != direction) {
                     // if direction changes from 0 to 1 or -1 - force line break on other
-                    if (direction==0)
+                    if (direction == 0)
                         direction = span.direction;
                     else
-                    switch (span.direction) {
-                        case DIR_LTR:
-                            switch (direction) {
-                                case DIR_RTL: // mixed, started from RTL
-                                    direction = DIR_DEFAULT_RTL;
-                                    break;
-                            }
-                            break;
-                        case DIR_RTL:
-                            switch (direction) {
-                                case DIR_LTR: // mixed, started from LTR
-                                    direction = DIR_DEFAULT_LTR;
-                                    break;
-                            }
-                            break;
-                    }
+                        switch (span.direction) {
+                            case DIR_LTR:
+                                switch (direction) {
+                                    case DIR_RTL: // mixed, started from RTL
+                                        direction = DIR_DEFAULT_RTL;
+                                        break;
+                                }
+                                break;
+                            case DIR_RTL:
+                                switch (direction) {
+                                    case DIR_LTR: // mixed, started from LTR
+                                        direction = DIR_DEFAULT_LTR;
+                                        break;
+                                }
+                                break;
+                        }
                 } else {
                     direction = Layout.DIR_LEFT_TO_RIGHT;
                 }
@@ -2510,7 +2533,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 } // END HANDLING DEFFERED IMAGES
                             } else if (viewHeightLeft - state.height < 0) {
                                 // span are drawable, but no sufficient height here
-                                if (debug) Log.e(TAG,"no sufficient height for drawable");
+                                if (debug) Log.e(TAG, "no sufficient height for drawable");
                             }
                         }
                         continue processing;
@@ -2527,9 +2550,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         }
                         if (state.character <= lineStartAt) {
                             if (debug) Log.w(TAG, "line exceed at first character");
-                            if (wrapHeight>0) {
+                            if (wrapHeight > 0) {
                                 // Log.e(TAG,"we must cancel wrapping!");
-                                Log.e(TAG,"close wrap null span");
+                                Log.e(TAG, "close wrap null span");
                                 result.add(new TextLine(null, 0, wrapHeight));
                                 wrapMargin = 0;
                                 viewHeightLeft -= wrapHeight;
@@ -2578,20 +2601,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         if (hyphen) {
                             // check if text[breakPosition] + hyphen_width fit line
                             if (state.lineWidth + span.hyphenWidth > wrapWidth) {
-                                if (debug) Log.v(TAG,"hyphen character exceed line width");
-                                lineBreakVal = lineBreaker.nearestLineBreak(text,state.lastWhitespace,breakPosition-1,span.end);
+                                if (debug) Log.v(TAG, "hyphen character exceed line width");
+                                lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, breakPosition - 1, span.end);
                                 forceBreak = true;
                                 continue processing;
                             }
                             state.lineWidth += span.hyphenWidth;
                         }
 
-                        direction = handleBreakLine(text,breakPosition,hyphen,direction);
+                        direction = handleBreakLine(text, breakPosition, hyphen, direction);
 
                     } else if (text[state.character] == '\n') {
                         direction = handleCarrierReturn(direction);
                     } else if (text[state.character] == 65532) { // 65532 - OBJECT REPLACEMENT CHAR
-                        if (!handleImage(span,span.getDrawable(),true)) break recursion;
+                        if (!handleImage(span, span.getDrawable(), true)) break recursion;
 
                     } else if (!lineBreaker.isLetter(text[state.character])) {
                         // handle non-letter characters (m.b. only spaces?)
@@ -2673,8 +2696,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             return true;
         }
-    }
 
+        @Deprecated
+        private void reorderLeftToRightInnerSpansIfNeed(TextLine ld) {
+
+        }
+    }
 
 
     /**
@@ -2689,7 +2716,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
         public LinesIterator() {
             mSize = TextLayout.this.lines.size();
-            if (mSize>0) {
+            if (mSize > 0) {
                 next();
             }
         }
@@ -2726,33 +2753,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         public int getSize() {
             return mSize;
         }
-    }
 
-    /* */
-    private RtlCache mRtlCache = new RtlCache();
-    private class RtlCache {
-        private SparseArray<char[]> mItems = new SparseArray<char[]>();
-        public boolean contains(int position, int length) {
-            char[] r = mItems.get(position);
-            return r!=null && r.length == length;
-        }
-        public void put(int position, char[] r) {
-            mItems.put(position,r);
-        }
-        @Override
-        public void finalize() {
-            try {
-                super.finalize();
-            } catch (Throwable throwable) {
-                // suppress
-            }
-            if (mItems!=null)
-                mItems.clear();
-            mItems = null;
-        }
-    }
-
-    {
 
     }
+
+
 }
