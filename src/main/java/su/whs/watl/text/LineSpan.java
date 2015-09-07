@@ -218,6 +218,7 @@ class LineSpan {
                         /* int base = bidi.getBaseLevel(); */
                         int runLimit = c;
                         for(int run = 0; run < bidi.getRunCount(); run++ ) {
+                            // TODO:
                             int runStart = bidi.getRunStart(run) + c;
                             runLimit = bidi.getRunLimit(run) + c;
                             int runLevel = bidi.getRunLevel(run);
@@ -227,7 +228,7 @@ class LineSpan {
                                     "bidi:runDirection:["
                                     + runStart+"," + runLimit
                                     + " rtl: " + isRtl + " ("+runLevel+")"
-                                    + " '" +  text.subSequence(runStart,runLimit) // (runIsRtl ? TextUtils.getReverse(text,runStart,runLimit) : text.subSequence(runStart,runLimit)) + "'"
+                                    + " '" +  text.subSequence(runStart,runLimit) + "'"// (runIsRtl ? TextUtils.getReverse(text,runStart,runLimit) : text.subSequence(runStart,runLimit)) + "'"
                             );
                             // inject new span with single direction
                             current.start = runStart;

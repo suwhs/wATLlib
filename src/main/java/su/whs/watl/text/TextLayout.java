@@ -1346,7 +1346,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             //        (line.afterBreak.get()==null ? span.breakFirst :
             // (line.afterBreak.get()));
             x = line.margin + align;
-            float ltrX = x;
+
             drawStart += skip;
             innerRtlStack.clear(); // clear stack
             drawline:
@@ -1457,7 +1457,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 boolean backgroundColorSpan = false;
                 int backgroundColor = Color.WHITE;
-
+                float ltrX = x;
                 if (span.spans != null && span.spans != styles) {
                     workPaint.set(paint);
                     for (CharacterStyle style : span.spans) {
@@ -1472,41 +1472,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 backgroundPaint.setColor(backgroundColor);
                 if (isLineRtl) { // RTL supports require more CPU time
-                    if (!isSpanRtl && innerRtlStack.size() < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
-                        // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
-                        // else - pop offset from stack and draw ltr span in correct order
-                        ltrX = x; // store current x as origin
-                        LineSpan ltrSpan = span;
-                        float correctX = 0f;
-                        float tailX = 0f;
-                        innerLtrScanLoop:
-                        // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
-                        while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT) {
-                            LineSpanBreak ltrBreak = lineSpanBreak;
-                            if (ltrBreak == null) {
-                                // correct previous added offsets
-                                for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                    innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width);
-                                innerRtlStack.add(ltrSpan.width);
-                            } else
-                                while (ltrBreak != null) {
-                                    tailX = ltrBreak.tail;
-                                    // correct previous added offsets
-                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width);
-                                    innerRtlStack.add(ltrBreak.width);
-                                    if (ltrBreak.carrierReturn) // we met end of line, so break loop
-                                        break innerLtrScanLoop; // TODO: we need to store tail!
-                                    ltrBreak = ltrBreak.next;
-                                }
-                            ltrSpan = ltrSpan.next;
-                        }
-                        if (tailX > 0f)
-                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
-                        innerRtlStack.add(tailX); // add tail
-                        Log.d(TAG, "build innerRtlStack:" + innerRtlStack.size());
-                    }
                     while (lineSpanBreak != null) { // loop over lineBreaks in RTL line
                         drawStop = lineSpanBreak.position + 1;
                         drawStop = drawStop > line.end ? line.end : drawStop;
@@ -1516,9 +1481,42 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                     canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
                             } else {
+                                if (innerRtlStack.size()<1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
+                                    // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
+                                    // else - pop offset from stack and draw ltr span in correct order
+                                    ltrX = x; // store current x as origin
+                                    LineSpan ltrSpan = span;
+                                    float tailX = 0f;
+                                    innerLtrScanLoop: // TODO: need correct visual order with next line
+                                    // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
+                                    while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
+                                        LineSpanBreak ltrBreak = lineSpanBreak;
+                                        if (ltrBreak == null) {
+                                            // correct previous added offsets
+                                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                                innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                            innerRtlStack.add(ltrSpan.width);
+                                        } else
+                                            while (ltrBreak != null) {
+                                                tailX = ltrBreak.tail;
+                                                // correct previous added offsets
+                                                for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                                    innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                                innerRtlStack.add(ltrBreak.width);
+                                                if (ltrBreak.carrierReturn) // we met end of line, so break loop
+                                                    break innerLtrScanLoop; // TODO: we need to store tail!
+                                                ltrBreak = ltrBreak.next;
+                                            }
+                                        ltrSpan = ltrSpan.next;
+                                    }
+                                    if (tailX > 0f)
+                                        for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                            innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
+                                    // Log.d(TAG, "build innerRtlStack:" + innerRtlStack.size());
+                                }
                                 float correctX = innerRtlStack.remove(0);
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - ltrX - correctX, y, width - ltrX, y + span.height,backgroundPaint);
+                                    canvas.drawRect(width - ltrX - correctX, y, width - ltrX, y + span.height, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - correctX, baseLine, workPaint);
                             }
                             x += lineSpanBreak.width; // TODO: \n empty line has width ?
@@ -1573,8 +1571,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (isSpanRtl)
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - x - tail, baseLine, workPaint);
                             else {
-                                float tailX = innerRtlStack.remove(0);
-                                canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - tailX, baseLine, workPaint);
+                                canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - tail, baseLine, workPaint);
                             }
                         } else
                             canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
