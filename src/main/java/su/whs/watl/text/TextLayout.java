@@ -2461,7 +2461,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 }
                                 break;
                         }
-                } else {
+                } else if (!span.isBidiEnabled()){
                     direction = Layout.DIR_LEFT_TO_RIGHT;
                 }
             /* if we spent more times, than steplimit - execute callback */

@@ -203,7 +203,8 @@ class LineSpan {
                     long bidiStart = SystemClock.uptimeMillis();
                     String bidiString = new String(text.subSequence(c, nextCharacterStyle).toString());
                     Bidi bidi = new Bidi(bidiString, defaultDirection);
-
+                    // TODO: glue RTL word splitted into different LineSpan by CharacterStyle
+                    // TODO: punktuation must be attracted to LTR (optionally?)
                     if (bidi.isRightToLeft()) {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
                         current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
