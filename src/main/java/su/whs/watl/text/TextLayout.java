@@ -1469,31 +1469,31 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                     // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
                                     // else - pop offset from stack and draw ltr span in correct order
                                     ltrX = x; // store current x as origin
-                                    LineSpan ltrSpan = span;
-                                    float tailX = 0f;
-                                    innerLtrScanLoop:
-                                    // TODO: need correct visual order with next line
-                                    // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
-                                    while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
-                                        LineSpanBreak ltrBreak = lineSpanBreak;
-                                        if (ltrBreak == null) {
-                                            // correct previous added offsets
-                                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                                innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                            innerRtlStack.add(ltrSpan.width);
-                                        } else
-                                            while (ltrBreak != null) {
-                                                tailX = ltrBreak.tail;
+                                        LineSpan ltrSpan = span;
+                                        float tailX = 0f;
+                                        innerLtrScanLoop:
+                                        // TODO: need correct visual order with next line
+                                        // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
+                                        while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
+                                            LineSpanBreak ltrBreak = lineSpanBreak;
+                                            if (ltrBreak == null) {
                                                 // correct previous added offsets
                                                 for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                                    innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                                innerRtlStack.add(ltrBreak.width);
-                                                if (ltrBreak.carrierReturn) // we met end of line, so break loop
-                                                    break innerLtrScanLoop; // TODO: we need to store tail!
-                                                ltrBreak = ltrBreak.next;
-                                            }
-                                        ltrSpan = ltrSpan.next;
-                                    }
+                                                    innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                                innerRtlStack.add(ltrSpan.width);
+                                            } else
+                                                while (ltrBreak != null) {
+                                                    tailX = ltrBreak.tail;
+                                                    // correct previous added offsets
+                                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                                    innerRtlStack.add(ltrBreak.width);
+                                                    if (ltrBreak.carrierReturn) // we met end of line, so break loop
+                                                        break innerLtrScanLoop; // TODO: we need to store tail!
+                                                    ltrBreak = ltrBreak.next;
+                                                }
+                                            ltrSpan = ltrSpan.next;
+                                        }
                                     if (tailX > 0f)
                                         for (int cI = 0; cI < innerRtlStack.size(); cI++)
                                             innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
@@ -1630,20 +1630,123 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
     };
 
-    private void drawLineRtl(Canvas canvas, float y, TextLine line) {
-
-    }
-
-    private void drawLineLtr(Canvas canvas, float y, TextLine line) {
-
-    }
-
+    // TODO: implement
     private float getOffsetXRtl(TextLine line, int positionAtLine) {
-        return 0;
+        ContentView.Options opts = getOptions();
+        Rect textPaddings = opts.getTextPaddings();
+        Rect drawablePaddings = new Rect();
+        opts.getDrawablePaddings(drawablePaddings);
+        float leftOffset = textPaddings.left;
+        int drawStart = line.start;
+        int drawStop = line.end;
+        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
+            return 0f + getOptions().getTextPaddings().left;
+        }
+
+        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
+        LineSpan span = line.span.get();
+
+        float x;
+        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
+
+        float align = leftOffset;
+
+        if (line.gravity != Gravity.NO_GRAVITY) {
+            if (line.gravity == Gravity.RIGHT) {
+                align = width - line.width - line.wrapMargin;
+            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
+                align = ((width - line.margin) / 2) - (line.width / 2);
+            }
+        }
+
+        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+        x = line.margin + align;
+        drawStart += skip;
+        if (positionAtLine <= drawStart)
+            return x;
+
+        drawline:
+        while (span != null && drawStart < line.end) {
+            // draw leading drawable only
+            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
+            if (span.isDrawable && span.end > line.start) {
+                float drawableWidth = span.width;
+
+                if (span.gravity == Gravity.RIGHT) {
+                    x = width - line.wrapWidth - textPaddings.right;
+                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
+                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
+                } else if (line.start == span.start) {
+                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
+                }
+
+                if (span.drawableScaledWidth > 0f) {
+                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
+                } else {
+                    drawableWidth = span.width;
+                }
+                x += drawableWidth;
+
+                if (span.end == line.end) {
+                    return line.end;
+                }
+                // drawStart ++;
+                span = span.next; // span with drawable always has length == 1
+                continue drawline;
+            }
+
+            float ltrX = x;
+            while (lineSpanBreak != null) {
+                drawStop = lineSpanBreak.position + 1;
+                drawStop = drawStop > line.end ? line.end : drawStop;
+                if (drawStart < drawStop && drawStart > line.start - 1) {
+                    if (positionAtLine < drawStop) {
+                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+                            ;
+                        return x;
+                    }
+                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
+                }
+                drawStart = drawStop;
+
+
+                if (!lineSpanBreak.strong && justification)
+                    x += line.justifyArgument;
+
+                if (lineSpanBreak.carrierReturn) {
+                    break drawline;
+                }
+
+                tail = lineSpanBreak.tail;
+                skip = lineSpanBreak.skip;
+
+                lineSpanBreak = lineSpanBreak.next;
+            }
+
+            if (tail > 0f) {
+                drawStop = line.end < span.end ? line.end : span.end;
+
+                if (drawStart < drawStop) {
+                    if (positionAtLine < drawStop) {
+                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+                            ;
+                        return x;
+                    }
+                    x += tail;
+                }
+            }
+            span = span.next;
+            if (span != null) {
+                tail = span.width;
+                lineSpanBreak = span.breakFirst;
+                drawStart = span.start + skip;
+            }
+        } // end drawline: loop
+        return x;
     }
 
     /**
-     * WARNING: this function must works on draw() algorythm
+     * WARNING: this function must works similar draw() algorythm
      *
      * @param line
      * @param positionAtLine
@@ -1762,37 +1865,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return x;
     }
 
-    /**
-     * @param span
-     * @param from
-     * @param character
-     * @return character offset from line start (without justification)
-     */
-    @Deprecated
-    private static float getCharacterOffset(LineSpan span, int from, int character, ContentView.Options opts) {
-        float result = 0f;
-        for (int i = from; i < character; i++) {
-            if (i - span.start + 1 > span.end - span.start) {
-                span = span.next;
-                if (span == null) break;
-                if (span.isDrawable) {
-                    if (span.drawableScaledWidth > 0f) {
-                        result += span.drawableScaledWidth + drawable_paddings_width(opts);
-                        if (i < character - 1) {
-                            // TODO: solve correct wrapimage paddings
-                        } else {
-                            break;
-                        }
-                        span = span.next;
-                    }
-                }
-                continue;
-            }
-            result += span.widths[i - span.start];
-        }
-        return result;
-    }
-
     private static int drawable_paddings_width(ContentView.Options options) {
         Rect r = new Rect();
         options.getDrawablePaddings(r);
@@ -1843,7 +1915,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         if (line.afterBreak != null) {
             // assert(drawStart==line.afterBreak.position+line.afterBreak.skip);
         }
-
+        boolean isLineRtl = line.direction != Layout.DIR_LEFT_TO_RIGHT;
         float tail = line.afterBreak == null ? 0f : line.afterBreak.get().tail;
         LineSpan span;
         LineSpanBreak lineSpanBreak = null;
@@ -1865,12 +1937,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 atX -= (viewWidth / 2) - (line.width / 2);
             }
         }
-
-        if (x > atX)
+        float ltrX = x;
+        if (line.direction == Layout.DIR_LEFT_TO_RIGHT && x > atX)
             return line.start; // all space before first character belong to first character
-
+        else if (line.direction == Layout.DIR_RIGHT_TO_LEFT && (width-x) < line.width)
+            return line.end;
+        List<Float> innerRtlStack = new ArrayList<Float>();
         drawline:
         while (span != null && drawStart < line.end) {
+            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
             // if (span.widths==null)
             //    LineSpan.measure(span,getChars(),measurePaint,true);
             // drawStop = span.end < line.end ? span.end : line.end;
@@ -1881,7 +1956,59 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 tail = 0f;
                 continue drawline;
             }
+            if (isLineRtl) {
+                while(lineSpanBreak !=null) {
+                    drawStop = lineSpanBreak.position + 1;
+                    drawStop = drawStop > line.end ? line.end : drawStop;
+                    if (drawStart < drawStop) {
+                        if (isSpanRtl) {
+                            // if atX point to [viewWidth - x:lineSpanBreak.width] - lookup corresponding character in spanBreak,
+                            // else - increment x and go to next break
+                            ///// if (span.reversed==null)
+                            /////     canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                            ///// else
+                            /////     canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                        } else {
+                            if (innerRtlStack.size()<1) {
+                                ltrX = x;
+                                LineSpan ltrSpan = span;
+                                float tailX = 0f;
+                                innerLtrScanLoop:
+                                // TODO: need correct visual order with next line
+                                // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
+                                while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
+                                    LineSpanBreak ltrBreak = lineSpanBreak;
+                                    if (ltrBreak == null) {
+                                        // correct previous added offsets
+                                        for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                            innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                        innerRtlStack.add(ltrSpan.width);
+                                    } else
+                                        while (ltrBreak != null) {
+                                            tailX = ltrBreak.tail;
+                                            // correct previous added offsets
+                                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                                innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+                                            innerRtlStack.add(ltrBreak.width);
+                                            if (ltrBreak.carrierReturn) // we met end of line, so break loop
+                                                break innerLtrScanLoop; // TODO: we need to store tail!
+                                            ltrBreak = ltrBreak.next;
+                                        }
+                                    ltrSpan = ltrSpan.next;
+                                }
+                                if (tailX > 0f)
+                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
+                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
+                            } // end inner ltr run stack fill
 
+                            float correctX = innerRtlStack.remove(0);
+                            ///// canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - correctX, baseLine, workPaint);
+                        }
+                        x += lineSpanBreak.width;
+                    }
+                    drawStart = drawStop;
+                }
+            } else
             while (lineSpanBreak != null) {
                 drawStop = lineSpanBreak.position + 1;
                 drawStop = drawStop > line.end ? line.end : drawStop;
@@ -2649,28 +2776,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     } else if (!lineBreaker.isLetter(text[state.character])) {
                         // handle non-letter characters (m.b. only spaces?)
                         state.nonLetterBreak(text[state.character] != ' ' || span.strong);
-// commented out
-//                    }  else if (text[state.character] == '\u200F') { // RTL MARK
-//                        if (debug) Log.v(TAG, "rtl mark!");
-//                        /**
-//                         * make current span direction RTL (if not)
-//                         * and make state.direction = RTL
-//                         */
-//                        if (state.character==lineStartAt) {
-//                            lineStartsWithRtl = true;
-//                        }
-//                        lineContainsRtlSpans = true;
-//                        currentDirection = Layout.DIR_RIGHT_TO_LEFT;
-//                        span.direction = Layout.DIR_RIGHT_TO_LEFT;
-//                        state.character++;
-//                    } else if (text[state.character] == '\u200E') { // LTR mark
-//                        if (debug) Log.v(TAG, "ltr mark!");
-//                        if (state.character==lineStartAt) {
-//
-//                        }
-//                        currentDirection = Layout.DIR_LEFT_TO_RIGHT;
-//
-//                        state.character++;
                     } else {
                         // handle usual character
                         if (span.widths == null) {
