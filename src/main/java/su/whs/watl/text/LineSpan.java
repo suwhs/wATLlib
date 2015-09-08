@@ -212,7 +212,8 @@ class LineSpan {
                     // NOTE: ltr chain in rtl paragraph wrapped to new line in same order, as it stored in memory (logical)
                     if (bidi.isRightToLeft()) {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
-                        current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
+                        if (Build.VERSION.SDK_INT<14)
+                            current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
                         bidiSpent += (SystemClock.uptimeMillis() - bidiStart);
                         if (mBidiDebug)
                         Log.d(TAG,
