@@ -205,6 +205,8 @@ class LineSpan {
                     Bidi bidi = new Bidi(bidiString, defaultDirection);
                     // TODO: glue RTL word splitted into different LineSpan by CharacterStyle
                     // TODO: punktuation must be attracted to LTR (optionally?)
+                    // NOTE: google chrome have same behavior - 'jumping brackets'
+                    // NOTE: ltr chain in rtl paragraph wrapped to new line in same order, as it stored in memory (logical)
                     if (bidi.isRightToLeft()) {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
                         current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);

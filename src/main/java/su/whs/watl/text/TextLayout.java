@@ -1481,13 +1481,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                     canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
                             } else {
-                                if (innerRtlStack.size()<1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
+                                if (innerRtlStack.size() < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
                                     // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
                                     // else - pop offset from stack and draw ltr span in correct order
                                     ltrX = x; // store current x as origin
                                     LineSpan ltrSpan = span;
                                     float tailX = 0f;
-                                    innerLtrScanLoop: // TODO: need correct visual order with next line
+                                    innerLtrScanLoop:
+                                    // TODO: need correct visual order with next line
                                     // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
                                     while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
                                         LineSpanBreak ltrBreak = lineSpanBreak;
@@ -2106,6 +2107,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
+        // FIXME: if image does not fit viewHeight - view does not invalidated (bug)
         public boolean handleImage(LineSpan span, DynamicDrawableSpan dds, boolean allowDefer) {
             int placement = imagePlacementHandler.place(dds,
                     viewHeightLeft,
@@ -2241,10 +2243,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true; // switchSpan();
         }
 
-        private void handleImageOld() {
-
-        }
-
         private boolean __finishLine() {
             if (debug) Log.v(TAG, "finishLine()");
             if (state.character < 1) return true;
@@ -2295,9 +2293,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                 ld.direction = direction;
                 state.carrierReturn(ld);
-                if (direction == Layout.DIR_RIGHT_TO_LEFT) {
-                    reorderLeftToRightInnerSpansIfNeed(ld);
-                }
                 linesAddedInParagraph = 0;
             } else { // filterEmptyLines disabled, or state.character > lineStartAt, or linesAddedInParagraph >= emptyLinesTreshold
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
@@ -2319,10 +2314,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 wrapHeight -= ld.height; // maybe after carrier return wrap margin must be resets?
                 // state.carrierReturns ZEROES state.height
                 state.carrierReturn(ld);
-
-                if (direction == Layout.DIR_RIGHT_TO_LEFT) {
-                    reorderLeftToRightInnerSpansIfNeed(ld);
-                }
 
                 if (wrapWidth < (width - lineWidthDec) && wrapHeight < 1) {
                     if (wrappedSpan != null) {
@@ -2461,7 +2452,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 }
                                 break;
                         }
-                } else if (!span.isBidiEnabled()){
+                } else if (!span.isBidiEnabled()) {
                     direction = Layout.DIR_LEFT_TO_RIGHT;
                 }
             /* if we spent more times, than steplimit - execute callback */
@@ -2746,10 +2737,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return true;
         }
 
-        @Deprecated
-        private void reorderLeftToRightInnerSpansIfNeed(TextLine ld) {
-
-        }
     }
 
 
@@ -2803,8 +2790,5 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return mSize;
         }
 
-
     }
-
-
 }
