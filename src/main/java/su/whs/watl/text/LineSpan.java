@@ -1,6 +1,8 @@
 package su.whs.watl.text;
 
+import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.SystemClock;
@@ -35,6 +37,7 @@ import java.util.List;
 class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
     private static boolean mBidiEnabled = true;
+    private static boolean mBidiDebug = true;
     public static boolean isBidiEnabled() { return mBidiEnabled; } // TODO: move to Options
     public int gravity = Gravity.LEFT;
     public int direction = Layout.DIR_LEFT_TO_RIGHT; // TODO: use Bidi on prepare() ?
@@ -211,6 +214,7 @@ class LineSpan {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
                         current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
                         bidiSpent += (SystemClock.uptimeMillis() - bidiStart);
+                        if (mBidiDebug)
                         Log.d(TAG,
                                 "bidi:runDirection:["
                                         + c+"," + nextCharacterStyle
@@ -227,6 +231,7 @@ class LineSpan {
                             int runLevel = bidi.getRunLevel(run);
                             boolean isRtl = runLevel % 2 > 0;
                             current.direction = isRtl ? Layout.DIR_RIGHT_TO_LEFT : Layout.DIR_LEFT_TO_RIGHT;
+                            if (mBidiDebug)
                             Log.d(TAG,
                                     "bidi:runDirection:["
                                     + runStart+"," + runLimit
@@ -530,6 +535,23 @@ class LineSpan {
 
     }
 
-    /* used for selection start/end position and for handling taps */
+    public static float run(LineSpan span,
+                           LineSpanBreak lineSpanBreak,
+                           Canvas canvas,
+                           float x, // start draw position (left)
+                           float y, // y
+                           float width, // total available width for run
+                           TextPaint foregroundPaint,
+                           TextPaint backgroundPaint,
+
+                           int direction,
+                           Point[] selections,
+                           int[] colors,
+                           float[] positions) {
+
+        boolean isRtlRun = isBidiEnabled() ? (direction != Layout.DIR_LEFT_TO_RIGHT) : false;
+
+        return x;
+    }
 
 }

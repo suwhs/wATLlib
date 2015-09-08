@@ -1193,12 +1193,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return 0;
         }
         LeadingMarginSpan actualLeadingMargin = null;
-        int count = 0;
+
         while ((y + line.height < clipRect.top) && (y + line.wrapHeight < clipRect.top)) {
             y += line.height;
-            // Log.v("DDD","line "+i+" height="+line.height+" total="+y+ "(1)");
             i++;
-            count++;
             if (i < endLine)
                 line = lines.get(i);
             else
@@ -1224,26 +1222,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 break linesLoop;
             }
 
-            /*
-            boolean nonLtR = LineSpan.isBidiEnabled() && line.direction != Layout.DIR_LEFT_TO_RIGHT;
-
-            if (nonLtR) {
-                // Log.d(TAG,"non LTR line: " + line.direction);
-            } */
-
             if (line.span == null) { // special case uses for closing image wrap
                 y += line.height;
-                // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" (2)");
                 continue;
             }
             int drawStart = line.start;
             int drawStop = line.end;
             if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
                 y += line.height; // line.span.get().height;
-                // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" skip (4)");
-                if (line.span.get().isDrawable) {
-                    // Log.v(TAG, "skip line with drawable O_o");
-                }
                 continue;
             }
 
@@ -1308,7 +1294,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             float x;
             int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
 
-            if (line.leadingMargin != null) {
+            if (line.leadingMargin != null) { // draw leading margin span (bullet, etc)
                 workPaint.set(paint);
                 if (line.leadingMargin != actualLeadingMargin) {
                     actualLeadingMargin = line.leadingMargin;
@@ -1342,9 +1328,6 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
-            // LineSpanBreak lineSpanBreak = span == null ? null :
-            //        (line.afterBreak.get()==null ? span.breakFirst :
-            // (line.afterBreak.get()));
             x = line.margin + align;
 
             drawStart += skip;
@@ -1443,21 +1426,19 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             break lookupdrawable;
                         }
                     }
-                    // span = span.next;
-                    // lineSpanBreak = span.breakFirst;
-                    // drawStart = span == null ? 0 : span.start;
+
                     if (span.end == line.end) {
                         y += line.height;
                         continue linesLoop;
                     }
-                    // drawStart ++;
+
                     span = span.next; // span with drawable always has length == 1
                     continue drawline;
                 }
 
                 boolean backgroundColorSpan = false;
                 int backgroundColor = Color.WHITE;
-                float ltrX = x;
+                float ltrX = x; // origin point for draw ltr spans on rtl line
                 if (span.spans != null && span.spans != styles) {
                     workPaint.set(paint);
                     for (CharacterStyle style : span.spans) {
@@ -1479,7 +1460,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (isSpanRtl) {
                                 if (backgroundColorSpan)
                                     canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
-                                canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                                if (span.reversed==null)
+                                    canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                                else
+                                    canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
                             } else {
                                 if (innerRtlStack.size() < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
                                     // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
@@ -1569,9 +1553,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                     if (drawStart < drawStop) {
                         if (isLineRtl) {
-                            if (isSpanRtl)
-                                canvas.drawText(text, drawStart, drawStop - drawStart, width - x - tail, baseLine, workPaint);
-                            else {
+                            if (isSpanRtl) {
+                                if (span.reversed == null)
+                                    canvas.drawText(text, drawStart, drawStop - drawStart, width - x - tail, baseLine, workPaint);
+                                else
+                                    canvas.drawText(span.reversed,0,drawStop-drawStart, width - tail, baseLine, workPaint);
+                            } else {
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - tail, baseLine, workPaint);
                             }
                         } else
@@ -1596,7 +1583,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             if (line.hyphen) {
-                canvas.drawText(TextLayout.mHyphenChar, 0, 1, x, baseLine, workPaint);
+                if (isLineRtl)
+                    canvas.drawText(TextLayout.mHyphenChar, 0, 1, 0, baseLine, workPaint);
+                else
+                    canvas.drawText(TextLayout.mHyphenChar, 0, 1, x, baseLine, workPaint);
             }
 
             y += line.height;
