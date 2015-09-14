@@ -1165,7 +1165,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     Set<Animatable> visibleDrawableAnimations = new HashSet<Animatable>();
     Map<Drawable, Point> visibleDrawableOffsets = new HashMap<Drawable, Point>(); // use for handling 'invalidateSelf'
     Map<Drawable, Rect> visibleDrawableBounds = new HashMap<Drawable, Rect>();
-    List<Float> innerRtlStack = new ArrayList<Float>();
+    // List<Float> innerRtlStack = new ArrayList<Float>();
 
     public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
         if (lines == null || lines.size() < 1) {
@@ -1348,7 +1348,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             x = line.margin + align;
 
             drawStart += skip;
-            innerRtlStack.clear(); // clear stack
+            // innerRtlStack.clear(); // clear stack
+            float ltrRun = 0f;
             drawline:
             while (span != null && drawStart < line.end) {
                 // draw leading drawable only
@@ -1470,6 +1471,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 backgroundPaint.setColor(backgroundColor);
                 if (isLineRtl) { // RTL supports require more CPU time
+
                     while (lineSpanBreak != null) { // loop over lineBreaks in RTL line
                         drawStop = lineSpanBreak.position + 1;
                         drawStop = drawStop > line.end ? line.end : drawStop;
@@ -1482,7 +1484,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 else
                                     canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
                             } else {
-                                if (innerRtlStack.size() < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
+                                if (ltrRun < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
                                     // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
                                     // else - pop offset from stack and draw ltr span in correct order
                                     ltrX = x; // store current x as origin
@@ -1495,16 +1497,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                             LineSpanBreak ltrBreak = lineSpanBreak;
                                             if (ltrBreak == null) {
                                                 // correct previous added offsets
-                                                for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                                    innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                                innerRtlStack.add(ltrSpan.width);
+                                                ltrRun += ltrSpan.width;
                                             } else
                                                 while (ltrBreak != null) {
                                                     tailX = ltrBreak.tail;
                                                     // correct previous added offsets
-                                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                                    innerRtlStack.add(ltrBreak.width);
+                                                    ltrRun += ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument);
                                                     if (ltrBreak.carrierReturn) // we met end of line, so break loop
                                                         break innerLtrScanLoop; // TODO: we need to store tail!
                                                     ltrBreak = ltrBreak.next;
@@ -1512,14 +1510,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                             ltrSpan = ltrSpan.next;
                                         }
                                     if (tailX > 0f)
-                                        for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                            innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
-                                    // Log.d(TAG, "build innerRtlStack:" + innerRtlStack.size());
+                                        ltrRun += tailX;
                                 }
-                                float correctX = innerRtlStack.remove(0);
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - ltrX - correctX, y, width - ltrX, y + span.height, backgroundPaint);
-                                canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - correctX, baseLine, workPaint);
+                                    canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height, backgroundPaint);
+                                canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - ltrRun, baseLine, workPaint);
+                                ltrRun -= lineSpanBreak.width + (lineSpanBreak.strong ? 0f : line.justifyArgument);
                             }
                             x += lineSpanBreak.width; // TODO: \n empty line has width ?
                         }
