@@ -3,7 +3,6 @@ package su.whs.watl.text;
 import android.graphics.Rect;
 import android.text.Layout;
 import android.text.TextPaint;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +11,7 @@ import java.util.List;
  * Created by igor n. boulliev on 09.09.15.
  */
 public class Utils {
+    // reference function
     public static int runLineSpanToX(
             char[] text,
             TextPaint paint,
@@ -59,7 +59,6 @@ public class Utils {
                     for (i=run; i<lineSpanBreak.position && (x + span.widths[i-span.start] < atX); i++) {
                         x += span.widths[i-span.start];
                     }
-                    Log.v("UTILS","(1) scanIndex = " + i);
                     if (needCleanUp) span.widths = null;
                     return i;
                 }
