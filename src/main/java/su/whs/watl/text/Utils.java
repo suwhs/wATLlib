@@ -24,7 +24,6 @@ public class Utils {
             int width,
             Rect textPaddings,
             Rect drawablePaddings) {
-        Log.v("UTILS", "span.start=" + span.start + " span.end="+span.end + ", spanBreak=" + spanBreak);
 
         if (direction==Layout.DIR_RIGHT_TO_LEFT)
             return runLineSpanToXRtl(span,spanBreak,atX,justifyArgument,width);
@@ -48,14 +47,9 @@ public class Utils {
                     return span.start;
                 }
             }
-            String s = new String(text).substring(run,lineSpanBreak==null?span.end :lineSpanBreak.position+1);
-            Log.v("UTILS","'"+s+"'");
             float tail = span.width;
             runBreaks:
             while(lineSpanBreak!=null) {
-                Log.v("UTILS", "x="+x + " atX="+atX+" break.width="+lineSpanBreak.width+" break.position="+lineSpanBreak.position + " run="+run);
-                s = new String(text).substring(run,lineSpanBreak==null?span.end :lineSpanBreak.position+1);
-                Log.v("UTILS","'"+s+"'");
                 if (x + lineSpanBreak.width > atX) {
                     int i;
                     if (span.widths==null) {
@@ -70,7 +64,6 @@ public class Utils {
                     return i;
                 }
                 if (lineSpanBreak.carrierReturn) { // reached end of line, so returns last character on line
-                    Log.d("UTILS", "(4) scanIndex=" + lineSpanBreak.position);
                     return lineSpanBreak.position;
                 }
                 x += lineSpanBreak.width + (lineSpanBreak.strong ? 0f : justifyArgument);
@@ -86,7 +79,6 @@ public class Utils {
                 }
                 for (i=run; i<span.end && (x + span.widths[i-span.start]) < atX; i++ )
                     x += span.widths[i-span.start];
-                    Log.v("UTILS","(2) scanIndex = " + i);
                 if (needCleanUp) span.widths = null;
                 return i;
             }
@@ -98,7 +90,6 @@ public class Utils {
             }
         }
 
-        Log.d("UTILS", "(3) scanIndex:" + run);
         return run;
     }
 
