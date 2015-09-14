@@ -153,11 +153,17 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         for (int j = startLine; j < lines.size(); j++ /* LineSpan.LineDescription line : lines */) {
             TextLine line = lines.get(j);
             if (y > bottom && y < bottom + line.height) {
+                if (line.wrapHeight>0) return -1;
                 return j;
             }
             bottom += line.height;
         }
         return lines.size() - 1;
+    }
+
+    public boolean isLineAreWrap(int line) {
+        TextLine tl = lines.get(line);
+        return tl.wrapHeight > 0;
     }
 
     /**
@@ -273,8 +279,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 continue;
             }
             if (line.wrapHeight > 0 && span != null && span.isDrawable) {
-                if (y < bottom || y > (bottom + line.wrapHeight))
+                if (y < bottom || y > (bottom + line.wrapHeight)) {
+                    if (j+1<lines.size()) {
+                        TextLine fwd = lines.get(j+1);
+                        if (fwd.span==null) // handle cancelled wrap
+                            bottom += fwd.height;
+                    }
                     continue;
+                }
                 if (span.gravity == Gravity.LEFT) {
                     if (span.drawableScaledWidth > x)
                         return span.start;
@@ -2424,6 +2436,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 // FIXME: dirty hack with try/catch
                 // TODO: fix \n immediately after drawable span
                 // Log.v(TAG,"text length = "+text.length+" span.widths.length="+span.widths.length);
+            }
+            if (lineStartAt==span.end) {
+                state.carrierReturnSpan = state.span.next;
+
             }
                     /* eliminate empty line only if non-empty-lines-count > threshold */
             if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {

@@ -35,7 +35,7 @@ public class Utils {
         boolean needCleanUp = false;
         int run = lineStart;
         LineSpanBreak lineSpanBreak = spanBreak;
-
+        while(span.end<=run && span.next!=null) span = span.next;
         while(lineSpanBreak!=null && lineSpanBreak.position<run) lineSpanBreak = lineSpanBreak.next;
         if (lineSpanBreak!=null && lineSpanBreak.position==span.end) {
             span = span.next;
