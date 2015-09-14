@@ -530,6 +530,7 @@ public interface ContentView {
         }
 
         public Rect getTextPaddings() { return mTextPaddings; }
+        public Rect getDrawablePaddings() { return mDrawablePaddings; }
 
         /**
          * change base text size

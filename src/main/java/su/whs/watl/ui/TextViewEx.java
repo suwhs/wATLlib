@@ -343,6 +343,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         Rect paddings = getOptions().getTextPaddings();
         int offset = getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y - paddings.top, startLine);
         int line = getTextLayout().getLineForVertical((int)y);
+        Log.v(TAG,"x,y = ("+x+","+y+") for line="+line);
         if (line>-1) getLineBounds(line,debugClickedLineBound);
         return offset;
     }

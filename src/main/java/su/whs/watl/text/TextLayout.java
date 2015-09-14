@@ -265,9 +265,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             Log.e(TAG, "need reflow!");
             return 0;
         }
+
         for (int j = startsFromLine; j < lines.size(); j++) {
             TextLine line = lines.get(j);
-            LineSpan span = line.span.get();
+            LineSpan span = line.span==null ? null : line.span.get();
+            if (span==null) {
+                continue;
+            }
             if (line.wrapHeight > 0 && span != null && span.isDrawable) {
                 if (y < bottom || y > (bottom + line.wrapHeight))
                     continue;
@@ -283,7 +287,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 continue;
             } else if (y > bottom && y < bottom + line.height) {
-                int i = getOffsetForHorizontal(line, (int) x);
+                Log.v(TAG,"x,y=("+x+","+y+") for line="+line);
+                int i = getOffsetForHorizontal(line, (int) x - line.margin);
                 return i;
             }
             bottom += line.height;
@@ -338,7 +343,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      */
 
     public int getPrimaryHorizontal(int line, int position) {
-        return (int) getOffsetXLtr(lines.get(line), position);
+        return (int) getOffsetX(lines.get(line), position);
     }
 
     /**
@@ -1321,9 +1326,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawSelection && span != null) {
                 if (findSelectionStartX)
-                    selectStartX = getOffsetXLtr(line, selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
+                    selectStartX = getOffsetX(line, selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
                 if (findSelectionEndX)
-                    selectEndX = getOffsetXLtr(line, selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
+                    selectEndX = getOffsetX(line, selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
                 canvas.drawRect(selectStartX + align - leftOffset, y, selectEndX + align - leftOffset, y + line.height, selectionPaint);
             }
 
@@ -1576,9 +1581,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (drawHighlight) {
                 if (findHighlightStartX)
-                    highlightStartX = getOffsetXLtr(line, highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                    highlightStartX = getOffsetX(line, highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 if (findHighlightEndX)
-                    highlightEndX = getOffsetXLtr(line, highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+                    highlightEndX = getOffsetX(line, highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
                 canvas.drawRect(highlightStartX + align, y, highlightEndX + align, y + line.height, highlightPaint);
             }
 
@@ -1630,246 +1635,253 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
     };
 
-    // TODO: implement
-    private float getOffsetXRtl(TextLine line, int positionAtLine) {
-        ContentView.Options opts = getOptions();
-        Rect textPaddings = opts.getTextPaddings();
-        Rect drawablePaddings = new Rect();
-        opts.getDrawablePaddings(drawablePaddings);
-        float leftOffset = textPaddings.left;
-        int drawStart = line.start;
-        int drawStop = line.end;
-        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
-            return 0f + getOptions().getTextPaddings().left;
-        }
-
-        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
-        LineSpan span = line.span.get();
-
-        float x;
-        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
-
-        float align = leftOffset;
-
-        if (line.gravity != Gravity.NO_GRAVITY) {
-            if (line.gravity == Gravity.RIGHT) {
-                align = width - line.width - line.wrapMargin;
-            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                align = ((width - line.margin) / 2) - (line.width / 2);
-            }
-        }
-
-        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
-        x = line.margin + align;
-        drawStart += skip;
-        if (positionAtLine <= drawStart)
-            return x;
-
-        drawline:
-        while (span != null && drawStart < line.end) {
-            // draw leading drawable only
-            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
-            if (span.isDrawable && span.end > line.start) {
-                float drawableWidth = span.width;
-
-                if (span.gravity == Gravity.RIGHT) {
-                    x = width - line.wrapWidth - textPaddings.right;
-                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
-                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
-                } else if (line.start == span.start) {
-                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
-                }
-
-                if (span.drawableScaledWidth > 0f) {
-                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
-                } else {
-                    drawableWidth = span.width;
-                }
-                x += drawableWidth;
-
-                if (span.end == line.end) {
-                    return line.end;
-                }
-                // drawStart ++;
-                span = span.next; // span with drawable always has length == 1
-                continue drawline;
-            }
-
-            float ltrX = x;
-            while (lineSpanBreak != null) {
-                drawStop = lineSpanBreak.position + 1;
-                drawStop = drawStop > line.end ? line.end : drawStop;
-                if (drawStart < drawStop && drawStart > line.start - 1) {
-                    if (positionAtLine < drawStop) {
-                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
-                            ;
-                        return x;
-                    }
-                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
-                }
-                drawStart = drawStop;
-
-
-                if (!lineSpanBreak.strong && justification)
-                    x += line.justifyArgument;
-
-                if (lineSpanBreak.carrierReturn) {
-                    break drawline;
-                }
-
-                tail = lineSpanBreak.tail;
-                skip = lineSpanBreak.skip;
-
-                lineSpanBreak = lineSpanBreak.next;
-            }
-
-            if (tail > 0f) {
-                drawStop = line.end < span.end ? line.end : span.end;
-
-                if (drawStart < drawStop) {
-                    if (positionAtLine < drawStop) {
-                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
-                            ;
-                        return x;
-                    }
-                    x += tail;
-                }
-            }
-            span = span.next;
-            if (span != null) {
-                tail = span.width;
-                lineSpanBreak = span.breakFirst;
-                drawStart = span.start + skip;
-            }
-        } // end drawline: loop
-        return x;
-    }
+//    // TODO: implement
+//    private float getOffsetXRtl(TextLine line, int positionAtLine) {
+//        ContentView.Options opts = getOptions();
+//        Rect textPaddings = opts.getTextPaddings();
+//        Rect drawablePaddings = new Rect();
+//        opts.getDrawablePaddings(drawablePaddings);
+//        float leftOffset = textPaddings.left;
+//        int drawStart = line.start;
+//        int drawStop = line.end;
+//        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
+//            return 0f + getOptions().getTextPaddings().left;
+//        }
+//
+//        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
+//        LineSpan span = line.span.get();
+//
+//        float x;
+//        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
+//
+//        float align = leftOffset;
+//
+//        if (line.gravity != Gravity.NO_GRAVITY) {
+//            if (line.gravity == Gravity.RIGHT) {
+//                align = width - line.width - line.wrapMargin;
+//            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
+//                align = ((width - line.margin) / 2) - (line.width / 2);
+//            }
+//        }
+//
+//        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+//        x = line.margin + align;
+//        drawStart += skip;
+//        if (positionAtLine <= drawStart)
+//            return x;
+//
+//        drawline:
+//        while (span != null && drawStart < line.end) {
+//            // draw leading drawable only
+//            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
+//            if (span.isDrawable && span.end > line.start) {
+//                float drawableWidth = span.width;
+//
+//                if (span.gravity == Gravity.RIGHT) {
+//                    x = width - line.wrapWidth - textPaddings.right;
+//                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
+//                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
+//                } else if (line.start == span.start) {
+//                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
+//                }
+//
+//                if (span.drawableScaledWidth > 0f) {
+//                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
+//                } else {
+//                    drawableWidth = span.width;
+//                }
+//                x += drawableWidth;
+//
+//                if (span.end == line.end) {
+//                    return line.end;
+//                }
+//                // drawStart ++;
+//                span = span.next; // span with drawable always has length == 1
+//                continue drawline;
+//            }
+//
+//            float ltrX = x;
+//            while (lineSpanBreak != null) {
+//                drawStop = lineSpanBreak.position + 1;
+//                drawStop = drawStop > line.end ? line.end : drawStop;
+//                if (drawStart < drawStop && drawStart > line.start - 1) {
+//                    if (positionAtLine < drawStop) {
+//                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+//                            ;
+//                        return x;
+//                    }
+//                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
+//                }
+//                drawStart = drawStop;
+//
+//
+//                if (!lineSpanBreak.strong && justification)
+//                    x += line.justifyArgument;
+//
+//                if (lineSpanBreak.carrierReturn) {
+//                    break drawline;
+//                }
+//
+//                tail = lineSpanBreak.tail;
+//                skip = lineSpanBreak.skip;
+//
+//                lineSpanBreak = lineSpanBreak.next;
+//            }
+//
+//            if (tail > 0f) {
+//                drawStop = line.end < span.end ? line.end : span.end;
+//
+//                if (drawStart < drawStop) {
+//                    if (positionAtLine < drawStop) {
+//                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+//                            ;
+//                        return x;
+//                    }
+//                    x += tail;
+//                }
+//            }
+//            span = span.next;
+//            if (span != null) {
+//                tail = span.width;
+//                lineSpanBreak = span.breakFirst;
+//                drawStart = span.start + skip;
+//            }
+//        } // end drawline: loop
+//        return x;
+//    }
 
     /**
      * WARNING: this function must works similar draw() algorythm
      *
      * @param line
-     * @param positionAtLine
+     * @param index
      * @return
      */
 
-    private float getOffsetXLtr(TextLine line, int positionAtLine) {
-        ContentView.Options opts = getOptions();
-        Rect textPaddings = opts.getTextPaddings();
-        Rect drawablePaddings = new Rect();
-        opts.getDrawablePaddings(drawablePaddings);
-        float leftOffset = textPaddings.left;
-        int drawStart = line.start;
-        int drawStop = line.end;
-        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
-            return 0f + getOptions().getTextPaddings().left;
-        }
-
-        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
-        LineSpan span = line.span.get();
-
-        float x;
-        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
-
-        float align = leftOffset;
-
-        if (line.gravity != Gravity.NO_GRAVITY) {
-            if (line.gravity == Gravity.RIGHT) {
-                align = width - line.width - line.wrapMargin;
-            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                align = ((width - line.margin) / 2) - (line.width / 2);
-            }
-        }
-
-        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
-        x = line.margin + align;
-        drawStart += skip;
-        if (positionAtLine <= drawStart)
-            return x;
-
-        drawline:
-        while (span != null && drawStart < line.end) {
-            // draw leading drawable only
-            if (span.isDrawable && span.end > line.start) {
-                float drawableWidth = span.width;
-
-                if (span.gravity == Gravity.RIGHT) {
-                    x = width - line.wrapWidth - textPaddings.right;
-                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
-                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
-                } else if (line.start == span.start) {
-                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
-                }
-
-                if (span.drawableScaledWidth > 0f) {
-                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
-                } else {
-                    drawableWidth = span.width;
-                }
-                x += drawableWidth;
-
-                if (span.end == line.end) {
-                    return line.end;
-                }
-                // drawStart ++;
-                span = span.next; // span with drawable always has length == 1
-                continue drawline;
-            }
-
-            while (lineSpanBreak != null) {
-                drawStop = lineSpanBreak.position + 1;
-                drawStop = drawStop > line.end ? line.end : drawStop;
-                if (drawStart < drawStop && drawStart > line.start - 1) {
-                    if (positionAtLine < drawStop) {
-                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
-                            ;
-                        return x;
-                    }
-                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
-                }
-                drawStart = drawStop;
-
-
-                if (!lineSpanBreak.strong && justification)
-                    x += line.justifyArgument;
-
-                if (lineSpanBreak.carrierReturn) {
-                    break drawline;
-                }
-
-                tail = lineSpanBreak.tail;
-                skip = lineSpanBreak.skip;
-
-                lineSpanBreak = lineSpanBreak.next;
-            }
-
-            if (tail > 0f) {
-                drawStop = line.end < span.end ? line.end : span.end;
-
-                if (drawStart < drawStop) {
-                    if (positionAtLine < drawStop) {
-                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
-                            ;
-                        return x;
-                    }
-                    x += tail;
-                }
-            }
-            span = span.next;
-            if (span != null) {
-                tail = span.width;
-                lineSpanBreak = span.breakFirst;
-                drawStart = span.start + skip;
-            }
-        } // end drawline: loop
-        return x;
+    private float getOffsetX(TextLine line, int index) {
+        Rect textPaddings = getOptions().getTextPaddings();
+        Rect drawablePaddings = getOptions().getDrawablePaddings();
+        return Utils.runLineSpanToIndex(getChars(),workPaint,line.span.get(), line.afterBreak == null ? null :
+                line.afterBreak.get(),index,line.direction,line.justifyArgument,reflowedWidth,textPaddings,drawablePaddings);
     }
 
-    private static int drawable_paddings_width(ContentView.Options options) {
-        Rect r = new Rect();
-        options.getDrawablePaddings(r);
-        return r.left + r.right;
-    }
+//    private float getOffsetXLtrOld(TextLine line, int positionAtLine) {
+//        ContentView.Options opts = getOptions();
+//        Rect textPaddings = opts.getTextPaddings();
+//        Rect drawablePaddings = new Rect();
+//        opts.getDrawablePaddings(drawablePaddings);
+//        float leftOffset = textPaddings.left;
+//        int drawStart = line.start;
+//        int drawStop = line.end;
+//        if (drawStop <= drawStart && line.height > 0 && line.span.get().drawableScaledWidth < 1) {
+//            return 0f + getOptions().getTextPaddings().left;
+//        }
+//
+//        float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
+//        LineSpan span = line.span.get();
+//
+//        float x;
+//        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
+//
+//        float align = leftOffset;
+//
+//        if (line.gravity != Gravity.NO_GRAVITY) {
+//            if (line.gravity == Gravity.RIGHT) {
+//                align = width - line.width - line.wrapMargin;
+//            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
+//                align = ((width - line.margin) / 2) - (line.width / 2);
+//            }
+//        }
+//
+//        LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
+//        x = line.margin + align;
+//        drawStart += skip;
+//        if (positionAtLine <= drawStart)
+//            return x;
+//
+//        drawline:
+//        while (span != null && drawStart < line.end) {
+//            // draw leading drawable only
+//            if (span.isDrawable && span.end > line.start) {
+//                float drawableWidth = span.width;
+//
+//                if (span.gravity == Gravity.RIGHT) {
+//                    x = width - line.wrapWidth - textPaddings.right;
+//                } else if (span.gravity == Gravity.CENTER_HORIZONTAL) {
+//                    x = width / 2 - (span.drawableScaledWidth) / 2 - drawablePaddings.left;
+//                } else if (line.start == span.start) {
+//                    x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
+//                }
+//
+//                if (span.drawableScaledWidth > 0f) {
+//                    drawableWidth = span.drawableScaledWidth + drawablePaddings.left + drawablePaddings.right;
+//                } else {
+//                    drawableWidth = span.width;
+//                }
+//                x += drawableWidth;
+//
+//                if (span.end == line.end) {
+//                    return line.end;
+//                }
+//                // drawStart ++;
+//                span = span.next; // span with drawable always has length == 1
+//                continue drawline;
+//            }
+//
+//            while (lineSpanBreak != null) {
+//                drawStop = lineSpanBreak.position + 1;
+//                drawStop = drawStop > line.end ? line.end : drawStop;
+//                if (drawStart < drawStop && drawStart > line.start - 1) {
+//                    if (positionAtLine < drawStop) {
+//                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+//                            ;
+//                        return x;
+//                    }
+//                    x += lineSpanBreak.width; // TODO: \n empty line has width ?
+//                }
+//                drawStart = drawStop;
+//
+//
+//                if (!lineSpanBreak.strong && justification)
+//                    x += line.justifyArgument;
+//
+//                if (lineSpanBreak.carrierReturn) {
+//                    break drawline;
+//                }
+//
+//                tail = lineSpanBreak.tail;
+//                skip = lineSpanBreak.skip;
+//
+//                lineSpanBreak = lineSpanBreak.next;
+//            }
+//
+//            if (tail > 0f) {
+//                drawStop = line.end < span.end ? line.end : span.end;
+//
+//                if (drawStart < drawStop) {
+//                    if (positionAtLine < drawStop) {
+//                        for (; drawStart < positionAtLine; x += span.widths[drawStart - span.start], drawStart++)
+//                            ;
+//                        return x;
+//                    }
+//                    x += tail;
+//                }
+//            }
+//            span = span.next;
+//            if (span != null) {
+//                tail = span.width;
+//                lineSpanBreak = span.breakFirst;
+//                drawStart = span.start + skip;
+//            }
+//        } // end drawline: loop
+//        return x;
+//    }
+//
+//    private static int drawable_paddings_width(ContentView.Options options) {
+//        Rect r = new Rect();
+//        options.getDrawablePaddings(r);
+//        return r.left + r.right;
+//    }
 
     /**
      * @param span
@@ -1900,180 +1912,188 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     /**
      * @param line - number of line (<getLinesCount())
-     * @param atX  - x-coordinate from line starts
+     * @param x  - x-coordinate from line starts
      * @return
      */
 
-    public final int getOffsetForHorizontal(TextLayout.TextLine line, int atX) {
-        // similar to DRAW, but no actual paint - just determine character position for given x coordinate
-        // TODO: use code from getOffsetXLtr()
-        int drawStart = line.start;
-        int drawStop = line.end;
-        int resultChar = line.start;
-        int viewWidth = reflowedWidth;
-
-        if (line.afterBreak != null) {
-            // assert(drawStart==line.afterBreak.position+line.afterBreak.skip);
-        }
-        boolean isLineRtl = line.direction != Layout.DIR_LEFT_TO_RIGHT;
-        float tail = line.afterBreak == null ? 0f : line.afterBreak.get().tail;
-        LineSpan span;
-        LineSpanBreak lineSpanBreak = null;
-        if (line.span != null) {
-            span = line.span.get();
-            lineSpanBreak = line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next);
-        } else {
-            // Log.e(TAG, "empty weak ref!");
-            return line.start;
-        }
-        float x = line.margin;
-        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
-
-        // shift atX by gravity
-        if (line.gravity != Gravity.NO_GRAVITY) {
-            if (line.gravity == Gravity.RIGHT) {
-                atX -= viewWidth - line.width;
-            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
-                atX -= (viewWidth / 2) - (line.width / 2);
-            }
-        }
-        float ltrX = x;
-        if (line.direction == Layout.DIR_LEFT_TO_RIGHT && x > atX)
-            return line.start; // all space before first character belong to first character
-        else if (line.direction == Layout.DIR_RIGHT_TO_LEFT && (width-x) < line.width)
-            return line.end;
-        List<Float> innerRtlStack = new ArrayList<Float>();
-        drawline:
-        while (span != null && drawStart < line.end) {
-            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
-            // if (span.widths==null)
-            //    LineSpan.measure(span,getChars(),measurePaint,true);
-            // drawStop = span.end < line.end ? span.end : line.end;
-            if (span.isDrawable) {
-                if (atX > x && atX <= (x + span.width)) return span.start;
-                x += span.drawableScaledWidth;
-                span = span.next;
-                tail = 0f;
-                continue drawline;
-            }
-            if (isLineRtl) {
-                while(lineSpanBreak !=null) {
-                    drawStop = lineSpanBreak.position + 1;
-                    drawStop = drawStop > line.end ? line.end : drawStop;
-                    if (drawStart < drawStop) {
-                        if (isSpanRtl) {
-                            // if atX point to [viewWidth - x:lineSpanBreak.width] - lookup corresponding character in spanBreak,
-                            // else - increment x and go to next break
-                            ///// if (span.reversed==null)
-                            /////     canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
-                            ///// else
-                            /////     canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
-                        } else {
-                            if (innerRtlStack.size()<1) {
-                                ltrX = x;
-                                LineSpan ltrSpan = span;
-                                float tailX = 0f;
-                                innerLtrScanLoop:
-                                // TODO: need correct visual order with next line
-                                // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
-                                while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
-                                    LineSpanBreak ltrBreak = lineSpanBreak;
-                                    if (ltrBreak == null) {
-                                        // correct previous added offsets
-                                        for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                            innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                        innerRtlStack.add(ltrSpan.width);
-                                    } else
-                                        while (ltrBreak != null) {
-                                            tailX = ltrBreak.tail;
-                                            // correct previous added offsets
-                                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                                innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
-                                            innerRtlStack.add(ltrBreak.width);
-                                            if (ltrBreak.carrierReturn) // we met end of line, so break loop
-                                                break innerLtrScanLoop; // TODO: we need to store tail!
-                                            ltrBreak = ltrBreak.next;
-                                        }
-                                    ltrSpan = ltrSpan.next;
-                                }
-                                if (tailX > 0f)
-                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
-                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
-                            } // end inner ltr run stack fill
-
-                            float correctX = innerRtlStack.remove(0);
-                            ///// canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - correctX, baseLine, workPaint);
-                        }
-                        x += lineSpanBreak.width;
-                    }
-                    drawStart = drawStop;
-                }
-            } else
-            while (lineSpanBreak != null) {
-                drawStop = lineSpanBreak.position + 1;
-                drawStop = drawStop > line.end ? line.end : drawStop;
-                if (drawStart < drawStop) {
-                    // walk trough span.widths ?
-                    for (int i = drawStart < span.start ? span.start : drawStart; i < drawStop; i++) {
-                        float width = span.widths[i - span.start];
-                        if (x + width > atX) return i;
-                        x += width;
-                    }
-                } else {
-                    // Log.v(TAG,"oops");
-                }
-                drawStart = drawStop;
-                resultChar = drawStart;
-                // x += lineSpanBreak.width;
-
-                if (!lineSpanBreak.strong) {
-                    if (x + line.justifyArgument > atX)
-                        return lineSpanBreak.position;
-                    x += line.justifyArgument;
-                }
-                if (lineSpanBreak.carrierReturn) {
-                    // finish lookup character at line
-                    return line.end - 1; // return last character on line
-                    // break drawline;
-                }
-
-                tail = lineSpanBreak.tail;
-                skip = lineSpanBreak.skip;
-
-                lineSpanBreak = lineSpanBreak.next;
-            }
-
-            if (tail > 0f) {
-                drawStop = line.end < span.end ? line.end : span.end;
-                if (drawStart < drawStop) {
-                    for (int i = drawStart; i < drawStop; i++) {
-                        float width = span.widths[i - span.start];
-                        if (x + width > atX) return i;
-                        x += width;
-                    }
-                }
-                // x += tail;
-            }
-            span = span.next;
-            if (span != null) {
-                tail = span.width;
-                lineSpanBreak = span.breakFirst;
-                drawStart = span.start + skip;
-                if (drawStart < span.start) {
-                    // Log.v(TAG, "wut?");
-                }
-                resultChar = drawStart;
-            }
-        }
-
-        return resultChar;
+    public final int getOffsetForHorizontal(TextLayout.TextLine line, int x) {
+        return Utils.runLineSpanToX(getChars(),workPaint,line.span.get(),
+                line.afterBreak == null ? null :
+                        (line.afterBreak.get().position < line.start ? line.afterBreak.get() : null),
+                line.start,
+                x,line.direction,line.justifyArgument,reflowedWidth,getOptions().getTextPaddings(),getOptions().getDrawablePaddings());
     }
+
+//    public final int getOffsetForHorizontalOld(TextLayout.TextLine line, int atX) {
+//        // similar to DRAW, but no actual paint - just determine character position for given x coordinate
+//        // TODO: use code from getOffsetXLtr()
+//        int drawStart = line.start;
+//        int drawStop; // = line.end;
+//        int resultChar = line.start;
+//        int viewWidth = reflowedWidth;
+//
+//        if (line.afterBreak != null) {
+//            // assert(drawStart==line.afterBreak.position+line.afterBreak.skip);
+//        }
+//        boolean isLineRtl = line.direction != Layout.DIR_LEFT_TO_RIGHT;
+//        float tail = line.afterBreak == null ? 0f : line.afterBreak.get().tail;
+//        LineSpan span;
+//        LineSpanBreak lineSpanBreak; // = null;
+//        if (line.span != null) {
+//            span = line.span.get();
+//            lineSpanBreak = line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next);
+//        } else {
+//            // Log.e(TAG, "empty weak ref!");
+//            return line.start;
+//        }
+//        float x = line.margin;
+//        int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
+//
+//        // shift atX by gravity
+//        if (line.gravity != Gravity.NO_GRAVITY) {
+//            if (line.gravity == Gravity.RIGHT) {
+//                atX -= viewWidth - line.width;
+//            } else if (line.gravity == Gravity.CENTER_HORIZONTAL) {
+//                atX -= (viewWidth / 2) - (line.width / 2);
+//            }
+//        }
+//        float ltrX = x;
+//        if (line.direction == Layout.DIR_LEFT_TO_RIGHT && x > atX)
+//            return line.start; // all space before first character belong to first character
+//        else if (line.direction == Layout.DIR_RIGHT_TO_LEFT && (width-x) < line.width)
+//            return line.end;
+//        List<Float> innerRtlStack = new ArrayList<Float>();
+//        drawline:
+//        while (span != null && drawStart < line.end) {
+//            boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
+//            // if (span.widths==null)
+//            //    LineSpan.measure(span,getChars(),measurePaint,true);
+//            // drawStop = span.end < line.end ? span.end : line.end;
+//            if (span.isDrawable) {
+//                if (atX > x && atX <= (x + span.width)) return span.start;
+//                x += span.drawableScaledWidth;
+//                span = span.next;
+//                tail = 0f;
+//                continue drawline;
+//            }
+//            if (isLineRtl) {
+//                while(lineSpanBreak !=null) {
+//                    drawStop = lineSpanBreak.position + 1;
+//                    drawStop = drawStop > line.end ? line.end : drawStop;
+//                    if (drawStart < drawStop) {
+//                        if (isSpanRtl) {
+//                            // if atX point to [viewWidth - x:lineSpanBreak.width] - lookup corresponding character in spanBreak,
+//                            // else - increment x and go to next break
+//                            ///// if (span.reversed==null)
+//                            /////     canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+//                            ///// else
+//                            /////     canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+//                        } else {
+//                            if (innerRtlStack.size()<1) {
+//                                ltrX = x;
+//                                LineSpan ltrSpan = span;
+//                                float tailX = 0f;
+//                                innerLtrScanLoop:
+//                                // TODO: need correct visual order with next line
+//                                // at runtime - this loop executed once for each [ltr,ltr,ltr] sequence on line
+//                                while (ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT && ltrSpan.start < line.end) {
+//                                    LineSpanBreak ltrBreak = lineSpanBreak;
+//                                    if (ltrBreak == null) {
+//                                        // correct previous added offsets
+//                                        for (int cI = 0; cI < innerRtlStack.size(); cI++)
+//                                            innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrSpan.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+//                                        innerRtlStack.add(ltrSpan.width);
+//                                    } else
+//                                        while (ltrBreak != null) {
+//                                            tailX = ltrBreak.tail;
+//                                            // correct previous added offsets
+//                                            for (int cI = 0; cI < innerRtlStack.size(); cI++)
+//                                                innerRtlStack.set(cI, innerRtlStack.get(cI) + ltrBreak.width + (ltrBreak.strong ? 0f : line.justifyArgument));
+//                                            innerRtlStack.add(ltrBreak.width);
+//                                            if (ltrBreak.carrierReturn) // we met end of line, so break loop
+//                                                break innerLtrScanLoop; // TODO: we need to store tail!
+//                                            ltrBreak = ltrBreak.next;
+//                                        }
+//                                    ltrSpan = ltrSpan.next;
+//                                }
+//                                if (tailX > 0f)
+//                                    for (int cI = 0; cI < innerRtlStack.size(); cI++)
+//                                        innerRtlStack.set(cI, innerRtlStack.get(cI) + tailX);
+//                            } // end inner ltr run stack fill
+//
+//                            float correctX = innerRtlStack.remove(0);
+//                            ///// canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - correctX, baseLine, workPaint);
+//                        }
+//                        x += lineSpanBreak.width;
+//                    }
+//                    drawStart = drawStop;
+//                }
+//            } else
+//            while (lineSpanBreak != null) {
+//                drawStop = lineSpanBreak.position + 1;
+//                drawStop = drawStop > line.end ? line.end : drawStop;
+//                if (drawStart < drawStop) {
+//                    // walk trough span.widths ?
+//                    for (int i = drawStart < span.start ? span.start : drawStart; i < drawStop; i++) {
+//                        float width = span.widths[i - span.start];
+//                        if (x + width > atX) return i;
+//                        x += width;
+//                    }
+//                } else {
+//                    // Log.v(TAG,"oops");
+//                }
+//                drawStart = drawStop;
+//                resultChar = drawStart;
+//                // x += lineSpanBreak.width;
+//
+//                if (!lineSpanBreak.strong) {
+//                    if (x + line.justifyArgument > atX)
+//                        return lineSpanBreak.position;
+//                    x += line.justifyArgument;
+//                }
+//                if (lineSpanBreak.carrierReturn) {
+//                    // finish lookup character at line
+//                    return line.end - 1; // return last character on line
+//                    // break drawline;
+//                }
+//
+//                tail = lineSpanBreak.tail;
+//                skip = lineSpanBreak.skip;
+//
+//                lineSpanBreak = lineSpanBreak.next;
+//            }
+//
+//            if (tail > 0f) {
+//                drawStop = line.end < span.end ? line.end : span.end;
+//                if (drawStart < drawStop) {
+//                    for (int i = drawStart; i < drawStop; i++) {
+//                        float width = span.widths[i - span.start];
+//                        if (x + width > atX) return i;
+//                        x += width;
+//                    }
+//                }
+//                // x += tail;
+//            }
+//            span = span.next;
+//            if (span != null) {
+//                tail = span.width;
+//                lineSpanBreak = span.breakFirst;
+//                drawStart = span.start + skip;
+//                if (drawStart < span.start) {
+//                    // Log.v(TAG, "wut?");
+//                }
+//                resultChar = drawStart;
+//            }
+//        }
+//
+//        return resultChar;
+//    }
 
     // returns x coordinate without padding applied
 
-    private int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
-        return (int) getOffsetXLtr(textLine, position);
-    }
+//    private int getCharacterOffsetX(TextLayout.TextLine textLine, int position, boolean justification, float viewWidth, ContentView.Options opts) {
+//        return (int) getOffsetXLtr(textLine, position);
+//    }
 
 
     public class Options extends ContentView.Options {
