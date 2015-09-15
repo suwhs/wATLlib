@@ -741,9 +741,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
          * @param width
          */
 
-        public void justify(int width) {
+        public void justify(ReflowState state,int width) {
             if (whitespaces > 0) {
                 justifyArgument = (width - this.width - 0.5f) / whitespaces;
+            }
+            if (justifyArgument<0f) {
+                Log.e(TAG,"negative justifyArgument with state:" + state);
             }
         }
 
@@ -2113,17 +2116,19 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (carrierReturn) {
                 ld.height += forcedParagraphTopMargin;
                 y += forcedParagraphTopMargin;
+
                 if (leadingMarginSpan == null) { // apply paragraph margins only to lines without leading margin
                     ld.margin += forcedParagraphLeftMargin;
-                    ld.width += forcedParagraphLeftMargin;
+                    //ld.width += forcedParagraphLeftMargin;
                 }
                 leadingMarginSpan = null;
                 carrierReturn = false;
             }
 
             if (justification && ld.whitespaces > mJustificationTreshold)
-                ld.justify(wrapWidth);
-             /* handle exceed view height */
+                ld.justify(state,wrapWidth);
+
+                    /* handle exceed view height */
             y += ld.height; // was state.height at 1368 -- DEBUG
             viewHeightLeft -= ld.height;
                     /* handle wrap ends */
@@ -2147,9 +2152,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 lineMargin = span.margin;
             }
 
-            if (lineMargin > 0 || span.paragraphStart) {
+            if (lineMargin > 0) {
                 state.lineWidth = lineMargin;
             }
+
             state.character++; // nb: breakline does not increment state.character
             state.skipWhitespaces = true;
             lineStartAt = state.character;
@@ -2278,7 +2284,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 processing:
                 while (state.character < span.end || forceBreak) {
                     if (state.skipWhitespaces) { // handle skip whitespaces
-                        if (carrierReturn)
+                        if (carrierReturn && state.lineWidth < 0.5f)
                             state.lineWidth = lineMargin;
                         state.doSkipWhitespaces(text);
                         if (lineStartAt < state.character) // skipWhitespaces must works only at lineStart, so this code execute after line ends
