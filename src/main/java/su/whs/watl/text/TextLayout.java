@@ -299,8 +299,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 continue;
             } else if (y > bottom && y < bottom + line.height) {
-                Log.v(TAG,"x,y=("+x+","+y+") for line="+line);
                 int i = getOffsetForHorizontal(line, (int) x - line.margin);
+                Log.v(TAG,"x,y=("+x+","+y+") for line="+j+" offset="+i+" (from line start= "+(i-line.start)+" )");
                 return i;
             }
             bottom += line.height;
@@ -1654,8 +1654,18 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     private float getOffsetX(TextLine line, int index) {
         Rect textPaddings = getOptions().getTextPaddings();
         Rect drawablePaddings = getOptions().getDrawablePaddings();
-        return Utils.runLineSpanToIndex(getChars(),workPaint,line.span.get(), line.afterBreak == null ? null :
-                line.afterBreak.get(),index,line.direction,line.justifyArgument,reflowedWidth,textPaddings,drawablePaddings);
+        return Utils.runLineSpanToIndex(
+                getChars(),
+                workPaint,
+                line.span.get(),
+                line.afterBreak == null ? null :
+                line.afterBreak.get(),
+                line.start,
+                index,line.direction,
+                getOptions().isJustification() ? line.justifyArgument : 0f,
+                reflowedWidth,
+                textPaddings,
+                drawablePaddings);
     }
 
     /**
