@@ -16,19 +16,6 @@
         <attr name="paragraphMarginLeft" format="dimension"/>
         <attr name="asyncReflow" format="boolean"/>
         <attr name="threadPoolTag" format="string"/>
-    </declare-styleable>
-
-    <declare-styleable name="MultiColumnTextViewEx">
-        <attr name="minColumnWidth" format="dimension"></attr>
-        <attr name="maxColumnWidth" format="dimension"></attr>
-        <attr name="columnCount" format="integer"></attr>
-        <attr name="columnSpacing" format="dimension"></attr>
-        <attr name="columnSeparatorDrawable" format="reference"></attr>
-    </declare-styleable>
-    <declare-styleable name="ContentViewOptions">
-        
-    </declare-styleable>
-    <declare-styleable name="ImagePlacementHanlder">
         <attr name="enableImageWrap" format="boolean"/>
         <attr name="imageMinScaleFactor" format="float"/>
         <attr name="imageWrapMinRatio" format="float"/>
@@ -42,6 +29,21 @@
         <attr name="startAnimationOnClick" format="boolean"/>
         <attr name="zoomImageOnClick" format="boolean"/>
         <attr name="zoomBackDrawable" format="reference"/>
+    </declare-styleable>
+
+    <declare-styleable name="MultiColumnTextViewEx">
+        <attr name="minColumnWidth" format="dimension"></attr>
+        <attr name="maxColumnWidth" format="dimension"></attr>
+        <attr name="columnCount" format="integer"></attr>
+        <attr name="columnSpacing" format="dimension"></attr>
+        <attr name="columnSeparatorDrawable" format="reference"></attr>
+
+    </declare-styleable>
+    <declare-styleable name="ContentViewOptions">
+        
+    </declare-styleable>
+    <declare-styleable name="ImagePlacementHanlder">
+
     </declare-styleable>
 
     <declare-styleable name="ViewPagerExt">

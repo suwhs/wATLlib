@@ -22,7 +22,7 @@ public class Utils {
             Rect textPaddings,
             Rect drawablePaddings) {
 
-        if (direction == Layout.DIR_RIGHT_TO_LEFT)
+        if (direction != Layout.DIR_LEFT_TO_RIGHT)
             return runLineSpanToXRtl(text, paint, span, spanBreak, lineStart, atX, Layout.DIR_RIGHT_TO_LEFT, justifyArgument, width, textPaddings, drawablePaddings);
 
         int drawablePaddingsWidth = drawablePaddings.left + drawablePaddings.right;
@@ -124,7 +124,7 @@ public class Utils {
             }
             float tail = span.width;
 
-            if (span.direction == Layout.DIR_LEFT_TO_RIGHT) {
+            if (span.direction != Layout.DIR_RIGHT_TO_LEFT) {
                 if (ltrRun < 1f) {
                     LineSpan ltrSpan = span;
                     for (; ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT; ltrSpan = ltrSpan.next) {

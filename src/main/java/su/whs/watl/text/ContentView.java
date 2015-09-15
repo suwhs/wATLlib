@@ -79,8 +79,11 @@ public interface ContentView {
         private boolean mDrawableAnimationZoomOnClick = false;
         private boolean mDrawableAnimationAutoStart = false;
         private int mDrawableZoomOverlayBackDrawableResId;
+        private int mDrawableAnimationOverlayDrawableId;
         private int mSelectionCursorDrawableLeft;
         private int mSelectionCursorDrawableRight;
+        private boolean mDrawableAnimationStartOnClick = false;
+        private boolean mDrawableZoomOnClick = false;
         private boolean mIsAsyncReflow = true;
         protected OptionsChangeListener mListener;
 
@@ -202,6 +205,32 @@ public interface ContentView {
                     mNewLineLeftMargin = (int) ta.getDimension(attr, 0f);
                 } else if (attr == R.styleable.TextViewEx_asyncReflow) {
                     mIsAsyncReflow = ta.getBoolean(attr,true);
+                } else if (attr == R.styleable.TextViewEx_enableImageWrap) {
+
+                } else if (attr == R.styleable.TextViewEx_imagePaddingLeft) {
+                    mDrawablePaddings.left = (int)ta.getDimension(attr,0f);
+                } else if (attr == R.styleable.TextViewEx_imagePaddingTop) {
+                    mDrawablePaddings.top = (int)ta.getDimension(attr,0f);
+                } else if (attr == R.styleable.TextViewEx_imagePaddingRight) {
+                    mDrawablePaddings.right = (int)ta.getDimension(attr,0f);
+                } else if (attr == R.styleable.TextViewEx_imagePaddingBottom) {
+                    mDrawablePaddings.bottom = (int)ta.getDimension(attr,0f);
+                } else if (attr == R.styleable.TextViewEx_imageMinScaleFactor) {
+                    mDrawableMinimumScaleFactor = (int)ta.getFloat(attr,1f);
+                } else if (attr == R.styleable.TextViewEx_imageWrapMaxWidthFraction) {
+                    mDrawableWrapWidthTreshold = ta.getFloat(attr,1f);
+                } else if (attr == R.styleable.TextViewEx_imageWrapMinRatio) {
+                    mDrawableWrapRatioTreshold = ta.getFloat(attr,1f);
+                } else if (attr == R.styleable.TextViewEx_zoomImageOnClick) {
+                    mDrawableZoomOnClick = ta.getBoolean(attr,false);
+                } else if (attr == R.styleable.TextViewEx_zoomBackDrawable) {
+                    mDrawableZoomOverlayBackDrawableResId = ta.getResourceId(attr,0);
+                } else if (attr == R.styleable.TextViewEx_imageAnimationAutoStart) {
+                    mDrawableAnimationAutoStart = ta.getBoolean(attr,false);
+                } else if (attr == R.styleable.TextViewEx_imageAnimationOverlayDrawable) {
+                    mDrawableZoomOverlayBackDrawableResId = ta.getResourceId(attr,0);
+                } else if (attr == R.styleable.TextViewEx_startAnimationOnClick) {
+                    mDrawableAnimationStartOnClick = ta.getBoolean(attr,false);
                 } else {
                     Log.e(TAG,"unknown TextViewEx attribute index: " + i);
                 }
@@ -210,33 +239,7 @@ public interface ContentView {
             /* ImagePlacementHandler Attributes */
             ta = context.obtainStyledAttributes(attrs,R.styleable.ImagePlacementHanlder,defStyleRes,defStyleAttr);
             for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
-                if (attr == R.styleable.ImagePlacementHanlder_enableImageWrap) {
 
-                } if (attr == R.styleable.ImagePlacementHanlder_imagePaddingLeft) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingTop) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingRight) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imagePaddingBottom) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imageMinScaleFactor) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imageWrapMaxWidthFraction) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imageWrapMinRatio) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_zoomImageOnClick) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_zoomBackDrawable) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imageAnimationAutoStart) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_imageAnimationOverlayDrawable) {
-
-                } else if (attr == R.styleable.ImagePlacementHanlder_startAnimationOnClick) {
-
-                }
             }
             ta.recycle();
         }
