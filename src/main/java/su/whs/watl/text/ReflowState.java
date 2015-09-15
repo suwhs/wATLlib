@@ -309,6 +309,7 @@ class ReflowState {
         }
 
         lineWidth = 0f;
+
         breakWidth = 0f;
         height = 0; // span.height;
         leading = 0f; // span.leading;

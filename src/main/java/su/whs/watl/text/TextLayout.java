@@ -1898,7 +1898,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (imagePlacementHandler.isWrapText(placement) && state.gravity != Gravity.CENTER_HORIZONTAL) {
                 if (debug) Log.v(TAG, "wrapText");
                 if (wrapHeight > 0) {
-                    Log.e(TAG, "close wrap null span");
+                    Log.e(TAG, "close wrap null span"); // FIXME: here we are exeed viewHeight, but not tell to listener - check
                     result.add(new TextLine(null, 0, wrapHeight));
                     wrapMargin = 0;
                 }
@@ -1962,6 +1962,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 ld.gravity = state.gravity;
                 result.add(ld); // first call here
                 state.breakLineAfterImage();
+                wrapWidth = width - lineWidthDec;
                 // state.breakLine(false,ld);
                 collectHeights = false;
                 lineStartAt = state.span.end;
@@ -2122,8 +2123,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (justification && ld.whitespaces > mJustificationTreshold)
                 ld.justify(wrapWidth);
-
-                    /* handle exceed view height */
+             /* handle exceed view height */
             y += ld.height; // was state.height at 1368 -- DEBUG
             viewHeightLeft -= ld.height;
                     /* handle wrap ends */
