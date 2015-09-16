@@ -16,6 +16,7 @@ public class Utils {
             LineSpanBreak spanBreak,
             int lineStart,
             float atX,
+            float margin,
             int direction,
             float justifyArgument,
             int width,
@@ -23,11 +24,11 @@ public class Utils {
             Rect drawablePaddings) {
 
         if (direction != Layout.DIR_LEFT_TO_RIGHT)
-            return runLineSpanToXRtl(text, paint, span, spanBreak, lineStart, atX, Layout.DIR_RIGHT_TO_LEFT, justifyArgument, width, textPaddings, drawablePaddings);
+            return runLineSpanToXRtl(text, paint, span, spanBreak, lineStart, atX, margin, Layout.DIR_RIGHT_TO_LEFT, justifyArgument, width, textPaddings, drawablePaddings);
 
         int drawablePaddingsWidth = drawablePaddings.left + drawablePaddings.right;
 
-        float x = 0f;
+        float x = margin;
         boolean needCleanUp = false;
         int run = lineStart;
         LineSpanBreak lineSpanBreak = spanBreak;
@@ -90,13 +91,14 @@ public class Utils {
         return run;
     }
 
-    private static int runLineSpanToXRtl(
+    private static int runLineSpanToXRtl( // FIXME: wrong values returns
             char[] text,
             TextPaint paint,
             LineSpan span,
             LineSpanBreak spanBreak,
             int lineStart,
             float atX,
+            float margin,
             int direction,
             float justifyArgument,
             int width,
@@ -104,7 +106,7 @@ public class Utils {
             Rect drawablePaddings) {
         int drawablePaddingsWidth = drawablePaddings.left + drawablePaddings.right;
         float ltrRun = 0f;
-        float x = width;
+        float x = width - margin;
         boolean needCleanUp = false;
         int run = lineStart;
         LineSpanBreak lineSpanBreak = spanBreak;
@@ -227,7 +229,7 @@ public class Utils {
      * else (for RTL) - returns right bound
      */
 
-    public static float runLineSpanToIndex(char[] text, TextPaint paint, LineSpan span, LineSpanBreak spanBreak, int lineStart, int index, int direction, float justifyArgument, int width, Rect textPaddings, Rect drawablePaddings) {
+    public static float runLineSpanToIndex(char[] text, TextPaint paint, LineSpan span, LineSpanBreak spanBreak, int lineStart, int index, int margin, int direction, float justifyArgument, int width, Rect textPaddings, Rect drawablePaddings) {
         if (direction == Layout.DIR_RIGHT_TO_LEFT)
             return runLineSpanToIndexRtl(text, paint, span, spanBreak, lineStart, index, justifyArgument, width, textPaddings, drawablePaddings);
 
@@ -251,7 +253,7 @@ public class Utils {
             }
             float tail = span.width;
 
-
+            if (lineSpanBreak==null) lineSpanBreak = span.breakFirst;
             runBreaks:
             while (lineSpanBreak != null) {
                 if (lineSpanBreak.position >= index) {
@@ -264,10 +266,10 @@ public class Utils {
                         x += span.widths[i - span.start];
                     }
                     if (needCleanUp) span.widths = null;
-                    return x;
+                    return x + margin;
                 }
                 if (lineSpanBreak.carrierReturn) { // reached end of line, so returns last character on line
-                    return x;
+                    return x + margin;
                 }
                 x += lineSpanBreak.width + (lineSpanBreak.strong ? 0f : justifyArgument);
                 tail = lineSpanBreak.tail;
@@ -283,7 +285,7 @@ public class Utils {
                 for (i = run; i < span.end && i < index; i++)
                     x += span.widths[i - span.start];
                 if (needCleanUp) span.widths = null;
-                return x;
+                return x + margin;
             }
             x += tail > 0f ? tail : 0f;
             span = span.next;
@@ -293,7 +295,7 @@ public class Utils {
             }
         }
 
-        return x;
+        return x + margin;
 
     }
 
@@ -308,119 +310,8 @@ public class Utils {
             int width,
             Rect textPaddings,
             Rect drawablePaddings) {
-        int drawablePaddingsWidth = drawablePaddings.left + drawablePaddings.right;
-        float ltrRun = 0f;
-        float x = width;
-        boolean needCleanUp = false;
-        int run = lineStart; // decrement x until run < index
-        LineSpanBreak lineSpanBreak = spanBreak;
-        while (span.end <= run && span.next != null) span = span.next;
-        while (lineSpanBreak != null && lineSpanBreak.position < run)
-            lineSpanBreak = lineSpanBreak.next;
-        if (lineSpanBreak != null && lineSpanBreak.position == span.end) {
-            span = span.next;
-        }
-        runSpans:
-        while (span != null) {
-            if (span.isDrawable) {
-                float drawableWidth = drawablePaddingsWidth + (span.drawableScaledWidth > 0f ? span.drawableScaledWidth : span.width);
-                x -= drawableWidth;
-            }
-            float tail = span.width;
-
-            if (span.direction == Layout.DIR_LEFT_TO_RIGHT) {
-                if (ltrRun < 1f) {
-                    LineSpan ltrSpan = span;
-                    for (; ltrSpan != null && ltrSpan.direction == Layout.DIR_LEFT_TO_RIGHT; ltrSpan = ltrSpan.next) {
-                        LineSpanBreak ltrBreak = ltrSpan.breakFirst;
-                        for (; ltrBreak != null; ltrBreak = ltrBreak.next) {
-                            tail = ltrBreak.tail;
-                            ltrRun += ltrBreak.width + (ltrBreak.strong ? 0f : justifyArgument);
-                        }
-                    }
-                    if (tail > 0f)
-                        ltrRun += tail;
-                }
-                runBreaksLtr:
-                while (lineSpanBreak != null) {
-                    if (lineSpanBreak.position >= index) { // index point to character in lineSpanBreak (LTR)
-                        int i;
-                        if (span.widths == null) {
-                            LineSpan.measure(span, text, paint, true);
-                            needCleanUp = true;
-                        }
-                        for (i = run; i <= lineSpanBreak.position && i < index; i++) {
-                            ltrRun -= span.widths[i - span.start];
-                        }
-                        if (needCleanUp) span.widths = null;
-                        return x - ltrRun;
-                    }
-                    if (lineSpanBreak.carrierReturn) { // reached end of line, so returns last character on line
-                        return x;
-                    }
-                    ltrRun -= lineSpanBreak.width + (lineSpanBreak.strong ? 0f : justifyArgument);
-                    lineSpanBreak = lineSpanBreak.next;
-                }
-                if (span.end > run && span.end > index) { // x point to character in ltr tail
-                    int i;
-                    if (span.widths == null) {
-                        LineSpan.measure(span, text, paint, true);
-                        needCleanUp = true;
-                    }
-                    for (i = run; i < span.end && i < index; i++)
-                        x -= span.widths[i - span.start];
-                    if (needCleanUp) span.widths = null;
-                    return x;
-                }
-                x -= tail > 0f ? tail : 0;
-                span = span.next;
-                if (span != null) {
-                    lineSpanBreak = span.breakFirst;
-                    run = span.start + span.skip;
-                }
-            } else {
-                runBreaks:
-                while (lineSpanBreak != null) {
-                    if (lineSpanBreak.position >= index) {
-                        int i;
-                        if (span.widths == null) {
-                            LineSpan.measure(span, text, paint, true);
-                            needCleanUp = true;
-                        }
-                        for (i = run; i < lineSpanBreak.position && i < index; i++) {
-                            x -= span.widths[i - span.start];
-                        }
-                        if (needCleanUp) span.widths = null;
-                        return x;
-                    }
-                    if (lineSpanBreak.carrierReturn) { // reached end of line, so returns last character on line
-                        return x;
-                    }
-                    x -= lineSpanBreak.width + (lineSpanBreak.strong ? 0f : justifyArgument);
-                    tail = lineSpanBreak.tail;
-                    run = lineSpanBreak.position + 1 + lineSpanBreak.skip;
-                    lineSpanBreak = lineSpanBreak.next;
-                }
-                if (span.end > run && span.end > index) {
-                    int i;
-                    if (span.widths == null) {
-                        LineSpan.measure(span, text, paint, true);
-                        needCleanUp = true;
-                    }
-                    for (i = run; i < span.end && i < index; i++)
-                        x -= span.widths[i - span.start];
-                    if (needCleanUp) span.widths = null;
-                    return x;
-                }
-                x += tail > 0f ? tail : 0f;
-                span = span.next;
-                if (span != null) {
-                    lineSpanBreak = span.breakFirst;
-                    run = span.start + span.skip;
-                }
-            }
-        }
-
-        return x;
+            // FIXME: implement after debug runLineSpanToXRtl
+        return width;
     }
 }
+

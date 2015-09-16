@@ -299,7 +299,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
                 continue;
             } else if (y > bottom && y < bottom + line.height) {
-                int i = getOffsetForHorizontal(line, (int) x - line.margin);
+                int i = getOffsetForHorizontal(line, (int) x);
                 Log.v(TAG,"x,y=("+x+","+y+") for line="+j+" offset="+i+" (from line start= "+(i-line.start)+" )");
                 return i;
             }
@@ -1279,10 +1279,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 /* selection starts on current line, but ends on next line or below */
                     findSelectionStartX = true;
                     selectEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
-                } else if (selectionStart >= line.start && selectionEnd < line.end) {
+                } else if (selectionStart > line.start && selectionEnd < line.end) {
                 /* selection starts and ends on current line */
                     findSelectionStartX = true;
                     findSelectionEndX = true;
+                } else if (selectionEnd==line.end) {
+                    selectEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
                 }
                 drawSelection = true;
             }
@@ -1344,7 +1346,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     selectStartX = getOffsetX(line, selectionStart); // calculateOffset(line.span.get(), line.start, selectionStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + align;
                 if (findSelectionEndX)
                     selectEndX = getOffsetX(line, selectionEnd); // calculateOffset(line.span.get(), line.start, selectionEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin +line.wrapMargin + align;
-                canvas.drawRect(selectStartX + align - leftOffset, y, selectEndX + align - leftOffset, y + line.height, selectionPaint);
+                canvas.drawRect(selectStartX + align, y, selectEndX + align, y + line.height, selectionPaint);
             }
 
             LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
@@ -1664,7 +1666,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 line.afterBreak == null ? null :
                 line.afterBreak.get(),
                 line.start,
-                index,line.direction,
+                index,
+                line.margin,
+                line.direction,
                 getOptions().isJustification() ? line.justifyArgument : 0f,
                 reflowedWidth,
                 textPaddings,
@@ -1709,7 +1713,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 line.afterBreak == null ? null :
                         (line.afterBreak.get().position < line.start ? line.afterBreak.get() : null),
                 line.start,
-                x,line.direction,line.justifyArgument,reflowedWidth,getOptions().getTextPaddings(),getOptions().getDrawablePaddings());
+                x,line.margin,line.direction,line.justifyArgument,reflowedWidth,getOptions().getTextPaddings(),getOptions().getDrawablePaddings());
     }
 
     public class Options extends ContentView.Options {
