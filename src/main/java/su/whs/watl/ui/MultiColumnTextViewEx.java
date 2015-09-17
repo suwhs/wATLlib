@@ -27,7 +27,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private int mMinColumnWidth = -1;
     private int mMaxColumnWidth = -1;
     private int mColumnWidth = 0;
-    private int mColumnSpacing = 25;
+    private int mColumnSpacing = 20;
     private int mColumnsCount = 1;
     private int mTextLayoutHeight = -1;
     private Drawable mColumnSeparatorDrawable = null;
@@ -70,13 +70,17 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MultiColumnTextViewEx,defStyleRes,defStyleAttr);
         for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
             if (attr == R.styleable.MultiColumnTextViewEx_columnCount) {
-                mColumnsCount = ta.getInt(attr,1);
+                setColumnsCount(ta.getInt(attr,1));
             } else if (attr == R.styleable.MultiColumnTextViewEx_columnSpacing) {
-                mColumnSpacing = ta.getInt(attr,25);
+                mColumnSpacing = (int)ta.getDimension(attr,25);
             } else if (attr == R.styleable.MultiColumnTextViewEx_minColumnWidth) {
                 mMinColumnWidth = ta.getInt(attr,-1);
+                if (mMinColumnWidth>-1)
+                    mColumnsCountChanged = true;
             } else if (attr == R.styleable.MultiColumnTextViewEx_maxColumnWidth) {
                 mMaxColumnWidth = ta.getInt(attr,-1);
+                if (mMaxColumnWidth>-1)
+                    mColumnsCountChanged = true;
             } else if (attr == R.styleable.MultiColumnTextViewEx_columnSeparatorDrawable) {
                 mColumnSeparatorDrawable = ta.getDrawable(attr);
             } else {
@@ -90,16 +94,13 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     protected void prepareLayout(int textLayoutWidth, int textLayoutHeight) {
         mTextLayoutHeight = textLayoutHeight;
-        if (mColumnWidth<1) {
+        if (mColumnWidth<1 || mColumnsCountChanged) {
             if (mColumnsCount==1 && (mMinColumnWidth>-1 || mMaxColumnWidth > -1)) {
                 mColumnsCount = determineColumnsCount(mMinColumnWidth,mMaxColumnWidth,textLayoutWidth);
                 setColumnsCount(mColumnsCount);
-                calculateColumns(textLayoutWidth);
-            } else if (mColumnWidth==0) {
-                setColumnsCount(mColumnsCount);
-                calculateColumns(getMeasuredWidth()-getCompoundPaddingLeft()-getCompoundPaddingRight());
             }
         }
+        calculateColumns(textLayoutWidth);
 
         getTextLayout().setSize(mColumnWidth, -1, textLayoutHeight);
     }
@@ -158,6 +159,9 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         int heightSpec = MeasureSpec.getMode(hms);
         if (heightSpec == MeasureSpec.UNSPECIFIED) {
             mRecalculateHeightOnFinish = true;
+            if (mTextReady) {
+                onTextReady();
+            }
         }
     }
 
@@ -202,7 +206,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         int startLine = column < mColumnsCount ? mColumnsLinesStarts[column] : mColumnsCount-1;
 
         translated.x = x - (column*layoutWidth);
-        translated.y = y;
+        translated.y = y; // + getOptions().getTextPaddings().top; //  - (column*getOptions().getTextPaddings().top);
         for (int i=0; i< column; translated.y+=mLinesHeightsOnColumns[i], i++);
 
         return startLine;
@@ -256,12 +260,21 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         }
         int q = (textLayoutWidth / mColumnsCount);
         if (q > 1) {
-            Rect textPaddings = getOptions().getTextPaddings();
-            int spacingSum = (mColumnSpacing+textPaddings.left+textPaddings.right) * (mColumnsCount - 1);
+            int space = getColumnSpacingInternal();
+            int spacingSum = space * (mColumnsCount - 1);
             mColumnWidth = (textLayoutWidth - spacingSum) / mColumnsCount;
         } else {
             mColumnWidth = q; // q = 1, so no spacing
         }
+    }
+
+    private int getColumnSpacingInternal() {
+        Rect textPaddings = getOptions().getTextPaddings();
+        Rect drawablePaddings = getOptions().getDrawablePaddings();
+        int textPaddingsWidth = textPaddings.left + textPaddings.right;
+        int drawablePaddingsWidth = drawablePaddings.left + drawablePaddings.right;
+        int paddingsWidth = textPaddingsWidth < drawablePaddingsWidth ? textPaddingsWidth : drawablePaddingsWidth;
+        return mColumnSpacing > paddingsWidth / 2 ? mColumnSpacing : paddingsWidth / 2; // overlap maximum spacing/paddings
     }
 
     /* used to autmatic split text's to columns */
@@ -374,6 +387,12 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private int storedWidth = 0;
 
     @Override
+    protected void resetState() {
+        super.resetState();
+
+    }
+
+    @Override
     public void onTextInfoInvalidated() {
         mTextReady = false;
         // Log.v(TAG,""+this+" onTextInfoInvalidated");
@@ -385,7 +404,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             if (storedWidth==0) // FIXME: dirty hack
                 storedWidth = getMeasuredWidth()-getCompoundPaddingRight()-getCompoundPaddingLeft();
             if (storedWidth==0)
-                storedWidth = getTextLayout().getWidth() * mColumnsCount + (mColumnSpacing*(mColumnsCount-1));
+                storedWidth = getTextLayout().getWidth() * mColumnsCount + (getColumnSpacingInternal()*(mColumnsCount-1));
             calculateColumns(storedWidth);
         }
         super.onTextInfoInvalidated();
@@ -416,7 +435,6 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public int getLineBounds(int line, Rect bounds) {
         Log.d(TAG,"getLineBounds("+line+",bounds");
-        int paddingTop = getOptions().getTextPaddings().top;
         int deltaY = 0;
         int deltaX = 0;
         int baseLine;
@@ -429,7 +447,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
                 return -1;
             }
             for (int i = 0; i < column; i++) {
-                deltaY += mLinesHeightsOnColumns[i] - paddingTop;
+                deltaY += mLinesHeightsOnColumns[i];
                 deltaX += mColumnWidth + mColumnSpacing;
             }
             baseLine = super.getLineBounds(line, bounds);

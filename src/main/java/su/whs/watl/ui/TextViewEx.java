@@ -43,7 +43,7 @@ import su.whs.watl.text.TextLayoutListener;
 
 public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextView {
     private static final String TAG = "TextViewEx";
-    private ContentView.Options mPendingOptions = new ContentView.Options();
+    //private ContentView.Options mPendingOptions; // = new ContentView.Options();
     private boolean mDebug = BuildConfig.DEBUG;
 
     private TextLayout mTextLayout;
@@ -89,7 +89,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     public TextViewEx(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mPendingOptions.fromAttributes(context,attrs,defStyle,0);
+        getOptions().fromAttributes(context, attrs, defStyle, 0);
     }
 
     @Override
@@ -109,7 +109,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public ContentView.Options getOptions() {
-        return mTextLayout==null ? mPendingOptions : mTextLayout.getOptions();
+        return mTextLayout==null ? makeOptions() : mTextLayout.getOptions();
+    }
+
+    protected ContentView.Options makeOptions() {
+        return new ContentView.Options();
     }
 
     @Override
@@ -123,10 +127,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         super.setText("", BufferType.NORMAL);
         if (_text == null || _text.length() < 1) return;
 
-        if (mTextLayout==null && mPendingOptions == null) {
-                mPendingOptions = new ContentView.Options();
-        }
-
+//        if (mTextLayout==null && mPendingOptions == null) {
+//                mPendingOptions = new ContentView.Options();
+//        }
+        // mTextLayout = null; // remove layout if exists;
         mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
                 getOptions() ,
                 this);
@@ -532,7 +536,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public boolean onPreDraw() {
         if (isInEditMode()) return super.onPreDraw(); // required for ide 'rendering errors'
         /* suppress original TextView onPreDraw() */
-        if (mTextLayout == null) {;
+        if (mTextLayout == null) {
             return false;
         }
         if (!mTextLayout.isLayouted()) {

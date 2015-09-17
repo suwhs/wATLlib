@@ -29,6 +29,10 @@
         <attr name="startAnimationOnClick" format="boolean"/>
         <attr name="zoomImageOnClick" format="boolean"/>
         <attr name="zoomBackDrawable" format="reference"/>
+        <attr name="textPaddingLeft" format="dimension"/>
+        <attr name="textPaddingTop" format="dimension"/>
+        <attr name="textPaddingRight" format="dimension"/>
+        <attr name="textPaddingBottom" format="dimension"/>
     </declare-styleable>
 
     <declare-styleable name="MultiColumnTextViewEx">

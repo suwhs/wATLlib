@@ -271,7 +271,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             Log.e(TAG, "need reflow!");
             return 0;
         }
-
+        y += getOptions().getTextPaddings().top;
         for (int j = startsFromLine; j < lines.size(); j++) {
             TextLine line = lines.get(j);
             LineSpan span = line.span==null ? null : line.span.get();
@@ -949,7 +949,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int rW = reflowedWidth;
         int rH = reflowedHeight;
         invalidateMeasurementInternal();
-        setSize(rW, rH, viewHeight);
+        // setSize(rW, rH, viewHeight);
+        if (listener!=null) listener.onTextInfoInvalidated();
     }
 
     /**

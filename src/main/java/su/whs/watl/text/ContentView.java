@@ -88,7 +88,7 @@ public interface ContentView {
         protected OptionsChangeListener mListener;
 
         public Options() {
-
+            Log.d(TAG,"create options");
         }
 
         public Options(Options source) {
@@ -230,7 +230,15 @@ public interface ContentView {
                 } else if (attr == R.styleable.TextViewEx_imageAnimationOverlayDrawable) {
                     mDrawableZoomOverlayBackDrawableResId = ta.getResourceId(attr,0);
                 } else if (attr == R.styleable.TextViewEx_startAnimationOnClick) {
-                    mDrawableAnimationStartOnClick = ta.getBoolean(attr,false);
+                    mDrawableAnimationStartOnClick = ta.getBoolean(attr, false);
+                } else if (attr == R.styleable.TextViewEx_textPaddingLeft) {
+                    mTextPaddings.left = (int) ta.getDimension(attr, 0);
+                } else if (attr == R.styleable.TextViewEx_textPaddingTop) {
+                    mTextPaddings.top = (int) ta.getDimension(attr, 0);
+                } else if (attr == R.styleable.TextViewEx_textPaddingRight) {
+                    mTextPaddings.right = (int) ta.getDimension(attr, 0);
+                } else if (attr == R.styleable.TextViewEx_textPaddingBottom) {
+                    mTextPaddings.bottom = (int) ta.getDimension(attr,0);
                 } else {
                     Log.e(TAG,"unknown TextViewEx attribute index: " + i);
                 }

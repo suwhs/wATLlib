@@ -206,7 +206,7 @@ public class HyphenLineBreaker extends LineBreaker {
             return start;
         } else {
             if (letter)
-                return firstNonLetterBackward(text, start, end+1);
+                return firstNonLetterBackward(text, start, end);
             // not sufficient characters for soft-hyphen, or 'end' is not letter
             return end;
         }
