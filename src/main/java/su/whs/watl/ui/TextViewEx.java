@@ -45,7 +45,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     private static final String TAG = "TextViewEx";
     //private ContentView.Options mPendingOptions; // = new ContentView.Options();
     private boolean mDebug = BuildConfig.DEBUG;
-
+    private boolean mOriginalHeightUnknown = true;
     private TextLayout mTextLayout;
     private boolean mHeightWrapContent = false;
     // private boolean mFallBackMode = false;
@@ -228,6 +228,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
             }
         } else {
+            mOriginalHeightUnknown = false;
             mNeedTotalHeight = false;
             if (getVisibility()==View.INVISIBLE) {
                 prepareLayout(want,height-cpT-cpB);
@@ -404,6 +405,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     protected void resetState() {
+        if (mOriginalHeightUnknown)
+            mNeedTotalHeight = true;
         setSelection(0, 0);
         setSelected(false);
         super.invalidateContent();
