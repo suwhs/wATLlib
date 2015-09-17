@@ -1971,7 +1971,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 result.add(ld); // first call here
                 state.breakLineAfterImage();
                 wrapWidth = width - lineWidthDec;
-                // state.breakLine(false,ld);
+                wrapMargin = 0;
                 collectHeights = false;
                 lineStartAt = state.span.end;
                 carrierReturn = true;

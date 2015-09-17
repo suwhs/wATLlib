@@ -131,8 +131,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 //                mPendingOptions = new ContentView.Options();
 //        }
         // mTextLayout = null; // remove layout if exists;
+        ContentView.Options backup = getOptions();
         mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
-                getOptions() ,
+                backup ,
                 this);
         mTextLayout.getOptions().setImagePlacementHandler(mImagePlacementHandler);
         if (mHeightWrapContent)
