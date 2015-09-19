@@ -2281,19 +2281,19 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 if (spanHeight > state.height) {
                     state.height = spanHeight; // maximum state changed, check if line too much height
-              /*      if ((viewHeight > -1) && viewHeightLeft < state.height) { // TODO: check span.isDrawable
+                    if ((viewHeight > -1) && viewHeightLeft < state.height) { // TODO: check span.isDrawable
                         if(!onProgress(result,collectedHeight,true))
                             break recursion;
                         if (updateGeometry(geometry)) {
                             width = geometry[0];
                             viewHeight = geometry[1];
                         }
-                        y = textPaddings.top;  // y zeroed only if viewHeight greater than -1
+                        y = 0;  // y zeroed only if viewHeight greater than -1
                         viewHeightLeft = viewHeight - viewHeightDec;
                         wrapWidth = width - lineWidthDec;
                         wrapHeight = 0;
                         wrapMargin = 0;
-                    } */
+                    }
                 }
                 if (spanLeading > state.leading) state.leading = spanLeading;
                 if (spanDescent > state.descent) state.descent = spanDescent;
