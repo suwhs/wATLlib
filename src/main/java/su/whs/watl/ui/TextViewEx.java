@@ -45,7 +45,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     private static final String TAG = "TextViewEx";
     //private ContentView.Options mPendingOptions; // = new ContentView.Options();
     private boolean mDebug = BuildConfig.DEBUG;
-    private boolean mOriginalHeightUnknown = true;
     private TextLayout mTextLayout;
     private boolean mHeightWrapContent = false;
     // private boolean mFallBackMode = false;
@@ -214,7 +213,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         int want = width - (cpL + cpR);
 
-        if (height < 0) { // if WRAP_CONTENT - sttart layout process immediately
+        if (height < 0) { // if WRAP_CONTENT - start layout process immediately
             mHeightWrapContent = true;
             if (mTextLayout != null) {
                 if (!mTextLayout.isLayouted()) {
@@ -225,10 +224,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
                     height = mTextLayout.getHeight();
                 }
             } else {
-
+                // no text layout - wait for first draw() call
             }
         } else {
-            mOriginalHeightUnknown = false;
             mNeedTotalHeight = false;
             if (getVisibility()==View.INVISIBLE) {
                 prepareLayout(want,height-cpT-cpB);
@@ -337,7 +335,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     /**
-     *
+     * returns character position for given coordinates on layout
      * @param x         - horizontal coordinate
      * @param y         - vertical coordinate
      * @param startLine - count from line number (usually 0)
@@ -348,21 +346,30 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
         Rect paddings = getOptions().getTextPaddings();
         int offset = getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y - paddings.top, startLine);
-        // int line = getTextLayout().getLineForVertical((int)y);
-        // Log.v(TAG,"x,y = ("+x+","+y+") for line="+line);
-        // if (line>-1) getLineBounds(line,debugClickedLineBound);
         return offset;
     }
 
+    /**
+     *
+     * @param position - character index in text
+     * @return line number
+     */
     @Override
     protected int getLineForPosition(int position) {
         return getTextLayout().getLineForPosition(position);
     }
 
+    /**
+     * called when urlspan clicked
+     * @param url
+     * @param position
+     * @param span
+     */
     @Override
     protected void onUrlClicked(String url, int position, ClickableSpan span) {
         if (mHighlightedSpan == span) {
-            Log.v(TAG, "clicked on url: '" + url + "'");
+            if (mDebug)
+                Log.v(TAG, "clicked on url: '" + url + "'");
             try {
                 span.onClick(this);
             } catch (Exception e) {
@@ -383,11 +390,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     /**
-     * @return true, if 'full text justification' enabled
-     */
-
-
-    /**
      * @return number of lines from TextLayout
      */
 
@@ -404,9 +406,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
     }
 
+    /**
+     * reset state (currently - only selections)
+     */
     protected void resetState() {
-        if (mOriginalHeightUnknown)
-            mNeedTotalHeight = true;
         setSelection(0, 0);
         setSelected(false);
         super.invalidateContent();
@@ -424,7 +427,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void onTextInfoInvalidated() {
         // Log.v(TAG, "onTextInfoInvalidated()");
         resetState();
-        if (mNeedTotalHeight || mOriginalHeightUnknown) {
+        if (mNeedTotalHeight) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
@@ -436,27 +439,31 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             postInvalidate();
     }
 
+    /**
+     * called by TextLayout when reflow() process finished
+     */
     @Override
     public void onTextReady() {
-        // Log.v(TAG, "onTextReady");
+        if (mDebug) Log.v(TAG, "onTextReady");
 
         int lastLine = mTextLayout.getLinesCount();
         if (lastLine < 1) return;
         int nextCharacter = mTextLayout.getLineEnd(lastLine - 1);
-        /*
-        int firstCharacter = mTextLayout.getLineStart(lastLine - 1);
-        String lastLineStr = getText().subSequence(firstCharacter, nextCharacter).toString();
-        Log.v(TAG, "last line: '" + lastLineStr + "'");
-        */
+        if (mDebug) {
+            int firstCharacter = mTextLayout.getLineStart(lastLine - 1);
+            String lastLineStr = getText().subSequence(firstCharacter, nextCharacter).toString();
+            Log.v(TAG, "last line: '" + lastLineStr + "'");
+        }
         if (mLayoutListener != null) {
             mLayoutListener.onLayoutFinished(nextCharacter);
         }
     }
 
     /**
-     * called fron non-ui thread
+     * called when given height exceed
+     * WARN: called fron non-ui thread
      * @param collectedHeight
-     * @return
+     * @return false, if no more lines required for this view
      */
 
     @Override
@@ -495,12 +502,20 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
     }
 
+    /**
+     * called by touch handler, if touched on dynamicdrawablespan
+     * used internally for call DynamicDrawableInteractionListener
+     * @param drawable
+     * @param position
+     * @param dynamicDrawableSpan
+     */
+
     @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
         //
         Rect bounds = new Rect();
         if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
-            Log.v(TAG, "clicked on drawable: '" + drawable + "'");
+            Log.v(TAG, "clicked on drawable: '" + drawable + "' ["+bounds+"]");
         } else {
             Log.e(TAG,"clicked on invisible drawable: "+position);
         }
@@ -517,9 +532,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         mDynamicDrawableInteractionListener = listener;
     }
 
-    public class Options extends ContentView.Options {
-
-    }
+    /**
+     * calculate geometric bounds for line on layout
+     * @param line
+     * @param outBounds
+     * @return
+     */
 
     @Override
     public int getLineBounds(int line, Rect outBounds) {
@@ -527,12 +545,19 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         Rect p = getOptions().getTextPaddings();
         outBounds.top = l.getLineTop(line);
-        outBounds.left = (int) l.getPrimaryHorizontal(line, l.getLineStart(line));
-        outBounds.right = (int) l.getPrimaryHorizontal(line, l.getLineEnd(line));
+        outBounds.left = l.getPrimaryHorizontal(line, l.getLineStart(line));
+        outBounds.right = l.getPrimaryHorizontal(line, l.getLineEnd(line));
         outBounds.bottom = l.getLineBottom(line);
         return (int) (outBounds.bottom - l.getLineDescent(line));
     }
 
+    /**
+     *
+     * @param line          - lineNumber
+     * @param postionAtLine - character index (in getText()). poasitionAtLine >= getLineStart(line) && positionAtLine < getLineEnd(line)
+     * @param viewWidth     - current view width (required for calculating offset correctly, with justification and alignment)
+     * @return
+     */
 
     @Override
     protected float getPrimaryHorizontal(int line, int postionAtLine, int viewWidth) {
