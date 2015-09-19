@@ -1873,7 +1873,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             if (viewHeight > -1) { // TODO: reorganize conditions
                 collectedHeight += y;
-                y = 0;  // y zeroed only if viewHeight greater than -1
+                y = 0; // textPaddings.top;  // y zeroed only if viewHeight greater than -1
                 viewHeightLeft = viewHeight - viewHeightDec;
                 wrapWidth = width - lineWidthDec;
                 wrapHeight = 0;
@@ -2279,7 +2279,22 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     spanDescent = span.descent;
                 }
 
-                if (spanHeight > state.height) state.height = spanHeight;
+                if (spanHeight > state.height) {
+                    state.height = spanHeight; // maximum state changed, check if line too much height
+              /*      if ((viewHeight > -1) && viewHeightLeft < state.height) { // TODO: check span.isDrawable
+                        if(!onProgress(result,collectedHeight,true))
+                            break recursion;
+                        if (updateGeometry(geometry)) {
+                            width = geometry[0];
+                            viewHeight = geometry[1];
+                        }
+                        y = textPaddings.top;  // y zeroed only if viewHeight greater than -1
+                        viewHeightLeft = viewHeight - viewHeightDec;
+                        wrapWidth = width - lineWidthDec;
+                        wrapHeight = 0;
+                        wrapMargin = 0;
+                    } */
+                }
                 if (spanLeading > state.leading) state.leading = spanLeading;
                 if (spanDescent > state.descent) state.descent = spanDescent;
 
@@ -2341,7 +2356,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                                 if (viewHeight > -1) { // TODO: reorganize conditions
                                     collectedHeight += y;
-                                    y = 0;  // y zeroed only if viewHeight greater than -1
+                                    y = 0; // textPaddings.top;  // y zeroed only if viewHeight greater than -1
                                     viewHeightLeft = viewHeight - viewHeightDec;
                                     wrapWidth = width - lineWidthDec;
                                     wrapHeight = 0;
@@ -2370,7 +2385,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             drawableScaleBreak = true; // drawable does not fit left width at all
                             continue processing;
                         }
-                        if (state.character <= lineStartAt) {
+                        if (state.character <= lineStartAt+1) {
                             if (debug) Log.w(TAG, "line exceed at first character");
                             if (wrapHeight > 0) {
                                 // Log.e(TAG,"we must cancel wrapping!");
@@ -2378,6 +2393,16 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 result.add(new TextLine(null, 0, wrapHeight));
                                 wrapMargin = 0;
                                 viewHeightLeft -= wrapHeight;
+                                if (viewHeight>-1 && viewHeightLeft - state.height <0) {
+                                    if (!onProgress(result,collectedHeight,true)) break recursion;
+                                    if (updateGeometry(geometry)) {
+                                        width = geometry[0];
+                                        viewHeight = geometry[1];
+                                    }
+                                    y = 0;
+                                    viewHeightLeft = viewHeight - viewHeightDec;
+                                }
+                                wrapMargin = 0;
                                 wrapHeight = 0;
                                 wrapWidth = width - lineWidthDec;
                                 continue;
