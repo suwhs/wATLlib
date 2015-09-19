@@ -188,6 +188,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                         synchronized (LazyDrawable.this) {
                             if (drawable != null)
                                 setDrawable(drawable);
+                            mLoadingInProgress = false;
                         }
                         invalidateSelfOnUiThread();
                     }
