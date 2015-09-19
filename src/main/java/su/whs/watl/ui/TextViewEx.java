@@ -245,7 +245,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int cpB = getCompoundPaddingBottom();
         int cpL = getCompoundPaddingLeft();
         int cpR = getCompoundPaddingRight();
-        prepareLayout(getMeasuredWidth() - (cpL + cpR), getMeasuredHeight() - (cpT + cpB));
+        prepareLayout(getMeasuredWidth() - (cpL + cpR), mHeightWrapContent ? -1 : getMeasuredHeight() - (cpT + cpB));
     }
 
     protected void drawSelectionCursor(Canvas canvas, float x, float y, float lineHeight, boolean start) {
