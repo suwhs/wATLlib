@@ -67,7 +67,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     // default dynamicdrawablespan interaction listener - just make toast
     private DynamicDrawableInteractionListener mDynamicDrawableInteractionListenerDefault = new DynamicDrawableInteractionListener() {
         @Override
-        public void onClicked(DynamicDrawableSpan span, RectF bounds, View view) {
+        public void onClicked(DynamicDrawableSpan span, Rect bounds, View view) {
             Toast.makeText(getContext(), "clicked " + span.getDrawable(), Toast.LENGTH_LONG).show();
         }
 
@@ -424,7 +424,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void onTextInfoInvalidated() {
         // Log.v(TAG, "onTextInfoInvalidated()");
         resetState();
-        if (mNeedTotalHeight) {
+        if (mNeedTotalHeight || mOriginalHeightUnknown) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
@@ -497,8 +497,13 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
-        // Log.v(TAG, "clicked on drawable: '" + drawable + "'");
-        RectF bounds = null;
+        //
+        Rect bounds = new Rect();
+        if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
+            Log.v(TAG, "clicked on drawable: '" + drawable + "'");
+        } else {
+            Log.e(TAG,"clicked on invisible drawable: "+position);
+        }
         mDynamicDrawableInteractionListener.onClicked(dynamicDrawableSpan,bounds,this);
     }
 

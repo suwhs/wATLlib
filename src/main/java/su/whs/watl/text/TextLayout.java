@@ -54,7 +54,7 @@ import su.whs.watl.experimental.LazyDrawable;
 public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
-    private boolean debug = false;
+    private boolean debug = true;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
     private int mParagraphStartMargin = 0;
@@ -109,6 +109,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     public void notifyTextHeightChanged() {
+        if (debug) Log.v(TAG, "notifyTextHeightChanged");
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -120,12 +121,14 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     protected void notifyTextInfoInvalidated() {
+        if (debug) Log.v(TAG,"notifyTextInfoInvalidated");
         mIsLayouted = false;
         if (listener != null)
             listener.onTextInfoInvalidated();
     }
 
     protected void notifyTextReady() {
+        if (debug) Log.v(TAG,"notifyTextReady");
         mIsLayouted = true;
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
@@ -176,6 +179,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     public void setInvalidateListener(TextLayoutListener listener) {
+        if (debug) Log.v(TAG,"setInvalidateListener:"+listener);
         this.listener = listener;
     }
 
@@ -308,6 +312,24 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return -1;
     }
 
+    /**
+     *
+     * @param dds - DynamicDrawableSpan
+     * @param out - Rect instance
+     * @return true, if dds are visible on layout
+     */
+
+    public boolean getDynamicDrawableSpanRect(DynamicDrawableSpan dds, Rect out) {
+        Drawable dr = dds.getDrawable();
+        if (dr!=null && visibleDrawables.contains(dr)) {
+            Point offset = visibleDrawableOffsets.get(dr);
+            Rect bounds = visibleDrawableBounds.get(dr);
+            if (out!=null)
+                out.set(offset.x,offset.y,offset.x+bounds.width(),offset.y+bounds.height());
+            return true;
+        }
+        return false;
+    }
 
     public int getLinesCount() {
         return lines == null ? 0 : lines.size();
@@ -424,6 +446,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         this.viewHeight = viewHeight;
         if (!isLayouted())
             invalidate();
+        else if (debug) {
+            Log.d(TAG,"already layouted, no invalidate required");
+        }
     }
 
     /*
@@ -1067,24 +1092,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     protected void onFinish(List<TextLine> lines, int height) {
         this.lines = lines;
         if (debug) {
-            int ii = 0;
-            int th = 0;
-            for (TextLine line : lines) {
-                if (line.start == line.end) {
-                    Log.e(TAG, "line.start==line.end " + ii);
-                }
-                th += line.height;
-                ii++;
-            }
+            Log.d(TAG,"onFinish()");
         }
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
         setReflowFinished(true);
         if (mNeedTotalHeight && listener != null) {
             this.height = height + text_paddings_height();
+            if (debug) {
+                Log.d(TAG,"height report required, height="+this.height);
+            }
             notifyTextHeightChanged();
             notifyTextReady();
         } else if (listener != null) {
+            Log.d(TAG,"height report not required");
             notifyTextReady();
         }
     }
