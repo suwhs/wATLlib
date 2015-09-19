@@ -305,6 +305,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } else if (y > bottom && y < bottom + line.height) {
                 int i = getOffsetForHorizontal(line, (int) x);
                 Log.v(TAG,"x,y=("+x+","+y+") for line="+j+" offset="+i+" (from line start= "+(i-line.start)+" )");
+                Log.v(TAG,"clicked char='"+getChars()[i]+"'");
                 return i;
             }
             bottom += line.height;
@@ -766,12 +767,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
          * @param width
          */
 
-        public void justify(ReflowState state,int width) {
+        public void justify(int width) {
             if (whitespaces > 0) {
                 justifyArgument = (width - this.width - 0.5f) / whitespaces;
-            }
-            if (justifyArgument<0f) {
-                Log.e(TAG,"negative justifyArgument with state:" + state);
             }
         }
 
@@ -2131,7 +2129,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             ld.wrapMargin = wrapMargin;
             ld.direction = direction;
             if (direction != Layout.DIR_LEFT_TO_RIGHT) {
-                Log.w(TAG, "break line == RTL");
+                // Log.w(TAG, "break line == RTL");
             }
             result.add(ld); //secondCallHere
             ld.hyphen = hyphen;
@@ -2152,7 +2150,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
             if (justification && ld.whitespaces > mJustificationTreshold)
-                ld.justify(state,wrapWidth);
+                ld.justify(wrapWidth);
 
                     /* handle exceed view height */
             y += ld.height; // was state.height at 1368 -- DEBUG

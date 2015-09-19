@@ -1,8 +1,6 @@
 package su.whs.watl.text;
 
-import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.SystemClock;
@@ -386,11 +384,8 @@ class LineSpan {
      */
 
     protected static void measure(LineSpan lineSpan, char[] text, TextPaint paint) {
-
         measure(lineSpan, text, paint, false);
     }
-
-
 
     /**
      * convert debug representaion of subsequence of chars
@@ -533,26 +528,5 @@ class LineSpan {
             span.width = 0;
             span.breakFirst = null;
         }
-
     }
-
-    public static float run(LineSpan span,
-                           LineSpanBreak lineSpanBreak,
-                           Canvas canvas,
-                           float x, // start draw position (left)
-                           float y, // y
-                           float width, // total available width for run
-                           TextPaint foregroundPaint,
-                           TextPaint backgroundPaint,
-
-                           int direction,
-                           Point[] selections,
-                           int[] colors,
-                           float[] positions) {
-
-        boolean isRtlRun = isBidiEnabled() ? (direction != Layout.DIR_LEFT_TO_RIGHT) : false;
-
-        return x;
-    }
-
 }

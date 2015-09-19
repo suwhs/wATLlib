@@ -26,17 +26,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import su.whs.watl.BuildConfig;
 import su.whs.watl.ui.ITextView;
 import su.whs.watl.ui.TextViewEx;
 
 /**
  * Created by igor n. boulliev on 23.05.15.
- *
+ */
+
+/**
+ * abstract class BaseTextPagerAdapter
+ *  at least one method must be implement :
+ *      View getViewForPage(int pageNo)
  */
 
 public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
-
+    private static final boolean debug = BuildConfig.DEBUG;
     private class DebugTextPaint extends TextPaint { // TODO: remove
         @Override
         public void setTextSize(float size) {
@@ -44,7 +50,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
     }
 
-    private Context mContext = null;
     private TextLayoutEx mTextLayout = null;
     private SparseArray<ProxyLayout> mProxies = new SparseArray<ProxyLayout>();
     private OptionsWrapper mOptions = new OptionsWrapper();
@@ -65,14 +70,23 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     {
         mTextPaint.setAntiAlias(true);
         mTextPaint.linkColor = Color.BLUE; // required to correctly draw colors
-        mOptions.setTextPaddings(15,15,15,15); // TODO: remove
     }
+
+    /**
+     * base constructor
+     * @param resourceId - id of TextViewEx (or derived) widget in view, returned by getViewForPage()
+     */
 
     public BaseTextPagerAdapter(int resourceId) {
         super();
         mContentResourceId = resourceId;
     }
 
+    /**
+     * extended constructor
+     * @param resourceId - id of TextViewEx (or derived) widget in view, returned by getViewForPage()
+     * @param pagesNumberListener - callbacks ( {ITextPagesNumber} implementation )
+     */
     public BaseTextPagerAdapter(int resourceId, ITextPagesNumber pagesNumberListener) {
         this(resourceId);
         mPagesNumberListener = pagesNumberListener;
@@ -150,6 +164,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         return false;
     }
 
+    /**
+     * implement this, if your viewpager must show page titles
+     * @param position - number of page
+     * @return page's title
+     */
     @Override
     public CharSequence getPageTitle(int position) {
         return null;
@@ -573,7 +592,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     private void onAttachedFirst(Context context) {
         /** ui-thread **/
-        mContext = context;
         if (!mNeedFontSize)
             return;
         Button b = new Button(context);
@@ -586,7 +604,6 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private void onDetachedLast() {
         /** ui-thread **/
         /** detached all views from mContext **/
-        mContext = null;
         if (mTextLayout!=null)
             mTextLayout.stopReflowIfNeed();
     }
@@ -627,7 +644,8 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
 
     @Override
     public void layoutFinished() {
-        // Log.v(TAG,"Layout Finished");
+        if (debug)
+            Log.v(TAG,"Layout Finished");
     }
 
     /* end of ISelectableContentView */

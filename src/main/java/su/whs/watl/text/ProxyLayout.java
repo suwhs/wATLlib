@@ -122,6 +122,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             mPendingListener = null;
             replayEvents(this.listener);
             notifyTextReady();
+        } else {
+            // Log.v(TAG,"no pending listener for page = " + mPosition);
         }
     }
 

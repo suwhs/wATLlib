@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
+import su.whs.watl.BuildConfig;
+
 /**
  * supports for pagination and complex geometry layouts per page
  * supports different geometry for pages
@@ -23,7 +25,7 @@ import java.util.ListIterator;
  */
 class TextLayoutEx extends TextLayout {
     private static final String TAG="TextLayoutEx";
-
+    private static final boolean debug = BuildConfig.DEBUG;
     private int pageInProgress = 0;
     private int firstLineForPage = 0;
     private int[] geometry = new int[] { 0, 0 };
@@ -123,7 +125,8 @@ class TextLayoutEx extends TextLayout {
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
-        // Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+        if (debug)
+            Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
         this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible - sync mode for TextLayoutEx is not allowed");
@@ -147,15 +150,9 @@ class TextLayoutEx extends TextLayout {
         } */
         if (stopForPage && viewHeightExceed) {
             firstLineForPage = lines.size();
-            // post to UI-thread
-            pageListener.onTextReady();
-            /*
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
 
-                }
-            }); */
+            pageListener.onTextReady();
+
             collectedHeightTotal = collectedHeight;
             pageInProgress++;
             if (mPages.get(pageInProgress)==null) {
@@ -207,7 +204,8 @@ class TextLayoutEx extends TextLayout {
     @Override
     public void onFinish(List<TextLine> lines, int height) {
         // stub
-        // Log.v("REFLOW LISTENER", "reflow finished");
+        if (debug)
+        Log.v("REFLOW LISTENER", "reflow finished");
         if (firstLineForPage<lines.size()-1) {
             final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
             if (pageListener==null) {
@@ -232,7 +230,8 @@ class TextLayoutEx extends TextLayout {
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
-        // Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
+        if (debug)
+            Log.v(TAG,"pageGeometryBegins "+pageNo+","+width+","+viewHeight);
         if (!waitForInvalidation()) {
             Log.e(TAG,"error while wait for invalidation finished");
         }
