@@ -467,11 +467,13 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public void replaceProxyLayout(ProxyLayout proxy) {
+            if (debug) Log.v(TAG,"replace proxy layout" + proxy.getPosition());
             if (mProxy!=null) {
                 if (mProxy==proxy) return;
                 mProxy.detach();
             }
             mProxy = proxy;
+
             if (mContent!=null) {
                 mContent.setTextLayout(proxy);
                 updateIndicators();
@@ -494,7 +496,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public void addRealPage(View page) {
-            // Log.v(TAG, "addRealPage");
+            if (debug) Log.v(TAG, "addRealPage "+(mProxy==null ? -1 : mProxy.getPosition()));
             if (mRealPage!=null) {
                 removeView(mRealPage);
                 mRealPage = null;
@@ -505,17 +507,19 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 Log.e(TAG,"could not find textviewEx on real page!");
             }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
+            addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            mRealPage.bringToFront();
             mContent.setTextLayout(mProxy);
             updateIndicators();
             if (mProxy.isLayouted()) {
                 resetLoadingState();
             }
-            addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
         }
 
         public void updateIndicators() {
             if (mPagesNumberListener!=null && mRealPage!=null) {
-                mPagesNumberListener.updateInfo(mRealPage,mProxy.getPosition(),getCount());
+                mPagesNumberListener.updateInfo(mRealPage, mProxy.getPosition(), getCount());
             }
         }
 
@@ -528,9 +532,16 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         }
 
         public void resetLoadingState() {
-            mProgress.setVisibility(View.GONE);
-            if (mRealPage!=null)
+            if (mRealPage!=null) { // actually reset loading state only if mRealPage != null
+                mProgress.setVisibility(View.GONE);
+                mLoading = false;
                 mRealPage.setVisibility(View.VISIBLE);
+                mRealPage.bringToFront();
+                mContent.invalidate();
+            } else if (debug) {
+                Log.e(TAG, "loading resets, but no real page :-|");
+            }
+
         }
 
         @Override
