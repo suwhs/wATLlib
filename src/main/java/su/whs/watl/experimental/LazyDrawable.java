@@ -57,6 +57,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private boolean mLoadingInProgress = false;
     protected boolean mLoadingError = false;
     private Drawable.Callback mCallbackCompat = null;
+    private Drawable mPlayButtonDrawable = null;
 
     /**
      * create instance with given size
@@ -69,7 +70,10 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mBounds.set(0, 0, srcWidth, srcHeight);
     }
 
-
+    public void setPlayButtonDrawable(Drawable drawable) {
+        mPlayButtonDrawable = drawable;
+        mPlayButtonDrawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
+    }
     @Override
     public int getIntrinsicWidth() {
         return mSrcWidth;
@@ -142,10 +146,14 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         boolean loadingInProgress;
 
         synchronized (this) {
-            if (mDrawable!=null)
-                mDrawable.draw(canvas);
-            loadError = mLoadingError;
             loadingInProgress = mLoadingInProgress;
+            if (mDrawable!=null) {
+                mDrawable.draw(canvas);
+                if (mPlayButtonDrawable!=null && !isRunning() && !loadingInProgress)
+                    drawPlayButton(canvas);
+            }
+            loadError = mLoadingError;
+
         }
         if (loadingInProgress) {
                 /* draw loading animation */
@@ -157,7 +165,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                     public void run() {
                         invalidateSelf();
                     }
-                }, SystemClock.uptimeMillis()+100);
+                }, SystemClock.uptimeMillis()+60);
             }
         } else if (loadError) {
                 /* draw loading error sign */
@@ -168,8 +176,35 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * by default - do nothing. Override it to draw loading animation
      * @param canvas
      */
+    private int angle = 0;
     protected void drawNextLoadingFrame(Canvas canvas) {
+        if (mPlayButtonDrawable!=null) {
+            angle += 10;
+            if (angle>360) angle = 0;
+            drawPlayButton(canvas,angle);
+        }
+    }
 
+    protected void drawPlayButton(Canvas canvas) {
+        drawPlayButton(canvas, 0);
+    }
+
+    protected void drawPlayButton(Canvas canvas, int angle) {
+        int x = mBounds.width() /2 + mBounds.left;
+        int y = mBounds.height() / 2 + mBounds.top;
+        int state = canvas.save();
+        canvas.translate(x,y);
+        if (angle>0) {
+            canvas.rotate(angle);
+        }
+        x = -mPlayButtonDrawable.getIntrinsicWidth() / 2;
+        y = -mPlayButtonDrawable.getIntrinsicHeight() / 2;
+
+        canvas.translate(x,y);
+
+        mPlayButtonDrawable.setAlpha(100);
+        mPlayButtonDrawable.draw(canvas);
+        canvas.restoreToCount(state);
     }
 
     /**
@@ -324,6 +359,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * @return
      */
     protected abstract Drawable readFullDrawable();
+
 
     /**
      * sample implementation - only 'slow method'
