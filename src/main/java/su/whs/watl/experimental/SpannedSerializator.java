@@ -71,7 +71,7 @@ import java.util.Map;
  *
  */
 public class SpannedSerializator {
-    public class SpannedSerializationException extends Exception {
+    public class SpannedSerializationException extends IOException {
         public SpannedSerializationException(String msg) {
             super(msg);
         }
@@ -616,11 +616,10 @@ public class SpannedSerializator {
      * @return
      * @throws IOException
      */
-    protected DynamicDrawableSpan readDynamicDrawableSpan(DataInputStream dis) throws IOException {
+    protected DynamicDrawableSpan readDynamicDrawableSpan(DataInputStream dis) throws IOException, ReadError {
 
         // final BitmapDrawable drawable = new BitmapDrawable(null,readImageSpanData(dis));
         // DynamicDrawableSpan dds = new ImageSpan(drawable,vA);
         return readImageSpanData(dis);
     }
-
 }
