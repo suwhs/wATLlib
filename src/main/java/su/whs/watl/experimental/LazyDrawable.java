@@ -70,6 +70,11 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mBounds.set(0, 0, srcWidth, srcHeight);
     }
 
+    /**
+     * set 'play button' drawable
+     * @param drawable - will draw over wrapped drawable, if animation not running
+     */
+
     public void setPlayButtonDrawable(Drawable drawable) {
         mPlayButtonDrawable = drawable;
         mPlayButtonDrawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
