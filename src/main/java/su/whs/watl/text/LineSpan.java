@@ -187,7 +187,7 @@ class LineSpan {
                         current.gravity = Gravity.CENTER_HORIZONTAL;
                     } else if (alignment.getAlignment() == Layout.Alignment.ALIGN_OPPOSITE) {
                         // so... to right ?
-                        if (defaultDirection == Layout.DIR_LEFT_TO_RIGHT) {
+                        if (defaultDirection == Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT) {
                             current.gravity = Gravity.RIGHT;
                         } else {
                             current.gravity = Gravity.LEFT;
