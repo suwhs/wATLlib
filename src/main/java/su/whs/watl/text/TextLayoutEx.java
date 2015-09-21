@@ -14,8 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import su.whs.watl.BuildConfig;
-
 /**
  * supports for pagination and complex geometry layouts per page
  * supports different geometry for pages
@@ -25,7 +23,7 @@ import su.whs.watl.BuildConfig;
  */
 class TextLayoutEx extends TextLayout {
     private static final String TAG="TextLayoutEx";
-    private static final boolean debug = BuildConfig.DEBUG;
+    private static final boolean debug = false; // BuildConfig.DEBUG;
     private int pageInProgress = 0;
     private int firstLineForPage = 0;
     private int[] geometry = new int[] { 0, 0 };
@@ -205,7 +203,7 @@ class TextLayoutEx extends TextLayout {
     public void onFinish(List<TextLine> lines, int height) {
         // stub
         if (debug)
-        Log.v("REFLOW LISTENER", "reflow finished");
+            Log.v("REFLOW LISTENER", "reflow finished");
         if (firstLineForPage<lines.size()-1) {
             final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
             if (pageListener==null) {

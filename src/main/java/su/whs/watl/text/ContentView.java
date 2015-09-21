@@ -88,7 +88,7 @@ public interface ContentView {
         protected OptionsChangeListener mListener;
 
         public Options() {
-            Log.d(TAG,"create options");
+            // Log.d(TAG,"create options");
         }
 
         public Options(Options source) {

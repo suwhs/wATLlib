@@ -11,7 +11,6 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 
-import su.whs.watl.BuildConfig;
 import su.whs.watl.R;
 import su.whs.watl.text.TextLayout;
 import su.whs.watl.text.TextLayoutListener;
@@ -23,7 +22,7 @@ import su.whs.watl.text.TextLayoutListener;
 
 public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListener {
     private static final String TAG = "MCTVE";
-    private static final boolean debug = BuildConfig.DEBUG;
+    private static final boolean debug = false; // BuildConfig.DEBUG;
     /* with default value - it's no difference with TextViewEx (as planned) */
     private int mMaxColumns = 1;
     private int mMinColumnWidth = -1;
@@ -399,7 +398,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public int getLineBounds(int line, Rect bounds) {
-        Log.d(TAG,"getLineBounds("+line+",bounds");
+        if (debug) Log.d(TAG,"getLineBounds("+line+",bounds");
         int deltaY = 0;
         int deltaX = 0;
         int baseLine;

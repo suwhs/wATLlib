@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import su.whs.watl.BuildConfig;
 import su.whs.watl.ui.ITextView;
 import su.whs.watl.ui.TextViewEx;
 
@@ -42,7 +41,7 @@ import su.whs.watl.ui.TextViewEx;
 
 public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
-    private static final boolean debug = BuildConfig.DEBUG;
+    private static final boolean debug = false; // BuildConfig.DEBUG;
     private class DebugTextPaint extends TextPaint { // TODO: remove
         @Override
         public void setTextSize(float size) {

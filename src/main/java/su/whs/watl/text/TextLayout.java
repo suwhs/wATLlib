@@ -54,7 +54,7 @@ import su.whs.watl.experimental.LazyDrawable;
 public class TextLayout implements ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
-    private boolean debug = true;
+    private boolean debug = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
     private int mParagraphStartMargin = 0;
@@ -304,8 +304,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 continue;
             } else if (y > bottom && y < bottom + line.height) {
                 int i = getOffsetForHorizontal(line, (int) x);
-                Log.v(TAG,"x,y=("+x+","+y+") for line="+j+" offset="+i+" (from line start= "+(i-line.start)+" )");
-                Log.v(TAG,"clicked char='"+getChars()[i]+"'");
+                if (debug) {
+                    Log.v(TAG, "x,y=(" + x + "," + y + ") for line=" + j + " offset=" + i + " (from line start= " + (i - line.start) + " )");
+                    Log.v(TAG, "clicked char='" + getChars()[i] + "'");
+                }
                 return i;
             }
             bottom += line.height;
@@ -860,7 +862,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                     0, width, 0, requestedHeight, viewHeight,
                     reflowPaint,
                     getOptions());
-            Log.v(TAG, "reflow finished");
+            if (debug)
+                Log.v(TAG, "reflow finished");
 
         }
     }
@@ -1103,7 +1106,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             notifyTextHeightChanged();
             notifyTextReady();
         } else if (listener != null) {
-            Log.d(TAG,"height report not required");
+            if (debug) Log.d(TAG,"height report not required");
             notifyTextReady();
         }
     }
@@ -1925,7 +1928,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (imagePlacementHandler.isWrapText(placement) && state.gravity != Gravity.CENTER_HORIZONTAL) {
                 if (debug) Log.v(TAG, "wrapText");
                 if (wrapHeight > 0) {
-                    Log.e(TAG, "close wrap null span"); // FIXME: here we are exeed viewHeight, but not tell to listener - check
+                    if (debug) Log.e(TAG, "close wrap null span"); // FIXME: here we are exeed viewHeight, but not tell to listener - check
                     result.add(new TextLine(null, 0, wrapHeight));
                     wrapMargin = 0;
                 }
@@ -2389,7 +2392,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             if (debug) Log.w(TAG, "line exceed at first character");
                             if (wrapHeight > 0) {
                                 // Log.e(TAG,"we must cancel wrapping!");
-                                Log.e(TAG, "close wrap null span");
+                                if (debug) Log.e(TAG, "close wrap null span");
                                 result.add(new TextLine(null, 0, wrapHeight));
                                 wrapMargin = 0;
                                 viewHeightLeft -= wrapHeight;

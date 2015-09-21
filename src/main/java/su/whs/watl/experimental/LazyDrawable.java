@@ -56,6 +56,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private boolean mBoundsApplied = false;
     private boolean mLoadingInProgress = false;
     protected boolean mLoadingError = false;
+    private boolean mIsRunning = false;
     private Drawable.Callback mCallbackCompat = null;
     private Drawable mPlayButtonDrawable = null;
 
@@ -215,6 +216,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     /**
      * initiate load full image (sync)
      */
+
     public void loadFullImage() {
         synchronized (this) {
             mLoadingError = false;
@@ -229,6 +231,17 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                             if (drawable != null)
                                 setDrawable(drawable);
                             mLoadingInProgress = false;
+                            if (mIsRunning) {
+                                if (drawable instanceof Animatable && !((Animatable)drawable).isRunning()) {
+                                    mIsRunning = false;
+                                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            start();
+                                        }
+                                    });
+                                }
+                            }
                         }
                         invalidateSelfOnUiThread();
                     }
@@ -262,6 +275,8 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         synchronized (this) {
             if (mDrawable instanceof Animatable) {
                 ((Animatable)mDrawable).start();
+            } else {
+                mIsRunning = true;
             }
         }
 

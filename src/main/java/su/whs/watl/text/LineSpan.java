@@ -34,6 +34,7 @@ import java.util.List;
 /* package */
 class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
+    private static final boolean debug = false;
     private static boolean mBidiEnabled = true;
     private static boolean mBidiDebug = true;
     public static boolean isBidiEnabled() { return mBidiEnabled; } // TODO: move to Options
@@ -290,7 +291,8 @@ class LineSpan {
 
         current.next = null; // remove last lineSpan
         long timeSpent = SystemClock.uptimeMillis() - timeStart;
-        Log.e(TAG, "prepare time spent: " + timeSpent +", bidi spent: " + bidiSpent);
+        if (debug)
+            Log.e(TAG, "prepare time spent: " + timeSpent +", bidi spent: " + bidiSpent);
         return result;
     }
 

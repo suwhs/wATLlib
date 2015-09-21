@@ -23,7 +23,6 @@ import android.util.TypedValue;
 import android.view.View;
 import android.widget.Toast;
 
-import su.whs.watl.BuildConfig;
 import su.whs.watl.text.ContentView;
 import su.whs.watl.text.DynamicDrawableInteractionListener;
 import su.whs.watl.text.ImagePlacementHandler;
@@ -44,7 +43,7 @@ import su.whs.watl.text.TextLayoutListener;
 public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextView {
     private static final String TAG = "TextViewEx";
     //private ContentView.Options mPendingOptions; // = new ContentView.Options();
-    private boolean mDebug = BuildConfig.DEBUG;
+    private boolean mDebug = false; // BuildConfig.DEBUG;
     private TextLayout mTextLayout;
     private boolean mHeightWrapContent = false;
     // private boolean mFallBackMode = false;
