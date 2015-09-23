@@ -280,8 +280,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
          * save pagination info cache
          */
         Bundle state = new Bundle();
-        state.putString("layout:", mTextLayout.getState());
-        state.putParcelable("parent:",super.saveState());
+        if (mTextLayout!=null) {
+            state.putString("layout:", mTextLayout.getState());
+        }
+        state.putParcelable("parent:", super.saveState());
         return state;
     }
 
