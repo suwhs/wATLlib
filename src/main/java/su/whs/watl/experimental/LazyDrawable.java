@@ -78,7 +78,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     public void setPlayButtonDrawable(Drawable drawable) {
         mPlayButtonDrawable = drawable;
-        mPlayButtonDrawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
+        mPlayButtonDrawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
     }
     @Override
     public int getIntrinsicWidth() {
@@ -142,9 +142,14 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
             }
         }
         if (!mBoundsApplied) {
-            synchronized (this) {
-                mDrawable.setBounds(mBounds);
-                mBoundsApplied = true;
+            if (mDrawable!=null) {
+                synchronized (this) {
+                    mDrawable.setBounds(mBounds);
+                    mBoundsApplied = true;
+                }
+            } else {
+                // drawable are null
+                // FIXME:
             }
         }
 
