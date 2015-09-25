@@ -60,7 +60,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
-        mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
+        mLayout.pageGeometryBegins(mPosition, first.width, -1, first.height, this);
 
     }
 

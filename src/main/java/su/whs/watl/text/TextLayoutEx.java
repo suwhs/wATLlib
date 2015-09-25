@@ -204,7 +204,7 @@ class TextLayoutEx extends TextLayout {
         // stub
         if (debug)
             Log.v("REFLOW LISTENER", "reflow finished");
-        if (firstLineForPage<lines.size()-1) {
+        if (firstLineForPage<lines.size()-1 || firstLineForPage == 0) {
             final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
             if (pageListener==null) {
                 // no listener for page?
@@ -224,8 +224,6 @@ class TextLayoutEx extends TextLayout {
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
         setReflowFinished(true);
-        final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
-        pageListener.onTextReady();
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
