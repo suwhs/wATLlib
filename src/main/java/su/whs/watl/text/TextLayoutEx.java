@@ -23,7 +23,7 @@ import java.util.ListIterator;
  */
 class TextLayoutEx extends TextLayout {
     private static final String TAG="TextLayoutEx";
-    private static final boolean debug = false; // BuildConfig.DEBUG;
+    private static final boolean debug = true; // BuildConfig.DEBUG;
     private int pageInProgress = 0;
     private int firstLineForPage = 0;
     private int[] geometry = new int[] { 0, 0 };
@@ -224,7 +224,8 @@ class TextLayoutEx extends TextLayout {
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
         setReflowFinished(true);
-        listener.onTextReady();
+        final TextLayoutListenerAdv pageListener = mPages.get(pageInProgress);
+        pageListener.onTextReady();
     }
 
     public void pageGeometryBegins(int pageNo, int width, int height, int viewHeight, TextLayoutListenerAdv listener) {
