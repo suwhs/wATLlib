@@ -2187,7 +2187,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             state.skipWhitespaces = true;
             lineStartAt = state.character;
             linesAddedInParagraph++;
-            return direction;
+            return DIR_LTR; // direction;
         }
 
         public boolean nextSpan() {
