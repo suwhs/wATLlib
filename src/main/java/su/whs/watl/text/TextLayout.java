@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import su.whs.watl.experimental.LazyDrawable;
@@ -1213,7 +1214,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             backgroundPaint.setColor(Color.GREEN);
             canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
             backgroundPaint.setColor(Color.RED);
-            backgroundPaint.setStrokeWidth(5);
+            backgroundPaint.setStrokeWidth(1);
         }
 
         int leftOffset = textPaddings.left;
@@ -1505,12 +1506,20 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         drawStop = drawStop > line.end ? line.end : drawStop;
                         if (drawStart < drawStop && drawStart > line.start - 1) {
                             if (isSpanRtl) {
+                                float rtlWidth = lineSpanBreak.width + (lineSpanBreak.strong || !justification ? 0f : line.justifyArgument);
+
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - x - lineSpanBreak.width, y, width - x, y + span.height, backgroundPaint);
+                                    canvas.drawRect(width - x - rtlWidth, y, width - x, y + span.height, backgroundPaint);
                                 if (span.reversed==null)
-                                    canvas.drawText(text, drawStart, drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                                    canvas.drawText(text, drawStart, drawStop - drawStart, width - x - rtlWidth, baseLine, workPaint);
                                 else
-                                    canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - lineSpanBreak.width, baseLine, workPaint);
+                                    canvas.drawText(span.reversed, 0 ,drawStop - drawStart, width - x - rtlWidth, baseLine, workPaint);
+                                if (debugDraw) {
+                                    backgroundPaint.setColor(getCycleColor());
+                                    backgroundPaint.setStyle(Paint.Style.STROKE);
+                                    float vY = mRandom.nextFloat() * 10 - 5;
+                                    canvas.drawRect(width - x - rtlWidth, y + vY, width - x, baseLine + vY, backgroundPaint);
+                                }
                             } else {
                                 if (ltrRun < 1) { // check if we met inner LTR span, and innerRtlStack does not calculated yet
                                     // on first switch from RLT span - scan line spans forward to calculate correct span/breaks offsets
@@ -1543,7 +1552,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 if (backgroundColorSpan)
                                     canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - ltrRun, baseLine, workPaint);
-                                ltrRun -= lineSpanBreak.width + (lineSpanBreak.strong ? 0f : line.justifyArgument);
+                                if (debugDraw) {
+                                    backgroundPaint.setColor(getCycleColor());
+                                    backgroundPaint.setStyle(Paint.Style.STROKE);
+                                    float vY = mRandom.nextFloat() * 10 - 5;
+                                    canvas.drawRect(width - ltrX - ltrRun, y + vY, width - ltrX, baseLine + vY, backgroundPaint);
+                                }
+                                ltrRun -= lineSpanBreak.width + (lineSpanBreak.strong || !justification ? 0f : line.justifyArgument);
                             }
                             x += lineSpanBreak.width; // TODO: \n empty line has width ?
                         }
@@ -1605,6 +1620,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                         } else
                             canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                         x += tail;
+                        ltrRun -= tail;
                     }
                 }
                 span = span.next;
@@ -2122,7 +2138,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             lineStartAt = state.character;
             state.skipWhitespaces = true;
 
-            return direction;
+            return DIR_LTR;
         }
 
         private int handleBreakLine(char[] text, int breakPosition, boolean hyphen, int direction) {
@@ -2578,5 +2594,24 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             return mSize;
         }
 
+    }
+
+
+    private static final int[] sColors = new int[] {
+            Color.RED,
+            Color.BLUE,
+            Color.GREEN,
+            Color.MAGENTA
+    };
+
+    Random mRandom = new Random();
+
+    int mColorIdx = 0;
+
+    private int getCycleColor() {
+        int result = sColors[mColorIdx];
+        mColorIdx++;
+        if (mColorIdx>sColors.length-1) mColorIdx = 0;
+        return result;
     }
 }

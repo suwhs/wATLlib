@@ -296,6 +296,11 @@ class LineSpan {
         return result;
     }
 
+    /* hack */
+    private static boolean validateBidiRtl(Spanned text, int start, int end) {
+        if (text.charAt(start)=='(' || text.charAt(start) == ')') return false;
+        return true;
+    }
 
     private static void test_breaks_loops(List<LineSpanBreak> breaks, LineSpanBreak lineBreak) throws Exception {
         while (lineBreak != null) {

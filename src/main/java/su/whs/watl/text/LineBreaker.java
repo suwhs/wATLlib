@@ -35,8 +35,16 @@ public abstract class LineBreaker {
     // 5b-60
     // 7b-7e
 
+    /*
+
+        if (c >= 0x0600 && c <=0x06E0)
+
+  }
+     */
+
     public boolean isLetter(char ch) {
-        return Character.isLetter(ch);
+                                          /* 0x0600-0x06e0 - arabic */
+        return Character.isLetter(ch) || (ch >=0x0600 && ch<= 0x06e0);
     }
 
     public boolean isPunktuation(char ch) {
