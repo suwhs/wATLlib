@@ -61,7 +61,6 @@ public class HtmlTagHandler implements Html.TagHandler {
                 mListParents.remove(tag);
                 output.append('\n');
             }
-
             mListItemCount = 0;
         } else if (tag.equals("li")) {
             if (opening)
@@ -96,6 +95,16 @@ public class HtmlTagHandler implements Html.TagHandler {
                 output.append('\u200E');
             else
                 output.append('\u200F');
+        } else if (tag.equals("video")) {
+            // handle embedded video - need new DynamicDrawableSpan ?
+            if (opening) {
+
+            }
+        } else if (tag.equals("source")) {
+            // add source urls to active 'video' tag
+            if (opening) {
+
+            }
         }
     }
 
