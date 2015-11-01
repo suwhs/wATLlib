@@ -14,23 +14,21 @@
 */
 package su.whs.watl.experimental;
 
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.graphics.drawable.Animatable;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -47,28 +45,64 @@ import java.util.concurrent.TimeUnit;
  */
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,3,10, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>());
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
+
+    protected enum State {
+        NONE,
+        LOADING,
+        PREVIEW,
+        FULL,
+        ANIMATION,
+        ERROR,
+        PARAM_ERROR,
+    }
+
+    public enum ScaleType {
+        FILL,
+        SCALE_FIT,
+        CENTER_CROP
+    }
+
+    private static synchronized ThreadPoolExecutor getExecutor() {
+        if (executor.isShutdown()) {
+            executor = new ThreadPoolExecutor(1,1,10L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
+        }
+        return executor;
+    }
+
     private static final String TAG="LazyDrawable";
     private int mSrcWidth;
     private int mSrcHeight;
     private Drawable mDrawable;
     private Rect mBounds = new Rect();
-    private boolean mBoundsApplied = false;
-    private boolean mLoadingInProgress = false;
-    protected boolean mLoadingError = false;
-    private boolean mIsRunning = false;
     private Drawable.Callback mCallbackCompat = null;
     private Drawable mPlayButtonDrawable = null;
+    private Drawable mIndeterminateProgressDrawable = null;
+    private Drawable mLoadingErrorDrawable = null;
+    private State mState = State.NONE;
+    private ScaleType mScaleType = ScaleType.SCALE_FIT;
+    private boolean mAutoStart = false;
+    private int mEdgeColor = Color.WHITE;
+
+    public interface Callback extends Drawable.Callback {
+        void onLayoutRequest();
+    }
 
     /**
      * create instance with given size
      * @param srcWidth
      * @param srcHeight
      */
+
     public LazyDrawable(int srcWidth, int srcHeight) {
+        this(srcWidth,srcHeight,ScaleType.FILL);
+    }
+
+    public LazyDrawable(int srcWidth, int srcHeight, ScaleType scaleType) {
         mSrcWidth = srcWidth;
         mSrcHeight = srcHeight;
-        mBounds.set(0, 0, srcWidth, srcHeight);
+        mScaleType = scaleType;
+        setBounds(0, 0, srcWidth, srcHeight);
     }
 
     /**
@@ -80,6 +114,17 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mPlayButtonDrawable = drawable;
         mPlayButtonDrawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
     }
+
+    public void setIndeterminateProgressDrawable(Drawable drawable) {
+        mIndeterminateProgressDrawable = drawable;
+        mIndeterminateProgressDrawable.setBounds(0,0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+    }
+
+    public void setLoadingErrorDrawable(Drawable drawable) {
+        mLoadingErrorDrawable = drawable;
+        mLoadingErrorDrawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
+    }
+
     @Override
     public int getIntrinsicWidth() {
         return mSrcWidth;
@@ -92,11 +137,51 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     @Override
     public void setBounds(int left, int top, int right, int bottom) {
-        mBoundsApplied = false;
         mBounds.set(left,top,right,bottom);
+        if (mDrawable!=null) {
+            applyBounds(mDrawable);
+        }
         super.setBounds(left,top,right,bottom);
     }
 
+    private void applyBounds(Drawable drawable) {
+        if (mBounds.width()==0 || mBounds.height()==0) {
+            Log.e(TAG, "bounds not set:"+this);
+            mState = State.PARAM_ERROR;
+            return;
+        }
+        switch (mScaleType) {
+            case FILL:
+                drawable.setBounds(mBounds);
+                break;
+            case CENTER_CROP:
+                int w = drawable.getIntrinsicWidth();
+                int h = drawable.getIntrinsicHeight();
+                int dW = mBounds.width() - w;
+                int dH = mBounds.height() - h;
+                int sX = dW / 2;
+                int sY = dH / 2;
+                drawable.setBounds(mBounds.left+sX,mBounds.top+sY,mBounds.right-sX, mBounds.bottom-sY);
+                break;
+            case SCALE_FIT:
+                w = drawable.getIntrinsicWidth();
+                h = drawable.getIntrinsicHeight();
+                if (w<1||h<1) {
+                    Log.e(TAG,"drawable with invalid intrinsic size");
+                    mState = State.PARAM_ERROR;
+                    return;
+                }
+                float sH = (float)mBounds.height() / h;
+                float sW = (float)mBounds.width() / w;
+                float ratio = sW > sH ? sH : sW;
+                dW = (int) (w * ratio);
+                dH = (int) (h * ratio);
+                sX = (mBounds.width()-dW) / 2;
+                sY = (mBounds.height()-dH) / 2;
+                drawable.setBounds(mBounds.left+sX,mBounds.top+sY,mBounds.right-sX, mBounds.bottom-sY);
+                break;
+        }
+    }
     /**
      * set size and adjust bounds
      * @param srcWidth
@@ -108,7 +193,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         mSrcHeight = srcHeight;
         mBounds.right = mBounds.left + srcWidth;
         mBounds.bottom = mBounds.top + srcHeight;
-        mBoundsApplied = false;
+        if (mDrawable!=null) {
+            applyBounds(mDrawable);
+        }
     }
 
     /**
@@ -116,11 +203,53 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      */
     public void initialLoad() {
         Drawable d = readPreviewDrawable();
-        synchronized (LazyDrawable.this) {
-            mDrawable = d;
-            mLoadingInProgress = false;
+        if (d==null) {
+            mState = State.ERROR;
+            return;
         }
+        synchronized (LazyDrawable.this) {
+            setDrawable(d);
+            mState = State.PREVIEW;
+        }
+        invalidateSelfOnUiThread();
     }
+
+    private Runnable mInitialLoadingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            initialLoad();
+        }
+    };
+
+    private Runnable mFullImageLoadRunnable = new Runnable() {
+        @Override
+        public void run() {
+            Drawable drawable = readFullDrawable();
+            synchronized (LazyDrawable.this) {
+                if (drawable == null) {
+                    if (mDrawable!=null) // but here are preview drawable
+                        return;
+                    mState = State.ERROR;
+                    return;
+                }
+                setDrawable(drawable);
+                if (drawable instanceof Animatable && mAutoStart && !isRunning()) {
+                    if (drawable instanceof Animatable && !((Animatable)drawable).isRunning()) {
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                start();
+                            }
+                        });
+                    }
+                }
+            }
+            invalidateSelfOnUiThread();
+        }
+    };
+
+    private Rect mBoundsRect = new Rect();
+    private Paint mBoundsPaint = new Paint();
 
     /**
      * if no preview loaded - execute initialLoad() in background and draw 'loadingFrame', if defined
@@ -129,58 +258,100 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     @Override
     public void draw(Canvas canvas) {
-        if (mDrawable==null) {
-            synchronized (this) {
-                mLoadingInProgress = true;
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        initialLoad();
-                        invalidateSelfOnUiThread();
-                    }
-                });
-            }
-        }
-        if (!mBoundsApplied) {
-            if (mDrawable!=null) {
-                synchronized (this) {
-                    mDrawable.setBounds(mBounds);
-                    mBoundsApplied = true;
-                }
-            } else {
-                // drawable are null
-                // FIXME:
-            }
-        }
-
-        boolean loadError;
-        boolean loadingInProgress;
-
+        State state = State.LOADING;
+        Drawable current = mDrawable;
         synchronized (this) {
-            loadingInProgress = mLoadingInProgress;
-            if (mDrawable!=null) {
-                mDrawable.draw(canvas);
-                if (mPlayButtonDrawable!=null && !isRunning() && !loadingInProgress)
-                    drawPlayButton(canvas);
-            }
-            loadError = mLoadingError;
+            state = mState;
+        }
+        switch (state) {
+            case NONE:
+                synchronized (this) { mState=State.LOADING; }
+                drawNextLoadingFrame(canvas);
+                getExecutor().execute(mInitialLoadingRunnable);
+            case LOADING:
+                if (getCallbackCompat()!=null) {
+                    scheduleSelf(new Runnable() {
+                        @Override
+                        public void run() {
+                            invalidateSelf();
+                        }
+                    }, SystemClock.uptimeMillis()+60);
+                }
+                if (current!=null)
+                    drawDrawable(canvas,current);
+                drawNextLoadingFrame(canvas);
+                break;
+            case ERROR:
+                drawLoadError(canvas);
+            case PARAM_ERROR:
+                break;
+            case PREVIEW:
+            case FULL:
+            case ANIMATION:
+                drawDrawable(canvas, current);
+                break;
+        }
 
-        }
-        if (loadingInProgress) {
-                /* draw loading animation */
-            drawNextLoadingFrame(canvas);
-                /* */
-            if (getCallbackCompat()!=null) {
-                scheduleSelf(new Runnable() {
-                    @Override
-                    public void run() {
-                        invalidateSelf();
-                    }
-                }, SystemClock.uptimeMillis()+60);
+    }
+
+    private void drawDrawable(Canvas canvas, Drawable drawable) {
+        int state = canvas.save();
+        canvas.clipRect(mBounds);
+        if (drawable!=null) {
+            drawable.draw(canvas);
+            if (mScaleType == ScaleType.CENTER_CROP) {
+                if (drawable.getBounds().height() > mBounds.height()) {
+                    drawVerticalEdges(canvas);
+                } else if (drawable.getBounds().width() > mBounds.width()) {
+                    drawHorizontalEdges(canvas);
+                }
             }
-        } else if (loadError) {
-                /* draw loading error sign */
         }
+        canvas.restoreToCount(state);
+        /*
+        mBoundsRect.set(mBounds.left + 5, mBounds.top + 5, mBounds.right - 5, mBounds.bottom - 5);
+        mBoundsPaint.setStyle(Paint.Style.STROKE);
+        mBoundsPaint.setColor(Color.RED);
+        canvas.drawRect(mBoundsRect, mBoundsPaint);
+        if (drawable!=null) {
+            mBoundsRect.set(drawable.getBounds());
+            mBoundsPaint.setColor(Color.GREEN);
+            canvas.drawRect(mBoundsRect, mBoundsPaint);
+            canvas.drawLine(0f, 0f, mBoundsRect.left, mBoundsRect.top, mBoundsPaint);
+            canvas.drawLine(mBounds.right, mBounds.bottom, mBoundsRect.left, mBoundsRect.top, mBoundsPaint);
+        } */
+    }
+
+    private int mVerticalEdgeSize = 24;
+    private int mHorizontalEdgeSize = 24;
+    private Paint mEdgePaint = new Paint();
+    {
+        mEdgePaint.setStyle(Paint.Style.FILL);
+    }
+    private void drawVerticalEdges(Canvas canvas) {
+        Shader shader;
+        shader = new LinearGradient(0, 0, 0, mVerticalEdgeSize, mEdgeColor, Color.TRANSPARENT, Shader.TileMode.CLAMP);
+        mEdgePaint.setShader(shader);
+        canvas.drawRect(0, 0, mBounds.right, 0 + mVerticalEdgeSize, mEdgePaint);
+
+        shader = new LinearGradient(0, mBounds.bottom-mVerticalEdgeSize, 0, mBounds.bottom, Color.TRANSPARENT, mEdgeColor, Shader.TileMode.CLAMP);
+        mEdgePaint.setShader(shader);
+        canvas.drawRect(0,mBounds.bottom-mVerticalEdgeSize,mBounds.right,mBounds.bottom,mEdgePaint);
+    }
+
+    private void drawHorizontalEdges(Canvas canvas) {
+        Shader shader;
+        shader = new LinearGradient(0, 0, mHorizontalEdgeSize, 0, mEdgeColor, Color.TRANSPARENT, Shader.TileMode.CLAMP);
+        mEdgePaint.setShader(shader);
+        canvas.drawRect(0, 0, mHorizontalEdgeSize, mBounds.bottom, mEdgePaint);
+
+        shader = new LinearGradient(mBounds.right-mHorizontalEdgeSize, 0, mBounds.right, 0, Color.TRANSPARENT, mEdgeColor, Shader.TileMode.CLAMP);
+        mEdgePaint.setShader(shader);
+        canvas.drawRect(mBounds.right-mHorizontalEdgeSize,0,mBounds.right,mBounds.bottom,mEdgePaint);
+    }
+
+    protected void drawLoadError(Canvas canvas) {
+        drawProgress(canvas, mLoadingErrorDrawable, 0);
     }
 
     /**
@@ -188,19 +359,28 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * @param canvas
      */
     private int angle = 0;
+
     protected void drawNextLoadingFrame(Canvas canvas) {
-        if (mPlayButtonDrawable!=null) {
+        Drawable progress = mIndeterminateProgressDrawable;
+        if (progress==null)
+            progress = mPlayButtonDrawable;
+        if (progress!=null) {
             angle += 10;
             if (angle>360) angle = 0;
-            drawPlayButton(canvas,angle);
+            drawProgress(canvas,progress,angle);
         }
     }
 
     protected void drawPlayButton(Canvas canvas) {
-        drawPlayButton(canvas, 0);
+        drawProgress(canvas, mPlayButtonDrawable, 0, 100);
     }
 
-    protected void drawPlayButton(Canvas canvas, int angle) {
+    private void drawProgress(Canvas canvas, Drawable progress, int angle) {
+        drawProgress(canvas, progress, angle, 0);
+    }
+
+    protected void drawProgress(Canvas canvas, Drawable progress, int angle, int alpha) {
+        if (progress==null) return;
         int x = mBounds.width() /2 + mBounds.left;
         int y = mBounds.height() / 2 + mBounds.top;
         int state = canvas.save();
@@ -208,13 +388,13 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         if (angle>0) {
             canvas.rotate(angle);
         }
-        x = -mPlayButtonDrawable.getIntrinsicWidth() / 2;
-        y = -mPlayButtonDrawable.getIntrinsicHeight() / 2;
+        x = -progress.getIntrinsicWidth() / 2;
+        y = -progress.getIntrinsicHeight() / 2;
 
         canvas.translate(x,y);
 
-        mPlayButtonDrawable.setAlpha(100);
-        mPlayButtonDrawable.draw(canvas);
+        progress.setAlpha(alpha);
+        progress.draw(canvas);
         canvas.restoreToCount(state);
     }
 
@@ -223,55 +403,30 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      */
 
     public void loadFullImage() {
-        synchronized (this) {
-            mLoadingError = false;
-            mLoadingInProgress = true;
-        }
-        executor.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        Drawable drawable = readFullDrawable();
-                        synchronized (LazyDrawable.this) {
-                            if (drawable != null)
-                                setDrawable(drawable);
-                            mLoadingInProgress = false;
-                            if (mIsRunning) {
-                                if (drawable instanceof Animatable && !((Animatable)drawable).isRunning()) {
-                                    mIsRunning = false;
-                                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            start();
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                        invalidateSelfOnUiThread();
-                    }
-                }
-        );
+        getExecutor().execute(mFullImageLoadRunnable);
     }
 
+    private int mAlpha = 255;
     @Override
     public void setAlpha(int alpha) {
-        synchronized (this) {
-            mDrawable.setAlpha(alpha);
-        }
+        mAlpha = alpha;
     }
 
+    private ColorFilter mColorFilter;
     @Override
     public void setColorFilter(ColorFilter cf) {
-        synchronized (this) {
-            mDrawable.setColorFilter(cf);
-        }
+        mColorFilter = cf;
     }
+
+    private int mOpacity = 0;
 
     @Override
     public int getOpacity() {
         synchronized (this) {
-            return mDrawable.getOpacity();
+            if (mDrawable!=null)
+                return mDrawable.getOpacity();
+            else
+                return mOpacity;
         }
     }
 
@@ -280,11 +435,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         synchronized (this) {
             if (mDrawable instanceof Animatable) {
                 ((Animatable)mDrawable).start();
-            } else {
-                mIsRunning = true;
+                mState = State.ANIMATION;
             }
         }
-
     }
 
     @Override
@@ -311,17 +464,20 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * @param drawable
      */
     protected synchronized void setDrawable(Drawable drawable) {
-        if (mDrawable!=null && isRunning()) stop();
+        if (mDrawable!=null && isRunning()) {
+            mDrawable.setCallback(null); // remove callbacks from drawable
+            stop();
+        }
+        applyBounds(drawable);
         mDrawable = drawable;
         mDrawable.setCallback(this);
-        mBoundsApplied = false;
     }
 
     /**
      * set unrecoverable load error flag
      */
     protected void onFailure() {
-        mLoadingError = true;
+        mState = State.ERROR;
         invalidateSelfOnUiThread();
     }
 
@@ -390,51 +546,4 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * sample implementation - only 'slow method'
      * generally - for development and debug purposes
      */
-
-    public static class FromURL extends LazyDrawable {
-        private String mSrcUrl;
-
-        public FromURL(String srcUrl) throws IOException {
-            super(0, 0);
-            mSrcUrl = srcUrl;
-            Drawable drawable = readFullDrawable();
-            setDrawable(drawable);
-        }
-
-        protected FromURL(int srcWidth, int srcHeight) {
-            super(srcWidth, srcHeight);
-        }
-
-        protected FromURL(int srcWidth, int srcHeight, String srcUrl) {
-            super(srcWidth,srcHeight);
-            mSrcUrl = srcUrl;
-        }
-
-        public String getURL() { return mSrcUrl; }
-
-        @Override
-        protected Drawable readPreviewDrawable() {
-            return readFullDrawable();
-        }
-
-        @Override
-        protected Drawable readFullDrawable() {
-            URL url;
-            try {
-                url = new URL(mSrcUrl);
-            } catch (MalformedURLException e) {
-                onFailure();
-                return null;
-            }
-            Bitmap image = null;
-            try {
-                image = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-            } catch (IOException e) {
-                onFailure();
-                return null;
-            }
-            setSize(image.getWidth(),image.getHeight());
-            return new BitmapDrawable(Resources.getSystem(),image);
-        }
-    }
 }

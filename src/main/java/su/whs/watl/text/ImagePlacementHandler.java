@@ -6,6 +6,8 @@ import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.style.DynamicDrawableSpan;
 
+import su.whs.watl.experimental.AutoPlacedDrawable;
+
 /**
  * Created by igor n. boulliev on 03.02.15.
  */
@@ -46,6 +48,7 @@ public abstract class ImagePlacementHandler {
          *
          * @param drawableSpan
          * @param height       - available height (or -1 if no limit)
+         * @param viewHeight   - layout height (total, or -1 if not defined)
          * @param width        - available width (to end of line)
          * @param viewWidth    - layout width (total)
          * @param offset       - character position in text, given to TextLayout
@@ -59,6 +62,12 @@ public abstract class ImagePlacementHandler {
             /* default behavior */
             // if instrictWidth < width && instrictHeight < height - leave as inline
             Drawable dr = drawableSpan.getDrawable();
+            if (dr instanceof AutoPlacedDrawable) {
+                int r = ((AutoPlacedDrawable)dr).place(viewWidth,viewHeight,width,height,scale,options);
+                if (r>-1) return r;
+                // else - calculate itself
+            }
+
             Rect paddings = new Rect();
             options.getDrawablePaddings(paddings);
             if (dr == null)

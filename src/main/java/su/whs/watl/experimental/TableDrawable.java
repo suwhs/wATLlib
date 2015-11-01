@@ -1,5 +1,6 @@
 package su.whs.watl.experimental;
 
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.TextPaint;
@@ -7,6 +8,7 @@ import android.text.TextPaint;
 import java.util.ArrayList;
 import java.util.List;
 
+import su.whs.watl.text.ContentView;
 import su.whs.watl.text.ImagePlacementHandler;
 
 /**
@@ -44,7 +46,7 @@ public class TableDrawable extends LazyDrawable implements AutoPlacedDrawable {
     }
 
     @Override
-    public int place(int width, int height) {
+    public int place(int width, int height, int leftWidth, int leftHeight, Point scale, ContentView.Options options) {
         // store available width and available height
 
         return ImagePlacementHandler.PLACEHOLDER;
