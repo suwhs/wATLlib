@@ -14,6 +14,7 @@
 */
 package su.whs.watl.experimental;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
@@ -22,6 +23,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.Animatable;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
@@ -46,6 +48,13 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
     private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
+
+    public synchronized Bitmap getBitmap() {
+        if (mDrawable instanceof BitmapDrawable) {
+            return ((BitmapDrawable)mDrawable).getBitmap();
+        }
+        return null;
+    }
 
     protected enum State {
         NONE,

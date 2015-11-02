@@ -174,6 +174,7 @@ public interface ContentView {
             TypedArray ta;
             /* TextViewWS attrs */
             ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewWS,defStyleRes,defStyleAttr);
+            if (ta==null|ta.getIndexCount()<1) return;
             for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
                 if (attr == R.styleable.TextViewWS_selectionColor){
                     mSelectionColor = ta.getColor(attr,Color.BLUE);
