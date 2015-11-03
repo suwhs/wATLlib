@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
     private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
-
+    // TODO: renderState - focused/unfocused + temporaryCache for 'previews' - for instances, that in 'focused' state
     public synchronized Bitmap getBitmap() {
         if (mDrawable instanceof BitmapDrawable) {
             return ((BitmapDrawable)mDrawable).getBitmap();
@@ -211,7 +211,12 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * load preview (sync)
      */
     public void initialLoad() {
-        Drawable d = readPreviewDrawable();
+        Drawable d = null;
+        try {
+            d = readPreviewDrawable();
+        } catch (OutOfMemoryError e) {
+            d = null;
+        }
         if (d==null) {
             mState = State.ERROR;
             return;
