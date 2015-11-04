@@ -540,8 +540,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int width = right - left;
         if (reflowedWidth < width)
             width = reflowedWidth;
-        canvas.translate(left, top);
-        canvas.clipRect(0, 0, right - left, bottom - top);
+        // canvas.translate(left, top);
+        canvas.clipRect(left, top, right, bottom);
 
         if (getLineSpan() != null) {
             if (isReflowBackgroundTaskRunning()) {
@@ -1650,6 +1650,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
         // cleanup visible drawables
         for (Drawable unprocessed : processedDrawables) {
+            if (unprocessed instanceof LazyDrawable) {
+                // ((LazyDrawable)unprocessed).stopIfLoading();
+            }
             if (unprocessed instanceof Animatable) {
                 if (((Animatable) unprocessed).isRunning()) {
                     // keep 'running state'

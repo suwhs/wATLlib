@@ -130,12 +130,11 @@ public class TextViewWS extends TextView {
                     if (mSelectModeActive && selectCursorAt(tX, tY)) {
                         // request all touch events
                         getParent().requestDisallowInterceptTouchEvent(true);
-                        return true;
                     } else {
                         statePressed = true;
                         touchTime = System.currentTimeMillis();
-                        return true;
                     }
+                    return true;
             }
 
             return false;

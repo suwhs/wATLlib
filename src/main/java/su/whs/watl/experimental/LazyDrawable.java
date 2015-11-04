@@ -31,7 +31,9 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
     // TODO: renderState - focused/unfocused + temporaryCache for 'previews' - for instances, that in 'focused' state
     public synchronized Bitmap getBitmap() {
         if (mDrawable instanceof BitmapDrawable) {
@@ -56,8 +58,14 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         return null;
     }
 
+    public synchronized void Unload() {
+        mState = State.NONE;
+        setDrawable(null);
+    }
+
     protected enum State {
         NONE,
+        QUEUED,
         LOADING,
         PREVIEW,
         FULL,
@@ -74,7 +82,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     private static synchronized ThreadPoolExecutor getExecutor() {
         if (executor.isShutdown()) {
-            executor = new ThreadPoolExecutor(1,1,10L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(50));
+            executor = new ThreadPoolExecutor(1,1,10L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
         }
         return executor;
     }
@@ -88,6 +96,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private Drawable mPlayButtonDrawable = null;
     private Drawable mIndeterminateProgressDrawable = null;
     private Drawable mLoadingErrorDrawable = null;
+    private Drawable mQueuedDrawable = null;
     private State mState = State.NONE;
     private ScaleType mScaleType = ScaleType.SCALE_FIT;
     private boolean mAutoStart = false;
@@ -126,12 +135,14 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     public void setIndeterminateProgressDrawable(Drawable drawable) {
         mIndeterminateProgressDrawable = drawable;
-        mIndeterminateProgressDrawable.setBounds(0,0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
     }
 
     public void setLoadingErrorDrawable(Drawable drawable) {
         mLoadingErrorDrawable = drawable;
-        mLoadingErrorDrawable.setBounds(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());
+    }
+
+    public void setQueuedDrawable(Drawable drawable) {
+        mQueuedDrawable = drawable;
     }
 
     @Override
@@ -212,10 +223,15 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      */
     public void initialLoad() {
         Drawable d = null;
+        synchronized (this) {
+            mState = State.LOADING;
+        }
         try {
             d = readPreviewDrawable();
         } catch (OutOfMemoryError e) {
-            d = null;
+            Log.e(TAG,"out of memory while readPreviewDrawable()");
+        } catch (InterruptedException e) {
+
         }
         if (d==null) {
             mState = State.ERROR;
@@ -238,7 +254,13 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private Runnable mFullImageLoadRunnable = new Runnable() {
         @Override
         public void run() {
-            Drawable drawable = readFullDrawable();
+            Drawable drawable = null;
+            try {
+                drawable = readFullDrawable();
+            } catch (InterruptedException e) {
+
+            }
+            mFuture = null;
             synchronized (LazyDrawable.this) {
                 if (drawable == null) {
                     if (mDrawable!=null) // but here are preview drawable
@@ -247,6 +269,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                     return;
                 }
                 setDrawable(drawable);
+                mState = State.FULL;
                 if (drawable instanceof Animatable && mAutoStart && !isRunning()) {
                     if (drawable instanceof Animatable && !((Animatable)drawable).isRunning()) {
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
@@ -264,7 +287,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
     private Rect mBoundsRect = new Rect();
     private Paint mBoundsPaint = new Paint();
-
+    private Future mFuture = null;
     /**
      * if no preview loaded - execute initialLoad() in background and draw 'loadingFrame', if defined
      * @param canvas
@@ -280,8 +303,19 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         switch (state) {
             case NONE:
                 synchronized (this) { mState=State.LOADING; }
-                drawNextLoadingFrame(canvas);
-                getExecutor().execute(mInitialLoadingRunnable);
+                // drawNextLoadingFrame(canvas);
+                try {
+                    mState = State.QUEUED;
+                    mFuture = getExecutor().submit(mInitialLoadingRunnable);
+
+                } catch (RejectedExecutionException e) {
+                    mState = State.ERROR;
+                    invalidateSelfOnUiThread();
+                }
+            case QUEUED:
+                if (mQueuedDrawable!=null)
+                    drawProgress(canvas,mQueuedDrawable,0);
+                break;
             case LOADING:
                 if (getCallbackCompat()!=null) {
                     scheduleSelf(new Runnable() {
@@ -361,7 +395,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
 
         shader = new LinearGradient(mBounds.right-mHorizontalEdgeSize, 0, mBounds.right, 0, Color.TRANSPARENT, mEdgeColor, Shader.TileMode.CLAMP);
         mEdgePaint.setShader(shader);
-        canvas.drawRect(mBounds.right-mHorizontalEdgeSize,0,mBounds.right,mBounds.bottom,mEdgePaint);
+        canvas.drawRect(mBounds.right - mHorizontalEdgeSize, 0, mBounds.right, mBounds.bottom, mEdgePaint);
     }
 
     protected void drawLoadError(Canvas canvas) {
@@ -390,7 +424,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     }
 
     private void drawProgress(Canvas canvas, Drawable progress, int angle) {
-        drawProgress(canvas, progress, angle, 0);
+        drawProgress(canvas, progress, angle, 255);
     }
 
     protected void drawProgress(Canvas canvas, Drawable progress, int angle, int alpha) {
@@ -410,6 +444,18 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         progress.setAlpha(alpha);
         progress.draw(canvas);
         canvas.restoreToCount(state);
+
+        // mBoundsRect.set(progress.getBounds() /* mBounds.left + 5, mBounds.top + 5, mBounds.right - 5, mBounds.bottom - 5 */);
+        /* mBoundsPaint.setStyle(Paint.Style.STROKE);
+        mBoundsPaint.setColor(Color.RED);
+        canvas.drawRect(mBoundsRect, mBoundsPaint);
+        if (progress!=null) {
+            mBoundsRect.set(mBounds);
+            mBoundsPaint.setColor(Color.GREEN);
+            canvas.drawRect(mBoundsRect, mBoundsPaint);
+            canvas.drawLine(0f, 0f, mBoundsRect.left, mBoundsRect.top, mBoundsPaint);
+            canvas.drawLine(mBounds.right, mBounds.bottom, mBoundsRect.left, mBoundsRect.top, mBoundsPaint);
+        } */
     }
 
     /**
@@ -417,7 +463,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      */
 
     public void loadFullImage() {
-        getExecutor().execute(mFullImageLoadRunnable);
+        if (mFuture!=null)
+            mFuture.cancel(true);
+        mFuture = getExecutor().submit(mFullImageLoadRunnable);
     }
 
     private int mAlpha = 255;
@@ -482,9 +530,11 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
             mDrawable.setCallback(null); // remove callbacks from drawable
             stop();
         }
-        applyBounds(drawable);
         mDrawable = drawable;
-        mDrawable.setCallback(this);
+        if (mDrawable!=null) {
+            applyBounds(drawable);
+            mDrawable.setCallback(this);
+        }
     }
 
     /**
@@ -546,14 +596,14 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * abstract method. Implementation must return Drawable fast as possible
      * @return
      */
-    protected abstract Drawable readPreviewDrawable();
+    protected abstract Drawable readPreviewDrawable() throws InterruptedException;
 
     /**
      * abstract method. Implementation may load real image from network (not fast),
      * store to cache (and use it when this drawable required again)
      * @return
      */
-    protected abstract Drawable readFullDrawable();
+    protected abstract Drawable readFullDrawable() throws InterruptedException;
 
 
     /**

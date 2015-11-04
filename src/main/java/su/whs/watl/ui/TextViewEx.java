@@ -21,6 +21,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.Scroller;
 import android.widget.Toast;
 
 import su.whs.watl.text.ContentView;
@@ -258,18 +260,24 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         debugPaint.setColor(Color.GREEN);
     }
 
+    private Rect mScreenRect = new Rect();
+    int[] locationOnScreen = new int[2];
     /**
      * draw text content on canvas
      *
      * @param canvas
      */
+
     @Override
     public void drawText(Canvas canvas) {
         int left = getCompoundPaddingLeft();
         int right = getWidth() - getCompoundPaddingRight();
         int top = getCompoundPaddingTop();
         int bottom = getHeight() - getCompoundPaddingBottom();
-        mTextLayout.draw(canvas, left, top, right, bottom);
+        Rect bounds = canvas.getClipBounds();
+        getLocalVisibleRect(bounds);
+        getLocationOnScreen(locationOnScreen);
+        mTextLayout.draw(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom);
     }
 
     @Override
@@ -401,7 +409,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void setSelected(boolean selected) {
         super.setSelected(selected);
         if (!selected) {
-            mTextLayout.setSelection(0,0);
+            mTextLayout.setSelection(0, 0);
         }
     }
 
@@ -583,6 +591,34 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         super.processTouchAt(X,Y,longTap,startsFromLine);
     }
 
+    /* support partially drawing */
+    private boolean mIsContanerAreScrollView = false;
+    private Scroller mScroller = null;
+
+    @Override
+    protected void onScrollChanged(int horiz, int vert, int oldHoriz, int oldVert) {
+        super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
+        Log.d(TAG,"onScrollChanged");
+    }
+
+    @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+       getViewTreeObserver().addOnScrollChangedListener(mOnScrollChangedListener);
+    }
+
+    @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        getViewTreeObserver().removeOnScrollChangedListener(mOnScrollChangedListener);
+    }
+
+    private ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
+        @Override
+        public void onScrollChanged() {
+            invalidate();
+        }
+    };
     /*
     private void dump_lines_heights(TextLayout l) {
         int total = 0;
