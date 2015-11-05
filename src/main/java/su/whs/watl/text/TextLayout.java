@@ -1217,7 +1217,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             backgroundPaint.setStrokeWidth(1);
         }
 
-        int leftOffset = textPaddings.left;
+        final int leftOffset = textPaddings.left;
         int topOffset = textPaddings.top;
         int drawablePaddingWidth = drawablePaddings.left + drawablePaddings.right;
         int drawablePaddingHeight = drawablePaddings.top + drawablePaddings.bottom;
@@ -1398,6 +1398,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                             } else if (line.start == span.start) {
                                 x -= textPaddings.left; // eliminate textPadding, if drawable are first character on line
                             }
+                            if (span.start==line.start) x = 0;
                             int sY = y + span.baselineShift;
                             // need to avoid applying all 'character style' to paint before draw drawable
                             int corrector = dds.getVerticalAlignment() == DynamicDrawableSpan.ALIGN_BASELINE ? paint.getFontMetricsInt().descent : 0;
