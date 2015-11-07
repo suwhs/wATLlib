@@ -45,9 +45,18 @@ public class HtmlTagHandler implements Html.TagHandler {
     }
 
     private class BS extends BulletSpan {
-        public BS(int every) {
-            super(every);
+        private int offset;
+        private int everyc;
+        public BS(int every, int offset) {
+            super(every+offset);
+            // this.offset = offset;
+            // this.everyc = every;
         }
+
+        // @Override
+        // public void drawLeadingMargin(Canvas c, Paint p, int x, int dir, int top, int baseline, int bottom, CharSequence text, int start, int end, boolean first, Layout l) {
+        //    super.drawLeadingMargin(c, p, x+offset-everyc, dir, top, baseline, bottom, text, start, end, first, l);
+        // }
     }
 
     @Override
@@ -113,11 +122,11 @@ public class HtmlTagHandler implements Html.TagHandler {
         if (mListParents.lastElement().equals("ul")) {
             output.append('\n');
             int len = output.length();
-            output.setSpan(new BS(15 * mListParents.size()), len, len, Spanned.SPAN_MARK_MARK);
+            output.setSpan(new BS(2 * mListParents.size(),0), len, len, Spanned.SPAN_MARK_MARK);
         } else if (mListParents.lastElement().equals("ol")) {
             output.append('\n');
             int len = output.length();
-            output.setSpan(new LMS(15 * mListParents.size()), len, len, Spanned.SPAN_MARK_MARK);
+            output.setSpan(new LMS(2 * mListParents.size()), len, len, Spanned.SPAN_MARK_MARK);
         }
     }
 

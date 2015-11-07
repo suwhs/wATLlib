@@ -98,7 +98,7 @@ class ReflowState {
         carrierReturnBreak = lastBreak;
         carrierReturnSpan = span;
         this.lastWhitespace = this.character;
-        lineWidth = span.margin;
+        lineWidth = 0f;
         breakWidth = 0f;
 
         height = 0; // span.height;

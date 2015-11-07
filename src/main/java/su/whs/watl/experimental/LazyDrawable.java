@@ -194,8 +194,8 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                 float sH = (float)mBounds.height() / h;
                 float sW = (float)mBounds.width() / w;
                 float ratio = sW > sH ? sH : sW;
-                dW = (int) (w * ratio);
-                dH = (int) (h * ratio);
+                dW = (int) (ratio < 1f ? (w * ratio) : w);
+                dH = (int) (ratio < 1f ? (h * ratio) : h);
                 sX = (mBounds.width()-dW) / 2;
                 sY = (mBounds.height()-dH) / 2;
                 drawable.setBounds(mBounds.left+sX,mBounds.top+sY,mBounds.right-sX, mBounds.bottom-sY);
@@ -302,17 +302,19 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         }
         switch (state) {
             case NONE:
-                synchronized (this) { mState=State.LOADING; }
+            case QUEUED:
+                // synchronized (this) { mState=State.LOADING; }
                 // drawNextLoadingFrame(canvas);
                 try {
                     mState = State.QUEUED;
-                    mFuture = getExecutor().submit(mInitialLoadingRunnable);
+                    // mFuture =
+                            getExecutor().execute(mInitialLoadingRunnable);
 
                 } catch (RejectedExecutionException e) {
                     mState = State.ERROR;
                     invalidateSelfOnUiThread();
                 }
-            case QUEUED:
+
                 if (mQueuedDrawable!=null)
                     drawProgress(canvas,mQueuedDrawable,0);
                 break;
@@ -465,7 +467,8 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     public void loadFullImage() {
         if (mFuture!=null)
             mFuture.cancel(true);
-        mFuture = getExecutor().submit(mFullImageLoadRunnable);
+        //mFuture =
+        getExecutor().execute(mFullImageLoadRunnable);
     }
 
     private int mAlpha = 255;

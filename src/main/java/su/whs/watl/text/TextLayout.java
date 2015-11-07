@@ -694,7 +694,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             if (debug && start == end) {
                 Log.e(TAG, "start==end");
             }
-            this.leadingMargin = leadingMarginSpan;
+            if (state.character>lineStartAt)
+                this.leadingMargin = leadingMarginSpan;
 
         }
 
@@ -1340,20 +1341,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             float x;
             int skip = line.afterBreak == null ? 0 : line.afterBreak.get().skip;
 
-            if (line.leadingMargin != null) { // draw leading margin span (bullet, etc)
-                workPaint.set(paint);
-                if (line.leadingMargin != actualLeadingMargin) {
-                    actualLeadingMargin = line.leadingMargin;
-                }
 
-                try {
-                    line.leadingMargin.drawLeadingMargin(canvas, workPaint, line.wrapMargin + leftOffset, 1, y, baseLine, baseLine + line.descent, new FakeSpanned(line.leadingMargin, drawStart), drawStart, drawStop, false, null);
-                } catch (NullPointerException e) {
-                    // avoid unsupported leading margins exceptions, caused layout==null
-                }
-            } else {
-                actualLeadingMargin = null;
-            }
 
             float align = leftOffset;
 
@@ -1375,6 +1363,22 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
             LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get().next == null ? null : line.afterBreak.get().next));
             x = line.margin + align;
+
+            if (line.leadingMargin != null) { // draw leading margin span (bullet, etc)
+                workPaint.set(paint);
+                if (line.leadingMargin != actualLeadingMargin) {
+                    actualLeadingMargin = line.leadingMargin;
+                }
+
+                try {
+                    line.leadingMargin.drawLeadingMargin(canvas, workPaint, (int)x, 1, y + line.descent, baseLine, baseLine + line.descent, new FakeSpanned(line.leadingMargin, drawStart), drawStart, drawStop, false, null);
+                } catch (NullPointerException e) {
+                    // avoid unsupported leading margins exceptions, caused layout==null
+                }
+                x+=line.leadingMargin.getLeadingMargin(true);
+            } else {
+                actualLeadingMargin = null;
+            }
 
             drawStart += skip;
             // innerRtlStack.clear(); // clear stack
@@ -2089,8 +2093,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
             if (lineStartAt==span.end) {
                 state.carrierReturnSpan = state.span.next;
-
             }
+
                     /* eliminate empty line only if non-empty-lines-count > threshold */
             if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
@@ -2162,7 +2166,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             // if this line starts after '\n' - threat it as new paragraph starts
             if (carrierReturn) {
                 ld.height += forcedParagraphTopMargin;
-                y += forcedParagraphTopMargin;
+                // y += forcedParagraphTopMargin; (forcedParagraphTopMargin added twice!)
 
                 if (leadingMarginSpan == null) { // apply paragraph margins only to lines without leading margin
                     ld.margin += forcedParagraphLeftMargin;
@@ -2305,7 +2309,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (spanHeight > state.height) {
                     state.height = spanHeight; // maximum state changed, check if line too much height
                     if ((viewHeight > -1) && viewHeightLeft < state.height) { // TODO: check span.isDrawable
-                        if(!onProgress(result,collectedHeight,true))
+                        if(!onProgress(result,y + collectedHeight,true))
                             break recursion;
                         if (updateGeometry(geometry)) {
                             width = geometry[0];
@@ -2326,8 +2330,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 }
 
                 lineMargin = leadingMargin;
-
-                if (state.lineWidth == 0f && (leadingMargin > 0 || span.paragraphStart)) {
+                state.lineWidth += leadingMargin;
+                if (state.lineWidth == 0f && (leadingMargin == 0 || span.paragraphStart)) {
                     // lineMargin = leadingMargin;
                     if (span.paragraphStart && span != lastParagraphStarts) {
                         lastParagraphStarts = span;
@@ -2417,7 +2421,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 wrapMargin = 0;
                                 viewHeightLeft -= wrapHeight;
                                 if (viewHeight>-1 && viewHeightLeft - state.height <0) {
-                                    if (!onProgress(result,collectedHeight,true)) break recursion;
+                                    if (!onProgress(result,y + collectedHeight,true)) break recursion;
                                     if (updateGeometry(geometry)) {
                                         width = geometry[0];
                                         viewHeight = geometry[1];
