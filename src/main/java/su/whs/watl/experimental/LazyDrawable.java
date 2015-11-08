@@ -238,14 +238,9 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * load preview (sync)
      */
 
-    private boolean mInitialLoadingLock = false;
 
-    public synchronized void initialLoad() {
-        if (mInitialLoadingLock) return;
-        mInitialLoadingLock = true;
+    public void initialLoad() {
         Drawable d = null;
-        setState(State.LOADING);
-        invalidateSelfOnUiThread();
         try {
             d = readPreviewDrawable();
         } catch (OutOfMemoryError e) {
@@ -253,7 +248,6 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         } catch (InterruptedException e) {
 
         }
-        mInitialLoadingLock = false;
         if (d==null) {
             onFailure();
             return;
@@ -266,6 +260,8 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private Runnable mInitialLoadingRunnable = new Runnable() {
         @Override
         public void run() {
+            setState(State.LOADING);
+            invalidateSelfOnUiThread();
             initialLoad();
         }
     };
@@ -323,15 +319,15 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         }
         switch (state) {
             case NONE:
-            case QUEUED:
                 try {
                     setState(State.QUEUED);
-                    // mFuture =
-                            getExecutor().execute(mInitialLoadingRunnable);
-
+                    getExecutor().execute(mInitialLoadingRunnable);
+                    invalidateSelfOnUiThread();
                 } catch (RejectedExecutionException e) {
                     onFailure();
                 }
+                break;
+            case QUEUED:
                 if (mQueuedDrawable!=null)
                     drawProgress(canvas,mQueuedDrawable,0);
                 break;
