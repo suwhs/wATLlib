@@ -238,7 +238,7 @@ class ReflowState {
             this.lineWidth -= currentCharacterWidth;
             this.character--;
         }
-
+        
         if (debug && this.lastBreak!=null && !lastBreak.strong) { // if we fail to whiespace (non-drawing break) - we must correct substraccted breakwidth
             if (this.prevBreak!=null && this.prevBreak.next == lastBreak) {
                 Log.d(TAG,"should we revert lastBreak?");

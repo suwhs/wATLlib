@@ -1,5 +1,6 @@
 package su.whs.watl.experimental;
 
+import android.content.Context;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
@@ -25,12 +26,12 @@ public class TableDrawable extends LazyDrawable implements AutoPlacedDrawable {
 
     private List<List<Layout>> layouts = new ArrayList<List<Layout>>();
     private TextPaint mPaint = new TextPaint();
-    public TableDrawable(int srcWidth, int srcHeight) {
-        super(srcWidth, srcHeight);
+    public TableDrawable(Context context, int srcWidth, int srcHeight) {
+        super(context, srcWidth, srcHeight);
     }
 
-    public TableDrawable(List<List<CharSequence>> content) {
-        super(0,0);
+    public TableDrawable(Context context, List<List<CharSequence>> content) {
+        super(context,0,0);
     }
 
     @Override

@@ -31,6 +31,8 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -49,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
+    private static Map<Object,ThreadPoolExecutor> executor = new HashMap<Object, ThreadPoolExecutor>();//new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
     // TODO: renderState - focused/unfocused + temporaryCache for 'previews' - for instances, that in 'focused' state
     public synchronized Bitmap getBitmap() {
         if (mDrawable instanceof BitmapDrawable) {
@@ -80,11 +82,23 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
         CENTER_CROP
     }
 
-    private static synchronized ThreadPoolExecutor getExecutor() {
-        if (executor.isShutdown()) {
-            executor = new ThreadPoolExecutor(1,1,10L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
+    private static synchronized ThreadPoolExecutor getExecutorWithTag(Object tag) {
+        if (!executor.containsKey(tag))
+            executor.put(tag, new ThreadPoolExecutor(1, 1, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100)));
+        return executor.get(tag);
+    }
+
+    public static synchronized void cleanupTag(Object tag) {
+        ThreadPoolExecutor e = executor.get(tag);
+        if (e!=null) {
+            e.purge();
+            e.shutdownNow();
+            executor.remove(tag);
         }
-        return executor;
+    }
+
+    private ThreadPoolExecutor getExecutor() {
+        return getExecutorWithTag(mExecutorTag);
     }
 
     private static final String TAG="LazyDrawable";
@@ -101,6 +115,7 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     private ScaleType mScaleType = ScaleType.SCALE_FIT;
     private boolean mAutoStart = false;
     private int mEdgeColor = Color.WHITE;
+    private Object mExecutorTag = null;
 
     public interface Callback extends Drawable.Callback {
         void onLayoutRequest();
@@ -112,11 +127,12 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
      * @param srcHeight
      */
 
-    public LazyDrawable(int srcWidth, int srcHeight) {
-        this(srcWidth,srcHeight,ScaleType.FILL);
+    public LazyDrawable(Object executorTag, int srcWidth, int srcHeight) {
+        this(executorTag,srcWidth,srcHeight,ScaleType.FILL);
     }
 
-    public LazyDrawable(int srcWidth, int srcHeight, ScaleType scaleType) {
+    public LazyDrawable(Object executorTag, int srcWidth, int srcHeight, ScaleType scaleType) {
+        mExecutorTag = executorTag;
         mSrcWidth = srcWidth;
         mSrcHeight = srcHeight;
         mScaleType = scaleType;

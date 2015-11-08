@@ -1,5 +1,6 @@
 package su.whs.watl.experimental;
 
+import android.content.Context;
 import android.graphics.drawable.Drawable;
 
 import java.util.ArrayList;
@@ -17,9 +18,9 @@ public class TableDrawableBuilder {
     private int currentRow = -1;
     private State currentState = State.NONE;
     private int maxColumnsCount = 0;
-
-    public TableDrawableBuilder() {
-
+    private Context mContext;
+    public TableDrawableBuilder(Context context) {
+        mContext = context;
     }
 
     public TableDrawableBuilder row() {
@@ -45,6 +46,6 @@ public class TableDrawableBuilder {
     }
 
     public Drawable build() {
-        return new TableDrawable(this.content);
+        return new TableDrawable(mContext,this.content);
     }
 }
