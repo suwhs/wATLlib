@@ -122,7 +122,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     protected void notifyTextInfoInvalidated() {
-        if (debug) Log.v(TAG,"notifyTextInfoInvalidated");
+        if (debug) Log.v(TAG, "notifyTextInfoInvalidated");
         mIsLayouted = false;
         if (listener != null)
             listener.onTextInfoInvalidated();
@@ -136,10 +136,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             public void run() {
                 if (listener != null) {
                     listener.onTextHeightChanged();
+                    listener.onTextReady();
                 }
             }
         });
-        listener.onTextReady();
+
     }
 
     /**
@@ -180,7 +181,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     }
 
     public void setInvalidateListener(TextLayoutListener listener) {
-        if (debug) Log.v(TAG,"setInvalidateListener:"+listener);
+        if (debug) Log.v(TAG, "setInvalidateListener:" + listener);
         this.listener = listener;
     }
 
@@ -194,6 +195,22 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     public String getState() {
         return "";
+    }
+
+    public void release() {
+        mText = null;
+        lines.clear();
+        lineSpan = null;
+        chars = null;
+        for(int i=0; i<mDynamicDrawableSpanSparseArray.size(); i++) {
+            int key = mDynamicDrawableSpanSparseArray.keyAt(i);
+            DynamicDrawableSpan span = mDynamicDrawableSpanSparseArray.get(key);
+            Drawable dr = span.getDrawable();
+            if (dr!=null && dr instanceof LazyDrawable) {
+                ((LazyDrawable)dr).release();
+            }
+        }
+        mDynamicDrawableSpanSparseArray.clear();
     }
 
     /**
@@ -2626,5 +2643,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         mColorIdx++;
         if (mColorIdx>sColors.length-1) mColorIdx = 0;
         return result;
+    }
+
+    @Override
+    public void finalize() throws Throwable {
+        super.finalize();
+        release();
     }
 }

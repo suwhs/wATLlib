@@ -31,6 +31,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -51,7 +52,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public abstract class LazyDrawable extends Drawable implements Animatable, Drawable.Callback {
-    private static Map<Object,ThreadPoolExecutor> executor = new HashMap<Object, ThreadPoolExecutor>();//new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
+    private static Map<WeakReference<Object>,ThreadPoolExecutor> executor = new HashMap<WeakReference<Object>, ThreadPoolExecutor>();//new ThreadPoolExecutor(1,1,1000L, TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(500));
     // TODO: renderState - focused/unfocused + temporaryCache for 'previews' - for instances, that in 'focused' state
     public synchronized Bitmap getBitmap() {
         if (mDrawable instanceof BitmapDrawable) {
@@ -63,6 +64,10 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     public synchronized void Unload() {
         mState = State.NONE;
         setDrawable(null);
+    }
+
+    public void release() {
+        Unload();
     }
 
     protected enum State {
@@ -83,9 +88,10 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     }
 
     private static synchronized ThreadPoolExecutor getExecutorWithTag(Object tag) {
-        if (!executor.containsKey(tag))
-            executor.put(tag, new ThreadPoolExecutor(1, 1, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100)));
-        return executor.get(tag);
+        WeakReference<Object> wtag = new WeakReference<Object>(tag);
+        if (!executor.containsKey(wtag))
+            executor.put(wtag, new ThreadPoolExecutor(1, 1, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100)));
+        return executor.get(wtag);
     }
 
     public static synchronized void cleanupTag(Object tag) {
@@ -523,6 +529,10 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
     protected synchronized void setDrawable(Drawable drawable) {
         if (mDrawable!=null && isRunning()) {
             mDrawable.setCallback(null); // remove callbacks from drawable
+            if (mDrawable!=null && mDrawable instanceof BitmapDrawable) {
+                Bitmap bmp = ((BitmapDrawable)mDrawable).getBitmap();
+                bmp.recycle();
+            }
             stop();
         }
         mDrawable = drawable;
@@ -584,6 +594,17 @@ public abstract class LazyDrawable extends Drawable implements Animatable, Drawa
                     LazyDrawable.this.invalidateSelf();
                 }
             });
+        }
+    }
+
+    @Override
+    public void finalize() throws Throwable {
+        super.finalize();
+        if (mDrawable!=null) {
+            if (mDrawable instanceof BitmapDrawable) {
+                Bitmap bmp = (((BitmapDrawable) mDrawable).getBitmap());
+                if (!bmp.isRecycled()) bmp.recycle();
+            }
         }
     }
 

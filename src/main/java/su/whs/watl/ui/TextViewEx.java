@@ -149,6 +149,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     public void setTextLayout(TextLayout textLayout) {
         if (textLayout == null) throw new IllegalArgumentException("textLayout must be not null");
+        if (mTextLayout!=null) mTextLayout.release();
         mTextLayout = textLayout;
         mTextLayout.setInvalidateListener(this);
         postInvalidate();
@@ -611,6 +612,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         getViewTreeObserver().removeOnScrollChangedListener(mOnScrollChangedListener);
+        if (mTextLayout!=null) {
+            mTextLayout.release();
+        }
     }
 
     private ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {

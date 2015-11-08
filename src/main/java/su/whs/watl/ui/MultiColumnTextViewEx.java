@@ -111,11 +111,15 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             int bottom = getHeight() - getCompoundPaddingBottom();
             int columnShift = mColumnWidth + mColumnSpacing;
 
+            Rect bounds = canvas.getClipBounds();
+            getLocalVisibleRect(bounds);
+            getLocationOnScreen(locationOnScreen);
+
             for (int i = 0; i < mColumnsReady; i++) {
                 getTextLayout().draw(canvas, left + columnShift * i,
-                        mColumnsVerticalShifts[i] + top,
+                        mColumnsVerticalShifts[i] + bounds.top,
                         right + columnShift * i,
-                        mColumnsVerticalShifts[i] + bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
+                        mColumnsVerticalShifts[i] + bounds.bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
             }
         // canvas.drawRect(debugClickedLineBound,debugPaint);
      }
@@ -152,7 +156,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         int heightSpec = MeasureSpec.getMode(hms);
         if (heightSpec == MeasureSpec.UNSPECIFIED) {
             mRecalculateHeightOnFinish = true;
-            if (mTextReady) {
+            if (!mTextReady) {
                 onTextReady();
             }
         }
