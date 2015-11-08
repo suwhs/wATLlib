@@ -1890,7 +1890,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         }
 
         private boolean checkViewHeightExceed() {
-            if (viewHeight > -1 && !onProgress(result, y, true)) {
+            if (viewHeight > -1 && !onProgress(result, y + state.height, true)) {
                 return false;
             } else if (viewHeight > -1 && updateGeometry(geometry)) {
                                 /* special case - ask geometry for next portion */
@@ -1953,8 +1953,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (debug) Log.v(TAG, "wrapText");
                 if (wrapHeight > 0) {
                     if (debug) Log.e(TAG, "close wrap null span"); // FIXME: here we are exeed viewHeight, but not tell to listener - check
-                    result.add(new TextLine(null, 0, wrapHeight));
+
+                    if (viewHeightLeft>-1 && viewHeightLeft < wrapHeight) {
+                        if (!checkViewHeightExceed()) return false;
+                    }
                     wrapMargin = 0;
+                    result.add(new TextLine(null, 0, wrapHeight));
+                    y += wrapHeight;
                 }
 
                 if (finishLine && !__finishLine()) return false;

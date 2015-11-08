@@ -153,7 +153,9 @@ public abstract class ImagePlacementHandler {
             scale.y *= scaleFactor;
             if (fitWidth) {
                 if (fitHeight) {
-                    if (ratio >= options.getDrawableWrapRatioTreshold()) {
+                    float widthRatio = scale.x / (float)viewWidth;
+                    float wrapWidthTreshold = options.getDrawableWrapWidthTreshold();
+                    if (ratio >= options.getDrawableWrapRatioTreshold() && widthRatio < wrapWidthTreshold) {
                         return WRAP_TEXT;
                     }
                     return EXCLUSIVE;
