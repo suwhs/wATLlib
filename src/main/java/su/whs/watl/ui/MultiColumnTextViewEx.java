@@ -61,6 +61,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     private void init(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         /* MultiColumnTextViewEx attributes */
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MultiColumnTextViewEx,defStyleRes,defStyleAttr);
+        if (ta.getIndexCount()>0)
         for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
             if (attr == R.styleable.MultiColumnTextViewEx_columnCount) {
                 setColumnsCount(ta.getInt(attr,1));
