@@ -278,6 +278,21 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         return mPosition;
     }
 
+    @Override
+    public void setSelection(int start, int end) {
+        mLayout.setSelection(start,end);
+    }
+
+    @Override
+    public int getSelectionStarts() {
+        return mLayout.getSelectionStarts();
+    }
+
+    @Override
+    public int getSelectionEnds() {
+        return mLayout.getSelectionEnds();
+    }
+
     private String firstLine() {
         int ls = getLineStart(0);
         int le = getLineEnd(0);

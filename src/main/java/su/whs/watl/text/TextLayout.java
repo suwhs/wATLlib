@@ -549,7 +549,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * @param right  - right bound of layout rect
      * @param bottom - bottom bound of layout rect
      */
-
+    private Rect mClipRect = new Rect();
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
         if (endLine <= startLine) return;
         workPaint.set(paint);
@@ -558,13 +558,13 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         if (reflowedWidth < width)
             width = reflowedWidth;
         // canvas.translate(left, top);
-        canvas.clipRect(left, top, right, bottom);
-
+        // canvas.clipRect(left, top, right, bottom);
+        mClipRect.set(left,top,right,bottom);
         if (getLineSpan() != null) {
             if (isReflowBackgroundTaskRunning()) {
-                draw(lines, startLine, endLine, getChars(), canvas, width, viewHeight, getPaint(), 0, 0, 0, 0, 0, 0, getOptions().isJustification());
+                draw(lines, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), 0, 0, 0, 0, 0, 0, getOptions().isJustification());
             } else {
-                draw(lines, startLine, endLine, getChars(), canvas, width, viewHeight, getPaint(), getSelectionStarts(), getSelectionEnds(), getSelectionColor(), mHighlightStart, mHighlightEnd, mHighlightColor, getOptions().isJustification());
+                draw(lines, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), getSelectionStarts(), getSelectionEnds(), getSelectionColor(), mHighlightStart, mHighlightEnd, mHighlightColor, getOptions().isJustification());
             }
         } else {
             // Log.w(TAG, "could not draw() getLines() returns null");
@@ -1212,12 +1212,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     Map<Drawable, Rect> visibleDrawableBounds = new HashMap<Drawable, Rect>();
     // List<Float> innerRtlStack = new ArrayList<Float>();
 
-    public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
+    public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, Rect clipRect, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
         if (lines == null || lines.size() < 1) {
             // Log.w(TAG, "lines==null || lines.size() < 1");
             return 0;
         }
-        Rect clipRect = canvas.getClipBounds();
+        // Rect clipRect = canvas.getClipBounds();
         Rect textPaddings = getOptions().getTextPaddings();
         getOptions().getDrawablePaddings(drawablePaddings);
 

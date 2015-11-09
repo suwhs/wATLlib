@@ -506,6 +506,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             mContent = (TextViewEx) page.findViewById(mContentResourceId);
             if (mContent==null) {
                 Log.e(TAG,"could not find textviewEx on real page!");
+                throw new IllegalStateException("could not find textviewEx on real page!");
+            }
+            if (mActionModeCallback!=null && Build.VERSION.SDK_INT>=Build.VERSION_CODES.HONEYCOMB) {
+                mContent.setCustomSelectionActionModeCallback(mActionModeCallback);
             }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
             addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -661,10 +665,11 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     }
 
     /* end of ISelectableContentView */
+    ActionMode.Callback mActionModeCallback;
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public void setCustomSelectionActionModeCallback(ActionMode.Callback actionModeCallback) {
-        // TODO: forward to ViewProxy
+        mActionModeCallback = actionModeCallback;
     }
 
     private SparseArray<ProxyLayout.Replies> mReplies = new SparseArray<ProxyLayout.Replies>();
@@ -757,6 +762,36 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         @Override
         public boolean isAsyncReflow() {
             return true;
+        }
+    }
+
+    @Override
+    public CharSequence getText() {
+        return mTextLayout == null ? null : mTextLayout.getText();
+    }
+
+    @Override
+    public int getSelectionStart() {
+        return mTextLayout == null ? 0 : mTextLayout.getSelectionStarts();
+    }
+
+    @Override
+    public int getSelectionEnd() {
+        return mTextLayout == null ? 0 : mTextLayout.getSelectionEnds();
+    }
+
+    @Override
+    public void setSelected(boolean b) {
+        if (mTextLayout!=null) {
+            if (!b)
+                mTextLayout.setSelection(0,0);
+        }
+    }
+
+    @Override
+    public void setSelection(int start, int end) {
+        if (mTextLayout!=null) {
+            mTextLayout.setSelection(start,end);
         }
     }
 }
