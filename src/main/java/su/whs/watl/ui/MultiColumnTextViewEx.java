@@ -97,6 +97,14 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         calculateColumns(textLayoutWidth);
         getTextLayout().setSize(mColumnWidth, -1, textLayoutHeight);
     }
+    
+    @Override
+    public void onTextHeightChanged() { // cause we set height - requestLayout() does not called by superclass until textReady
+        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
+            throw new RuntimeException("onTextHeightChanged must be called from UI Thread");
+        }
+        requestLayout();
+    }
 
     /**
      * draw TextLayout lines on canvas
@@ -105,22 +113,33 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     public void drawText(Canvas canvas) {
-            int left = getCompoundPaddingLeft();
-            int right = getWidth() - getCompoundPaddingRight();
-            int top = getCompoundPaddingTop();
-            int bottom = getHeight() - getCompoundPaddingBottom();
-            int columnShift = mColumnWidth + mColumnSpacing;
+        int left = getCompoundPaddingLeft();
+        int right = getWidth() - getCompoundPaddingRight();
+        int top = getCompoundPaddingTop();
+        int bottom = getHeight() - getCompoundPaddingBottom();
+        int columnShift = mColumnWidth + mColumnSpacing;
 
-            Rect bounds = canvas.getClipBounds();
-            getLocalVisibleRect(bounds);
-            getLocationOnScreen(locationOnScreen);
-
+        Rect bounds = canvas.getClipBounds();
+        getLocalVisibleRect(bounds);
+        if (bounds.bottom>16000000) { // strange behavior - first call to getClipBounds() returns wrong height
+            bounds.bottom=500; // workaround
+            postInvalidate();
+            return;
+        }
+        getLocationOnScreen(locationOnScreen);
+        if (mColumnsReady > 0)
             for (int i = 0; i < mColumnsReady; i++) {
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + bounds.top,
                         right + columnShift * i,
-                        mColumnsVerticalShifts[i] + bounds.bottom, mColumnsLinesStarts[i], i+1<mColumnsCount ? mColumnsLinesStarts[i+1] : getLineCount());
+                        mColumnsVerticalShifts[i] + bounds.bottom, mColumnsLinesStarts[i], i + 1 < mColumnsCount ? mColumnsLinesStarts[i + 1] : getLineCount());
             }
+        else {
+            getTextLayout().draw(canvas, left,
+                    mColumnsVerticalShifts[0] + bounds.top,
+                    right,
+                    mColumnsVerticalShifts[0] + bounds.bottom, 0, getLineCount());
+        }
         // canvas.drawRect(debugClickedLineBound,debugPaint);
      }
 
