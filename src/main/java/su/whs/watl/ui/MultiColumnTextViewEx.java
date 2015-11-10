@@ -99,6 +99,12 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     }
 
     @Override
+    public void setTextLayout(TextLayout textLayout) {
+        super.setTextLayout(textLayout);
+        calculateColumns(textLayout.getWidth());
+    }
+
+    @Override
     public void onTextHeightChanged() { // cause we set height - requestLayout() does not called by superclass until textReady
         if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
             throw new RuntimeException("onTextHeightChanged must be called from UI Thread");
@@ -266,13 +272,12 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             mLinesHeightsOnColumns = new int[mColumnsCount];
             mColumnsLinesStarts = new int[mColumnsCount];
         }
-        int q = (textLayoutWidth / mColumnsCount);
-        if (q > 1) {
+        if (mColumnsCount > 1) {
             int space = getColumnSpacingInternal();
             int spacingSum = space * (mColumnsCount - 1);
             mColumnWidth = (textLayoutWidth - spacingSum) / mColumnsCount;
         } else {
-            mColumnWidth = q; // q = 1, so no spacing
+            mColumnWidth = textLayoutWidth; // q = 1, so no spacing
         }
     }
 

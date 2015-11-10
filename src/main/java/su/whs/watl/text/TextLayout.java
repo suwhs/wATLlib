@@ -185,6 +185,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         this.listener = listener;
     }
 
+    public TextLayoutListener getInvalidateListener() {
+        return this.listener;
+    }
+
     public int getWidth() {
         return width;
     }

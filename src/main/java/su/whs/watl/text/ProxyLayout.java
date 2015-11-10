@@ -251,7 +251,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         }
         ViewHeightExceedEvent first = mEvents.first();
         this.width = first.width;
-        mLayout.pageGeometryBegins(mPosition,first.width,-1,first.height,this);
+        mLayout.pageGeometryBegins(mPosition, first.width, -1, first.height, this);
     }
 
     @Override
@@ -291,6 +291,18 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     @Override
     public int getSelectionEnds() {
         return mLayout.getSelectionEnds();
+    }
+
+    public int getFirstCharacter() {
+        if (getLinesCount()>0)
+            return getLineStart(0);
+        return -1;
+    }
+
+    public int getLastCharacter() {
+        if (getLinesCount()>0)
+            return getLineEnd(getLinesCount()-1);
+        return -1;
     }
 
     private String firstLine() {
@@ -453,6 +465,10 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
             replayEvents(listener);
         }
         super.setInvalidateListener(listener);
+    }
+
+    public boolean isAttached() {
+        return getInvalidateListener() != null;
     }
 
     private boolean mReplay = false;

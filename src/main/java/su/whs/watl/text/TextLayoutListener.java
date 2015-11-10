@@ -38,5 +38,5 @@ public interface TextLayoutListener {
     /**
      * allow TextLayout to call repaint on anitmation events
      */
-    void invalidate(int left, int right, int top, int bottom);
+    void invalidate(int left, int top, int right, int bottom);
 }

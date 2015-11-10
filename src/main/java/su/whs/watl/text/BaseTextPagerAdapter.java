@@ -14,6 +14,8 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.ActionMode;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -311,7 +313,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (mPrimaryItem==position) return;
         // Log.d(TAG, "setPrimaryItem == " + position + ", " + object);
         mPrimaryItem = position;
-
+        // TODO: call startActionMode?
     }
 
     @Override
@@ -509,7 +511,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                 throw new IllegalStateException("could not find textviewEx on real page!");
             }
             if (mActionModeCallback!=null && Build.VERSION.SDK_INT>=Build.VERSION_CODES.HONEYCOMB) {
-                mContent.setCustomSelectionActionModeCallback(mActionModeCallback);
+                mContent.setCustomSelectionActionModeCallback(makeActionModeCallbackWrapper(mContent,mActionModeCallback));
             }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
             addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -783,8 +785,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     @Override
     public void setSelected(boolean b) {
         if (mTextLayout!=null) {
-            if (!b)
-                mTextLayout.setSelection(0,0);
+            if (!b) {
+                setSelection(0, 0);
+
+            }
         }
     }
 
@@ -793,5 +797,64 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
         if (mTextLayout!=null) {
             mTextLayout.setSelection(start,end);
         }
+        // TODO: we need invalidate all ViewProxies, that cross selection range
+        ProxyLayout pl = mProxies.get(mPrimaryItem);
+        if (pl.isAttached()) {
+            int width = pl.getWidth();
+            int height = pl.getHeight();
+            pl.getInvalidateListener().invalidate(0,0,width,height);
+        }
+        for (ProxyLayout p : mProxyMap.keySet()) {
+            int width = p.getWidth();
+            int height = p.getHeight();
+            if (p.isAttached() && p.getLastCharacter()>start && p.getFirstCharacter() < end)
+                p.invalidate(0,0,width,height);
+        }
+        /*
+        if (pl!=null) {
+            ViewProxy vp = mFakePages.get(pl);
+            if (vp!=null) {
+                vp.invalidate();
+            }
+        } */
     }
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    private ActionMode.Callback makeActionModeCallbackWrapper(final TextViewEx holder, final ActionMode.Callback original) {
+        return new ActionMode.Callback() {
+            private boolean mOriginalModeCreated = false;
+            private boolean mOriginalModeCreateResult = false;
+            private TextViewEx mHolder = holder;
+
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                if (!mOriginalModeCreated) {
+                    mOriginalModeCreateResult = original.onCreateActionMode(mode, menu);
+                    mOriginalModeCreated = true;
+                }
+                return mOriginalModeCreateResult;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                return original.onPrepareActionMode(mode,menu);
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                return original.onActionItemClicked(mode,item);
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+                if (mOriginalModeCreated) {
+                    original.onDestroyActionMode(mode);
+                    mOriginalModeCreated = false;
+                }
+                mHolder.destroyDrawingCache();
+                mHolder.invalidate();
+            }
+        };
+    }
+
+
 }

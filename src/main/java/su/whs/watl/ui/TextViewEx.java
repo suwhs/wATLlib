@@ -287,6 +287,14 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             super.drawAllSelectionCursors(canvas);
     }
 
+    @Override
+    protected boolean isSelectModeActive() {
+        int ss = getTextLayout().getSelectionStarts();
+        int se = getTextLayout().getSelectionEnds();
+        if (se>ss) return true;
+        // return super.isSelectModeActive();
+        return false;
+    }
 
     /**
      * @return TextLayout instance
