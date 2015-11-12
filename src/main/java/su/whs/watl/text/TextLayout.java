@@ -203,7 +203,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
     public void release() {
         mText = null;
-        lines.clear();
+        if (lines!=null)
+            lines.clear();
         lineSpan = null;
         chars = null;
         for(int i=0; i<mDynamicDrawableSpanSparseArray.size(); i++) {
@@ -221,7 +222,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
      * default LineBreaker implementation
      */
 
-    private static class DefaultLineBreaker extends LineBreaker {
+    public static class DefaultLineBreaker extends LineBreaker {
         private static final String TAG = "DefaultLineBreaker";
 
         @Override
@@ -561,9 +562,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         int width = right - left;
         if (reflowedWidth < width)
             width = reflowedWidth;
-        // canvas.translate(left, top);
+        canvas.translate(left, 0);
         // canvas.clipRect(left, top, right, bottom);
-        mClipRect.set(left,top,right,bottom);
+        mClipRect.set(0,top,width,bottom);
         if (getLineSpan() != null) {
             if (isReflowBackgroundTaskRunning()) {
                 draw(lines, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), 0, 0, 0, 0, 0, 0, getOptions().isJustification());

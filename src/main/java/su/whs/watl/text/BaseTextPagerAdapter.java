@@ -44,6 +44,7 @@ import su.whs.watl.ui.TextViewEx;
 public abstract class BaseTextPagerAdapter extends PagerAdapter implements ITextView, TextLayoutEx.PagerViewBuilder, ContentView.OptionsChangeListener {
     private static final String TAG="BaseTextPagerAdapter";
     private static final boolean debug = false; // BuildConfig.DEBUG;
+
     private class DebugTextPaint extends TextPaint { // TODO: remove
         @Override
         public void setTextSize(float size) {
@@ -67,6 +68,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     private boolean mNeedFontSize = true;
     private FakePagesController mFakePages = new FakePagesController();
     private ViewProxy mPendingViewProxy = null;
+    private DynamicDrawableInteractionListener mDynamicDrawableInteractionListener = null;
     // static initialization
     {
         mTextPaint.setAntiAlias(true);
@@ -91,6 +93,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     public BaseTextPagerAdapter(int resourceId, ITextPagesNumber pagesNumberListener) {
         this(resourceId);
         mPagesNumberListener = pagesNumberListener;
+    }
+
+    public void setDynamicDrawableInteractionListener(DynamicDrawableInteractionListener listener) {
+        mDynamicDrawableInteractionListener = listener;
     }
 
     @Override
@@ -513,6 +519,9 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             if (mActionModeCallback!=null && Build.VERSION.SDK_INT>=Build.VERSION_CODES.HONEYCOMB) {
                 mContent.setCustomSelectionActionModeCallback(makeActionModeCallbackWrapper(mContent,mActionModeCallback));
             }
+            if (mDynamicDrawableInteractionListener!=null) {
+                mContent.setDynamicDrawableInteractionListener(mDynamicDrawableInteractionListener);
+            }
             if (mTextPaint==null) mTextPaint = mContent.getPaint();
             addView(mRealPage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             mRealPage.bringToFront();
@@ -850,6 +859,7 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
                     original.onDestroyActionMode(mode);
                     mOriginalModeCreated = false;
                 }
+                mHolder.setSelected(false);
                 mHolder.destroyDrawingCache();
                 mHolder.invalidate();
             }
