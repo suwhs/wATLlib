@@ -4,6 +4,7 @@ package su.whs.watl.text;
  * Created by igor n. boulliev <igor@whs.su> on 30.11.14.
  */
 
+import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Layout;
@@ -16,9 +17,14 @@ import android.util.Log;
 
 import org.xml.sax.XMLReader;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
+
+import su.whs.watl.text.style.VideoThumbnailSpan;
 
 /**
  * supported tags:
@@ -32,11 +38,17 @@ import java.util.Vector;
  *  LTR
  */
 
-public class HtmlTagHandler implements Html.TagHandler {
+public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     private static final String TAG = "HtmlTagHandler";
     private int mListItemCount = 0;
     private Vector<String> mListParents = new Vector<String>();
     private int mIframeStarts = 0;
+    private Html.ImageGetter mImageGetter = null;
+
+    @Override
+    public Drawable getDrawable(String source) {
+        return null;
+    }
 
     private class LMS extends LeadingMarginSpan.Standard {
         public LMS(int every) {
@@ -49,14 +61,20 @@ public class HtmlTagHandler implements Html.TagHandler {
         private int everyc;
         public BS(int every, int offset) {
             super(every+offset);
-            // this.offset = offset;
-            // this.everyc = every;
         }
 
         // @Override
         // public void drawLeadingMargin(Canvas c, Paint p, int x, int dir, int top, int baseline, int bottom, CharSequence text, int start, int end, boolean first, Layout l) {
         //    super.drawLeadingMargin(c, p, x+offset-everyc, dir, top, baseline, bottom, text, start, end, first, l);
         // }
+    }
+
+    public HtmlTagHandler(Html.ImageGetter imageGetter) {
+        mImageGetter = imageGetter;
+    }
+
+    public HtmlTagHandler() {
+
     }
 
     @Override
@@ -104,10 +122,11 @@ public class HtmlTagHandler implements Html.TagHandler {
                 output.append('\u200E');
             else
                 output.append('\u200F');
-        } else if (tag.equals("video")) {
+        } else if (mImageGetter!=null && tag.equals("video")) {
             // handle embedded video - need new DynamicDrawableSpan ?
             if (opening) {
-
+                // width, height, src, poster
+                handleVideoTag(xmlReader,output);
             }
         } else if (tag.equals("source")) {
             // add source urls to active 'video' tag
@@ -200,6 +219,57 @@ public class HtmlTagHandler implements Html.TagHandler {
         }
     }
 
+    private void handleVideoTag(XMLReader xmlReader, Editable output) {
+        final Map<String,String> attrs = new HashMap<String,String>();
+        processAttributes(xmlReader, new String[]{"src", "width", "height", "poster"},
+                new AttributeHandler() {
+            @Override
+            public void onAttribute(String name, String value) {
+                attrs.put(name,value);
+            }
+        });
+        if (attrs.containsKey("poster")) {
+            output.append('\uFFFC');
+            int start = output.length()-1;
+            int end = output.length();
+            int width = -1;
+            int height = -1;
+            if (attrs.containsKey("width")) {
+                try { width = Integer.parseInt(attrs.get("width")); } catch (NumberFormatException e) {}
+            }
+            if (attrs.containsKey("height")) {
+                try { width = Integer.parseInt(attrs.get("height")); } catch (NumberFormatException e) {}
+            }
+            output.setSpan(new VideoThumbnailSpan(attrs.get("poster"), attrs.get("src"), width, height, mImageGetter),start,end,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
+    private interface AttributeHandler {
+        void onAttribute(String name, String value);
+    }
+
+    private void processAttributes(final XMLReader xmlReader, String[] attrs, AttributeHandler handler) {
+        try {
+            Field elementField = xmlReader.getClass().getDeclaredField("theNewElement");
+            elementField.setAccessible(true);
+            Object element = elementField.get(xmlReader);
+            Field attsField = element.getClass().getDeclaredField("theAtts");
+            attsField.setAccessible(true);
+            Object atts = attsField.get(element);
+            Field dataField = atts.getClass().getDeclaredField("data");
+            dataField.setAccessible(true);
+            String[] data = (String[])dataField.get(atts);
+            Field lengthField = atts.getClass().getDeclaredField("length");
+            lengthField.setAccessible(true);
+            int len = (Integer)lengthField.get(atts);
+            for(int i = 0; i < len; i++)
+                handler.onAttribute(data[i * 5 + 1], data[i * 5 + 4]);
+        }
+        catch (Exception e) {
+            Log.d(TAG, "Exception: " + e);
+        }
+    }
+
     private Object getLast(Editable text, Class kind) {
         Object[] objs = text.getSpans(0, text.length(), kind);
 
@@ -229,5 +299,19 @@ public class HtmlTagHandler implements Html.TagHandler {
         public Layout.Alignment getAlignment() {
             return Layout.Alignment.ALIGN_OPPOSITE;
         }
+    }
+
+    /*
+    * replacement for Html.fromHtml - for easy wrap imageGetter (required to handle <video> tag)
+    *
+    * */
+
+    public static CharSequence fromHtml(String html, ImageGetter imageGetter) {
+        return Html.fromHtml(html, imageGetter, new HtmlTagHandler(imageGetter));
+    }
+
+    public interface ImageGetter extends Html.ImageGetter {
+        Drawable getDrawable(String source, int width, int height);
+        Drawable getDrawable(String preview, String full, int width, int height);
     }
 }
