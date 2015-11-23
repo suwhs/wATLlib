@@ -1934,8 +1934,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         // FIXME: if image does not fit viewHeight - view does not invalidated (bug)
         public boolean handleImage(LineSpan span, DynamicDrawableSpan dds, boolean allowDefer) {
             int placement = imagePlacementHandler.place(dds,
-                    viewHeightLeft,
-                    viewHeight,
+                    viewHeightLeft - 1,
+                    viewHeight - 1,
                     wrapWidth,
                     width,
                     state.character,
@@ -1988,7 +1988,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
 
                 wrappedSpan = span;
-                wrapHeight = scale.y + drawablePaddings.top + drawablePaddings.bottom;
+                wrapHeight = scale.y /*+ drawablePaddings.top + drawablePaddings.bottom */;
                 /* need to store y+wrapHeight as minimum height for layout */
                 wrapEnd = collectedHeight + y + wrapHeight;
 
@@ -2022,9 +2022,9 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 if (finishLine && !__finishLine()) return false;
                 TextLine ld;
 
-                if (state.height < (scale.y + drawablePaddings.bottom + drawablePaddings.bottom)) {
-                    state.height = scale.y + drawablePaddings.top + drawablePaddings.bottom;
-                }
+                if (state.height < (scale.y/* + drawablePaddings.bottom + drawablePaddings.bottom*/)) {
+                    state.height = scale.y/* + drawablePaddings.top + drawablePaddings.bottom*/;
+                } // scale.y already contains paddings
 
                 if (viewHeightLeft < state.height) {
                     if (!checkViewHeightExceed()) return false;
@@ -2050,7 +2050,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 carrierReturn = true;
             } else {
                 // inline/or placeholder
-                spanHeight = scale.y + drawablePaddings.top + drawablePaddings.bottom;
+                spanHeight = scale.y /* + drawablePaddings.top + drawablePaddings.bottom */;
                 Log.e(TAG, "unsupported placement for image: " + placement);
             }
             span.drawableScaledWidth = scale.x;
