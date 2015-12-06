@@ -9,13 +9,14 @@ import android.text.TextPaint;
 import java.util.ArrayList;
 import java.util.List;
 
+import su.whs.images.PreviewDrawable;
 import su.whs.watl.text.ContentView;
 import su.whs.watl.text.ImagePlacementHandler;
 
 /**
  * Created by igor n. boulliev on 04.09.15.
  */
-public class TableDrawable extends LazyDrawable implements AutoPlacedDrawable {
+public class TableDrawable extends PreviewDrawable implements AutoPlacedDrawable {
 
     /**
      * create instance with given size
@@ -35,21 +36,29 @@ public class TableDrawable extends LazyDrawable implements AutoPlacedDrawable {
     }
 
     @Override
-    protected Drawable readPreviewDrawable() {
-        // return placeholder drawable
-        return null;
-    }
-
-    @Override
-    protected Drawable readFullDrawable() {
-        // return full drawable
-        return null;
-    }
-
-    @Override
     public int place(int width, int height, int leftWidth, int leftHeight, Point scale, ContentView.Options options) {
         // store available width and available height
 
         return ImagePlacementHandler.PLACEHOLDER;
+    }
+
+    @Override
+    protected Drawable getPreviewDrawable() {
+        return null;
+    }
+
+    @Override
+    protected Drawable getFullDrawable() {
+        return null;
+    }
+
+    @Override
+    public void onVisibilityChanged(boolean visible) {
+
+    }
+
+    @Override
+    protected void onLoadingError() {
+
     }
 }

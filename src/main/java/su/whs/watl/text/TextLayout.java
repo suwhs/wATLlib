@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import su.whs.watl.experimental.LazyDrawable;
+import su.whs.wlazydrawable.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -212,7 +212,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             DynamicDrawableSpan span = mDynamicDrawableSpanSparseArray.get(key);
             Drawable dr = span.getDrawable();
             if (dr!=null && dr instanceof LazyDrawable) {
-                ((LazyDrawable)dr).release();
+                ((LazyDrawable)dr).Unload();
             }
         }
         mDynamicDrawableSpanSparseArray.clear();
@@ -1456,9 +1456,12 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                                 : new Point((int) x, sY)
                                 );
                                 visibleDrawableBounds.put(dr, new Rect(dr.getBounds()));
-                                if (mCompatDrawableCallback && dr instanceof LazyDrawable)
-                                    ((LazyDrawable) dr).setCallbackCompat(mDrawableCallback);
-                                else
+                                if (mCompatDrawableCallback) {
+                                    if (dr instanceof LazyDrawable) {
+                                        ((LazyDrawable) dr).onVisibilityChanged(true);
+                                        ((LazyDrawable) dr).setCallbackCompat(mDrawableCallback);
+                                    }
+                                } else
                                     dr.setCallback(mDrawableCallback);
                                 // restore animations, if need
                                 if (dr instanceof Animatable && visibleDrawableAnimations.contains(dr)) {
@@ -1679,6 +1682,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         for (Drawable unprocessed : processedDrawables) {
             if (unprocessed instanceof LazyDrawable) {
                 // ((LazyDrawable)unprocessed).stopIfLoading();
+                ((LazyDrawable)unprocessed).onVisibilityChanged(false);
             }
             if (unprocessed instanceof Animatable) {
                 if (((Animatable) unprocessed).isRunning()) {

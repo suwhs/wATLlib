@@ -4,7 +4,7 @@ import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.text.style.DynamicDrawableSpan;
 
-import su.whs.watl.experimental.LazyDrawable;
+import su.whs.images.PreviewDrawable;
 import su.whs.watl.text.HtmlTagHandler;
 
 /**
@@ -17,14 +17,24 @@ public class VideoThumbnailSpan extends DynamicDrawableSpan {
         if (imageGetter instanceof HtmlTagHandler.ImageGetter) {
             mDrawable = ((HtmlTagHandler.ImageGetter)imageGetter).getDrawable(poster,source,width,height);
         } else {
-            mDrawable = new LazyDrawable(imageGetter, width, height) {
+            mDrawable = new PreviewDrawable(imageGetter, width, height) {
                 @Override
-                protected Drawable readPreviewDrawable() throws InterruptedException {
+                public void onVisibilityChanged(boolean visible) {
+
+                }
+
+                @Override
+                protected void onLoadingError() {
+
+                }
+
+                @Override
+                protected Drawable getPreviewDrawable() {
                     return imageGetter.getDrawable(poster);
                 }
 
                 @Override
-                protected Drawable readFullDrawable() throws InterruptedException {
+                protected Drawable getFullDrawable() {
                     return imageGetter.getDrawable(source);
                 }
             };
