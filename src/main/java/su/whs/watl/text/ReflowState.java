@@ -32,9 +32,10 @@ class ReflowState {
 
 
     public ReflowState(LineSpan span, float lineWidth) {
+        this.lineWidth = lineWidth;
+        if (span==null) return;
         this.span = span;
         this.gravity = span.gravity;
-        this.lineWidth = lineWidth;
         this.character = span.start;
         if (debug)
             Log.d(TAG,"[0] state from span:\n" + span +"\n"+this.toString());

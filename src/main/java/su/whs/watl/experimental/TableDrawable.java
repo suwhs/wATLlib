@@ -9,7 +9,7 @@ import android.text.TextPaint;
 import java.util.ArrayList;
 import java.util.List;
 
-import su.whs.images.PreviewDrawable;
+import su.whs.wlazydrawable.PreviewDrawable;
 import su.whs.watl.text.ContentView;
 import su.whs.watl.text.ImagePlacementHandler;
 

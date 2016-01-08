@@ -4,7 +4,7 @@ import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.text.style.DynamicDrawableSpan;
 
-import su.whs.images.PreviewDrawable;
+import su.whs.wlazydrawable.PreviewDrawable;
 import su.whs.watl.text.HtmlTagHandler;
 
 /**
