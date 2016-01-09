@@ -34,7 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.WeakHashMap;
 
+import su.whs.watl.text.style.PreformattedSpan;
 import su.whs.wlazydrawable.LazyDrawable;
 
 /**
@@ -98,8 +100,17 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     private int mHighlightEnd = 0;
     private int mHighlightColor = Color.YELLOW;
 
+    /* */
+    private class DrawableInfo {
+        public DynamicDrawableSpan span;
+        public int position;
+        public int placement;
+        public int width;
+        public int height;
+    }
     /* forward drawables support */
     private SparseArray<DynamicDrawableSpan> mDynamicDrawableSpanSparseArray = new SparseArray<DynamicDrawableSpan>();
+    private WeakHashMap<Drawable,DrawableInfo> mDrawableInfos = new WeakHashMap<Drawable, DrawableInfo>();
 
     public boolean isLayouted() {
         return mIsLayouted;
@@ -1003,6 +1014,11 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         if (listener!=null) listener.onTextInfoInvalidated();
     }
 
+    public void invalidateMeasurementFrom(int position) {
+        invalidateMeasurement();
+    }
+
+
     /**
      * called when layout geometry was changed, or some handlers replaced
      */
@@ -1015,6 +1031,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
     /**
      *
      */
+
+    public void invalidateLinesFrom(int position) {
+        invalidateLines();
+    }
 
     private void invalidateLinesInternal() {
         mIsLayouted = false;
@@ -1410,6 +1430,10 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                 // draw leading drawable only
                 boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
                 if (span.isDrawable && span.end > line.start) {
+                    if (span.width==0) {
+                        span = span.next;
+                        continue drawline;
+                    }
                     lookupdrawable:
                     for (CharacterStyle style : span.spans) {
                         if (style instanceof DynamicDrawableSpan) {
@@ -1698,12 +1722,46 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         return 0;
     }
 
+    private boolean isBoundsChanged(Drawable drawable) {
+        if (mDrawableInfos.containsKey(drawable)) {
+            int w = drawable.getIntrinsicWidth();
+            int h = drawable.getIntrinsicHeight();
+            DrawableInfo di = mDrawableInfos.get(drawable);
+            if (di.width!=w || di.height!=h) return true;
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isExclusiveLine(Drawable drawable) {
+        if (mDrawableInfos.containsKey(drawable)) {
+            DrawableInfo di = mDrawableInfos.get(drawable);
+            return ImagePlacementHandler.DefaultImagePlacementHandler.isNewLineBefore(di.placement) & ImagePlacementHandler.DefaultImagePlacementHandler.isNewLineAfter(di.placement);
+        }
+        return true;
+    }
+
+    private int getDrawablePosition(Drawable drawable) {
+        if (mDrawableInfos.containsKey(drawable)) {
+            DrawableInfo di = mDrawableInfos.get(drawable);
+            return di.position;
+        }
+        return 0;
+    }
+
     private Drawable.Callback mDrawableCallback = new Drawable.Callback() {
         @Override
         public void invalidateDrawable(Drawable who) {
+            if (isBoundsChanged(who)) {
+                if (isExclusiveLine(who))
+                    invalidateLinesFrom(getDrawablePosition(who));
+                else
+                    invalidateMeasurementFrom(getDrawablePosition(who));
+            }
             // TODO: drawableList builds on reflow() with save 'bounds'
             //      - check here, if bounds changes, and call reflow() process again, if drawable size changed
             //      - use flag 'trackDrawableBounds'
+            // TODO: IMPORTANT TODO ABOVE
             if (!visibleDrawables.contains(who)) return;
             Point p = visibleDrawableOffsets.get(who);
             Rect bounds = who.getBounds();
@@ -1830,6 +1888,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
         private boolean lineContainsRtlSpans = false;
         private int currentDirection = Layout.DIR_LEFT_TO_RIGHT;
         private int forcedParagraphLeftMargin = 0;
+        private boolean isPreformatted = false;
         private int forcedParagraphTopMargin = 0;
         private int linesAddedInParagraph = 0;
         private LeadingMarginSpan leadingMarginSpan = null;
@@ -2060,6 +2119,15 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             span.drawableScaledWidth = scale.x;
             span.drawableScaledHeight = scale.y;
             Drawable dr = dds.getDrawable();
+
+            DrawableInfo di = new DrawableInfo();
+            di.span = dds;
+            di.width = dr.getIntrinsicWidth();
+            di.height = dr.getIntrinsicHeight();
+            di.placement = placement;
+            di.position = state.character;
+            mDrawableInfos.put(dr,di);
+
             if (dr != null) {
                 dr.setBounds(0, 0, scale.x, scale.y);
             } else {
@@ -2127,7 +2195,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             }
 
                     /* eliminate empty line only if non-empty-lines-count > threshold */
-            if (options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
+            if (!isPreformatted && options.isFilterEmptyLines() && state.character == lineStartAt && linesAddedInParagraph < options.getEmptyLinesThreshold()) {
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                 ld.direction = direction;
                 state.carrierReturn(ld);
@@ -2135,7 +2203,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
             } else { // filterEmptyLines disabled, or state.character > lineStartAt, or linesAddedInParagraph >= emptyLinesTreshold
                 TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
                 ld.direction = direction;
-                if (options.isFilterEmptyLines() && state.character == lineStartAt) {
+                if (!isPreformatted && options.isFilterEmptyLines() && state.character == lineStartAt) {
                     linesAddedInParagraph = 0;
                     ld.height = options.getEmptyLineHeightLimit();
                 } else
@@ -2319,6 +2387,7 @@ public class TextLayout implements ContentView.OptionsChangeListener {
 
                 if (span.paragraphStyles != paragraphStyles) {
                     leadingMarginSpan = null;
+                    isPreformatted = false;
                     if (span.paragraphStyles != null)
                         for (ParagraphStyle paragraphStyle : span.paragraphStyles) {
                             if (paragraphStyle instanceof LeadingMarginSpan) {
@@ -2326,6 +2395,8 @@ public class TextLayout implements ContentView.OptionsChangeListener {
                                 if (leadingMarginSpan != actualLeadingMarginSpan) {
                                     actualLeadingMarginSpan = leadingMarginSpan;
                                 }
+                            } else if (paragraphStyle instanceof PreformattedSpan) {
+                                isPreformatted = true;
                             }
                         }
                     paragraphStyles = span.paragraphStyles;

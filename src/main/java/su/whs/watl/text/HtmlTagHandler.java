@@ -9,6 +9,7 @@ import android.text.Editable;
 import android.text.Html;
 import android.text.Layout;
 import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.AlignmentSpan;
 import android.text.style.BulletSpan;
@@ -23,7 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import su.whs.watl.experimental.ThirdPartyUtils;
+import su.whs.watl.text.style.PreformattedSpan;
 import su.whs.watl.text.style.VideoThumbnailSpan;
 
 /**
@@ -44,9 +49,13 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     private Vector<String> mListParents = new Vector<String>();
     private int mIframeStarts = 0;
     private Html.ImageGetter mImageGetter = null;
+    private List<Integer> mPreformattedStarts = new ArrayList<Integer>();
+    private List<Integer> mPreformattedEnds = new ArrayList<Integer>();
+    public boolean hasPreformatted() { return mPreformattedStarts.size() > 0; }
 
     @Override
     public Drawable getDrawable(String source) {
+        if (mImageGetter!=null) return mImageGetter.getDrawable(source);
         return null;
     }
 
@@ -74,7 +83,6 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     }
 
     public HtmlTagHandler() {
-
     }
 
     @Override
@@ -112,16 +120,11 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
                 output.delete(mIframeStarts,output.length());
             }
 
-        } else if (tag.equals("rtl")) {
+        } else if (tag.equals("pre")) {
             if (opening)
-                output.append('\u200F');
+                openPreformatted(output);
             else
-                output.append('\u200E');
-        } else if (tag.equals("ltr")) {
-            if (opening)
-                output.append('\u200E');
-            else
-                output.append('\u200F');
+                closePreformatted(output);
         } else if (mImageGetter!=null && tag.equals("video")) {
             // handle embedded video - need new DynamicDrawableSpan ?
             if (opening) {
@@ -190,6 +193,13 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
         mAlignmentStack.add(0, alignment);
     }
 
+    private void openPreformatted(Editable output) {
+        output.append("\n");
+        int len = output.length();
+        PreformattedSpan span = new PreformattedSpan();
+        output.setSpan(span, len, len, Spanned.SPAN_MARK_MARK);
+    }
+
     private void closeAlignment(Layout.Alignment alignment, Editable output) {
         Class<?> cls = null;
         switch (alignment) {
@@ -216,6 +226,19 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
             output.setSpan(last, start, len, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else {
             Log.e(TAG, "close not-opened tag?");
+        }
+    }
+
+    private void closePreformatted(Editable output) {
+        PreformattedSpan last = (PreformattedSpan) getLast(output,PreformattedSpan.class);
+        if (last!=null) {
+            int start = output.getSpanStart(last);
+            output.removeSpan(last);
+            output.append("\n");
+            int len = output.length();
+            mPreformattedStarts.add(start);
+            mPreformattedEnds.add(len);
+            output.setSpan(last,start,len,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 
@@ -307,7 +330,53 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     * */
 
     public static CharSequence fromHtml(String html, ImageGetter imageGetter) {
-        return Html.fromHtml(html, imageGetter, new HtmlTagHandler(imageGetter));
+        HtmlTagHandler th = new HtmlTagHandler(imageGetter);
+        CharSequence s = Html.fromHtml(html, imageGetter, th);
+        if (th.hasPreformatted()) {
+            s = th.restoreFormatForPreformatted(html,s);
+        }
+        return s;
+    }
+
+    private class Range {
+        int start;
+        int end;
+    }
+
+    private CharSequence restoreFormatForPreformatted(String source, CharSequence charSequence) {
+        SpannableStringBuilder ssb;
+        if (charSequence instanceof SpannableStringBuilder)
+            ssb = (SpannableStringBuilder)charSequence;
+        else
+            ssb = new SpannableStringBuilder(charSequence);
+        Pattern p = Pattern.compile("<pre[^>]*>(.*?)</pre>",Pattern.DOTALL);
+        Matcher m = p.matcher(source);
+        List<Range> pres = new ArrayList<Range>();
+
+        while(m.find()) {
+            Range r = new Range();
+            r.start = m.start(1);
+            r.end = m.end(1);
+            pres.add(r);
+        }
+        int shift = 0;
+        for (int i=0; i<mPreformattedStarts.size() && i < pres.size(); i++) {
+            int pstarts = mPreformattedStarts.get(i) + shift;
+            int pends = mPreformattedEnds.get(i) + shift;
+            Range r = pres.get(i);
+            int plen = pends-pstarts;
+            int rlen = r.end-r.start;
+            CharSequence target = formatPreformatted(source.substring(r.start, r.end));
+            ssb.replace(pstarts,pends,target);
+            shift += plen-target.length();
+        }
+        return charSequence;
+    }
+
+    // private static Pattern REMOVE_TAGS_RX = Pattern.compile("")
+
+    protected CharSequence formatPreformatted(String html) {
+        return ThirdPartyUtils.unescape(html.replaceAll("</?(code|span){1}.*?/?>", ""));
     }
 
     public interface ImageGetter extends Html.ImageGetter {

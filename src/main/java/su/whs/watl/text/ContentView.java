@@ -50,7 +50,7 @@ public interface ContentView {
         private static final String DRAWABLE_WRAP_RATIO_TRESHOLD = "DRWRT";
         private static final String DRAWABLE_WRAP_WIDTH_TRESHOLD = "DRWWT";
 
-        private boolean mFilterEmptyLines = true;
+        private boolean mFilterEmptyLines = false;
         private boolean mJustification = true;
         private int mSelectionColor = Color.BLUE;
         private int mUrlHighlightColor = Color.YELLOW;

@@ -364,8 +364,9 @@ class LineSpan {
                     span.isDrawable = true;
                     DynamicDrawableSpan image = (DynamicDrawableSpan) replacement;
                     Drawable drawable = image.getDrawable();
-                    if (drawable == null) {
-                        span.width = replacement.getSize(paint, new String(text), span.start, span.end, fmi);
+                    if (drawable == null) { // TODO: check crash on next line - may be just set width to zero?
+                    //    span.width = replacement.getSize(paint, new String(text), span.start, span.end, fmi);
+                        span.width = 0;
                         span.height = -fmi.ascent + fmi.descent;
                     } else {
                         // stub !

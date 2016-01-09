@@ -77,9 +77,12 @@ public abstract class ImagePlacementHandler {
             int sW = paddings.left + paddings.top;
             int sH = paddings.top + paddings.bottom;
 
-            if (iW < 1 || iH < 1)
-                return PLACEHOLDER;
 
+            if (iW < 1 || iH < 1) {
+                iW = 32;
+                iH = 32;
+                return INLINE;
+            }
             float ratio = iH / (float) iW;
 
             scale.x = iW;
