@@ -60,7 +60,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     // @Attribute
 
     private TextViewLayoutListener mLayoutListener = null;
-
+    private ContentView.Options mOptions;
     private boolean mNeedTotalHeight = true;
 
     private ImagePlacementHandler mImagePlacementHandler = new ImagePlacementHandler.DefaultImagePlacementHandler();
@@ -109,11 +109,16 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public ContentView.Options getOptions() {
-        return mTextLayout==null ? makeOptions() : mTextLayout.getOptions();
+        return mOptions==null ? makeOptions() : mOptions;
     }
 
     protected ContentView.Options makeOptions() {
-        return new ContentView.Options();
+        if (mOptions==null) {
+            mOptions = new ContentView.Options();
+            if (mImagePlacementHandler!=null)
+                mOptions.setImagePlacementHandler(mImagePlacementHandler);
+        }
+        return mOptions;
     }
 
     @Override
@@ -127,23 +132,23 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         super.setText("", BufferType.NORMAL);
         if (_text == null || _text.length() < 1) return;
 
-//        if (mTextLayout==null && mPendingOptions == null) {
-//                mPendingOptions = new ContentView.Options();
-//        }
-        // mTextLayout = null; // remove layout if exists;
-        ContentView.Options backup = getOptions();
+        if (mTextLayout!=null)
+            mOptions = mTextLayout.getOptions();
+
+        if (mOptions==null) {
+            mOptions = makeOptions();
+        }
         mTextLayout = new TextLayout((Spanned) text, 0, text.length(), getPaint(),
-                backup ,
+                mOptions,
                 this);
-        mTextLayout.getOptions().setImagePlacementHandler(mImagePlacementHandler);
-        if (mHeightWrapContent)
+        if (mHeightWrapContent) {
             requestLayout();
-        else
+        } else
             invalidate();
     }
 
     /**
-     *
+     * WARNING: local options overriden with TextLayout.getOptions()
      * @param textLayout
      */
 
@@ -151,6 +156,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (textLayout == null) throw new IllegalArgumentException("textLayout must be not null");
         if (mTextLayout!=null) mTextLayout.release();
         mTextLayout = textLayout;
+        mOptions = mTextLayout.getOptions();
         mTextLayout.setInvalidateListener(this);
         postInvalidate();
     }
@@ -218,9 +224,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (height < 0) { // if WRAP_CONTENT - start layout process immediately
             mHeightWrapContent = true;
             if (mTextLayout != null) {
-                if (!mTextLayout.isLayouted()) {
+                if (!mTextLayout.isLayouted()) { // if we need height, and layout not invalidated yet - force invalidation
                     prepareLayout(want, -1);
-                    // mTextLayout.setSize(want, -1);
+                    // // mTextLayout.setSize(want, -1);
                     height = -1;
                 } else if (mNeedTotalHeight) {
                     height = mTextLayout.getHeight();
@@ -233,7 +239,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             if (getVisibility()==View.INVISIBLE) {
                 prepareLayout(want,height-cpT-cpB);
             }
-        }
+        } Log.d(TAG,"Measured");
         setMeasuredDimension(width, height);
     }
 
@@ -271,14 +277,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void drawText(Canvas canvas) {
-        int left = getCompoundPaddingLeft();
-        int right = getWidth() - getCompoundPaddingRight();
-        int top = getCompoundPaddingTop();
-        int bottom = getHeight() - getCompoundPaddingBottom();
         Rect bounds = canvas.getClipBounds();
         getLocalVisibleRect(bounds);
         getLocationOnScreen(locationOnScreen);
         mTextLayout.draw(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom);
+        // Log.d(TAG,"drawText() finished");
     }
 
     @Override
@@ -292,7 +295,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         int ss = getTextLayout().getSelectionStarts();
         int se = getTextLayout().getSelectionEnds();
         if (se>ss) return true;
-        // return super.isSelectModeActive();
         return false;
     }
 
@@ -463,6 +465,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (mDebug) Log.v(TAG, "onTextReady");
 
         int lastLine = mTextLayout.getLinesCount();
+        //
         if (lastLine < 1) return;
         int nextCharacter = mTextLayout.getLineEnd(lastLine - 1);
         if (mDebug) {
@@ -473,6 +476,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (mLayoutListener != null) {
             mLayoutListener.onLayoutFinished(nextCharacter);
         }
+
     }
 
     /**
@@ -498,8 +502,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
         if (mNeedTotalHeight)
             requestLayout();
-        else
-            invalidate();
+        invalidate();
     }
 
     @Override
@@ -596,8 +599,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     @Override
-    protected void processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
-        super.processTouchAt(X,Y,longTap,startsFromLine);
+    protected boolean processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
+        return super.processTouchAt(X,Y,longTap,startsFromLine);
     }
 
     /* support partially drawing */

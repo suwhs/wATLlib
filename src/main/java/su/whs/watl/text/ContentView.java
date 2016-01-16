@@ -52,6 +52,7 @@ public interface ContentView {
 
         private boolean mFilterEmptyLines = false;
         private boolean mJustification = true;
+        private int mJustificationTreshold = 3;
         private int mSelectionColor = Color.BLUE;
         private int mUrlHighlightColor = Color.YELLOW;
         private boolean mUrlHighlightBeforeOpen = true;
@@ -88,7 +89,7 @@ public interface ContentView {
         protected OptionsChangeListener mListener;
 
         public Options() {
-            // Log.d(TAG,"create options");
+            Log.d(TAG,"create options");
         }
 
         public Options(Options source) {
@@ -515,18 +516,19 @@ public interface ContentView {
         }
 
         private boolean isSameClass(Object a, Object b) {
-            if (a!=null) {
-                if (b!=null) {
-                    if (a.getClass().getName().equals(b.getClass().getName())) {
-                        return true;
-                    }
-                } else {
-                    return false;
-                }
-            } else if (b==null) {
-                return true;
-            }
             return false;
+//            if (a!=null) {
+//                if (b!=null) {
+//                    if (a.getClass().getName().equals(b.getClass().getName())) {
+//                        return true;
+//                    }
+//                } else {
+//                    return false;
+//                }
+//            } else if (b==null) {
+//                return true;
+//            }
+//            return false;
         }
 
         /**
@@ -625,6 +627,10 @@ public interface ContentView {
 
         public int getSelectionColor() {
             return mSelectionColor;
+        }
+
+        public int getJustificationThreshold() {
+            return mJustificationTreshold;
         }
     }
 

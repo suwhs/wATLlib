@@ -7,6 +7,7 @@ import android.text.Layout;
 import android.text.style.DynamicDrawableSpan;
 
 import su.whs.watl.experimental.AutoPlacedDrawable;
+import su.whs.wlazydrawable.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 03.02.15.
@@ -77,12 +78,10 @@ public abstract class ImagePlacementHandler {
             int sW = paddings.left + paddings.top;
             int sH = paddings.top + paddings.bottom;
 
-
-            if (iW < 1 || iH < 1) {
-                iW = 32;
-                iH = 32;
-                return INLINE;
+            if ((iW < 0 || iH < 0) && dr instanceof LazyDrawable) {
+                return PLACEHOLDER;
             }
+
             float ratio = iH / (float) iW;
 
             scale.x = iW;

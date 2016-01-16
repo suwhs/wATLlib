@@ -37,7 +37,11 @@ class LineSpan {
     private static final boolean debug = false;
     private static boolean mBidiEnabled = true;
     private static boolean mBidiDebug = true;
-    public static boolean isBidiEnabled() { return mBidiEnabled; } // TODO: move to Options
+
+    public static boolean isBidiEnabled() {
+        return mBidiEnabled;
+    } // TODO: move to Options
+
     public int gravity = Gravity.LEFT;
     public int direction = Layout.DIR_LEFT_TO_RIGHT; // TODO: use Bidi on prepare() ?
     public boolean strong = false;
@@ -144,16 +148,16 @@ class LineSpan {
     /**
      * uses for transform given spanned text into LineSpan
      *
-     * @param text  - text
-     * @param start - start character
-     * @param end   - last character + 1
+     * @param text                           - text
+     * @param start                          - start character
+     * @param end                            - last character + 1
      * @param dynamicDrawableSpanSparseArray
      * @return LineSpan linked list
      */
 
     /* geometry-independed calculations */
     public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, SparseArray<DynamicDrawableSpan> dynamicDrawableSpanSparseArray) {
-        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT,dynamicDrawableSpanSparseArray);
+        return prepare(text, start, end, paragraphStartMargin, paragraphTopMargin, Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT, dynamicDrawableSpanSparseArray);
     }
 
     public static LineSpan prepare(Spanned text, int start, int end, int paragraphStartMargin, int paragraphTopMargin, int defaultDirection, SparseArray<DynamicDrawableSpan> forwardsDrawableArray) {
@@ -211,20 +215,20 @@ class LineSpan {
                     // NOTE: ltr chain in rtl paragraph wrapped to new line in same order, as it stored in memory (logical)
                     if (bidi.isRightToLeft()) {
                         current.direction = Layout.DIR_RIGHT_TO_LEFT;
-                        if (Build.VERSION.SDK_INT<14)
-                            current.reversed = TextUtils.getReverse(text,c,nextCharacterStyle);
+                        if (Build.VERSION.SDK_INT < 14)
+                            current.reversed = TextUtils.getReverse(text, c, nextCharacterStyle);
                         bidiSpent += (SystemClock.uptimeMillis() - bidiStart);
                         if (mBidiDebug)
-                        Log.d(TAG,
-                                "bidi:runDirection:["
-                                        + c+"," + nextCharacterStyle
-                                        + " dir: " + bidi.getBaseLevel() + " [RTL]"
-                                        + " '" + text.subSequence(c,nextCharacterStyle) + "'" // TextUtils.getReverse(text,c,nextCharacterStyle) + "'"
-                        );
+                            Log.d(TAG,
+                                    "bidi:runDirection:["
+                                            + c + "," + nextCharacterStyle
+                                            + " dir: " + bidi.getBaseLevel() + " [RTL]"
+                                            + " '" + text.subSequence(c, nextCharacterStyle) + "'" // TextUtils.getReverse(text,c,nextCharacterStyle) + "'"
+                            );
                     } else if (bidi.isMixed()) {
                         /* int base = bidi.getBaseLevel(); */
                         int runLimit = c;
-                        for(int run = 0; run < bidi.getRunCount(); run++ ) {
+                        for (int run = 0; run < bidi.getRunCount(); run++) {
                             // TODO:
                             int runStart = bidi.getRunStart(run) + c;
                             runLimit = bidi.getRunLimit(run) + c;
@@ -232,20 +236,20 @@ class LineSpan {
                             boolean isRtl = runLevel % 2 > 0;
                             current.direction = isRtl ? Layout.DIR_RIGHT_TO_LEFT : Layout.DIR_LEFT_TO_RIGHT;
                             if (mBidiDebug)
-                            Log.d(TAG,
-                                    "bidi:runDirection:["
-                                    + runStart+"," + runLimit
-                                    + " rtl: " + isRtl + " ("+runLevel+")"
-                                    + " '" +  text.subSequence(runStart,runLimit) + "'"// (runIsRtl ? TextUtils.getReverse(text,runStart,runLimit) : text.subSequence(runStart,runLimit)) + "'"
-                            );
+                                Log.d(TAG,
+                                        "bidi:runDirection:["
+                                                + runStart + "," + runLimit
+                                                + " rtl: " + isRtl + " (" + runLevel + ")"
+                                                + " '" + text.subSequence(runStart, runLimit) + "'"// (runIsRtl ? TextUtils.getReverse(text,runStart,runLimit) : text.subSequence(runStart,runLimit)) + "'"
+                                );
                             // inject new span with single direction
                             current.start = runStart;
                             current.end = runLimit;
-                            if (runLevel == 2 && Build.VERSION.SDK_INT<14) { // old version does not render RTL correct
-                                current.reversed = TextUtils.getReverse(text,runStart,runLimit);
+                            if (runLevel == 2 && Build.VERSION.SDK_INT < 14) { // old version does not render RTL correct
+                                current.reversed = TextUtils.getReverse(text, runStart, runLimit);
                             }
                             current.spans = text.getSpans(current.start, current.end, CharacterStyle.class);
-                            if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
+                            if (current.spans.length > 0 && current.spans[0] instanceof DynamicDrawableSpan) {
                                 forwardsDrawableArray.append(c, (DynamicDrawableSpan) current.spans[0]);
                             }
 
@@ -266,7 +270,7 @@ class LineSpan {
 
                 }
                 current.spans = text.getSpans(c, nextCharacterStyle, CharacterStyle.class);
-                if (current.spans.length>0 && current.spans[0] instanceof DynamicDrawableSpan) {
+                if (current.spans.length > 0 && current.spans[0] instanceof DynamicDrawableSpan) {
                     forwardsDrawableArray.append(c, (DynamicDrawableSpan) current.spans[0]);
                 }
                 current.start = c;
@@ -292,13 +296,13 @@ class LineSpan {
         current.next = null; // remove last lineSpan
         long timeSpent = SystemClock.uptimeMillis() - timeStart;
         if (debug)
-            Log.e(TAG, "prepare time spent: " + timeSpent +", bidi spent: " + bidiSpent);
+            Log.e(TAG, "prepare time spent: " + timeSpent + ", bidi spent: " + bidiSpent);
         return result;
     }
 
     /* hack */
     private static boolean validateBidiRtl(Spanned text, int start, int end) {
-        if (text.charAt(start)=='(' || text.charAt(start) == ')') return false;
+        if (text.charAt(start) == '(' || text.charAt(start) == ')') return false;
         return true;
     }
 
@@ -365,7 +369,7 @@ class LineSpan {
                     DynamicDrawableSpan image = (DynamicDrawableSpan) replacement;
                     Drawable drawable = image.getDrawable();
                     if (drawable == null) { // TODO: check crash on next line - may be just set width to zero?
-                    //    span.width = replacement.getSize(paint, new String(text), span.start, span.end, fmi);
+                        //    span.width = replacement.getSize(paint, new String(text), span.start, span.end, fmi);
                         span.width = 0;
                         span.height = -fmi.ascent + fmi.descent;
                     } else {
@@ -376,6 +380,7 @@ class LineSpan {
                     span.widths = new float[]{span.width};
                 } else {
                     span.width = replacement.getSize(paint, new String(text), span.start, span.end, fmi);
+                    span.widths = new float[]{span.width};
                 }
             }
             if (lasy) break;
@@ -456,7 +461,7 @@ class LineSpan {
                     this.widths == null ? -1 : this.widths.length,
                     this.height,
                     this.hyphenWidth,
-                    dumpBreaks ? breaksToString(this.breakFirst) : this.breakFirst !=null,
+                    dumpBreaks ? breaksToString(this.breakFirst) : this.breakFirst != null,
                     this.direction,
                     this.baselineShift
             );
@@ -523,7 +528,6 @@ class LineSpan {
         String nextStr = next == null ? "" : "\n" + next.dump(text, dumpBreaks);
         return toString(text, dumpBreaks) + nextStr;
     }
-
 
 
     public static void clearMeasurementData(LineSpan span) {

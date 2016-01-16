@@ -29,6 +29,11 @@ public class VideoThumbnailSpan extends DynamicDrawableSpan {
                 }
 
                 @Override
+                protected int getSampling() {
+                    return 1;
+                }
+
+                @Override
                 protected Drawable getPreviewDrawable() {
                     return imageGetter.getDrawable(poster);
                 }

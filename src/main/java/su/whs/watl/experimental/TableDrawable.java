@@ -61,4 +61,9 @@ public class TableDrawable extends PreviewDrawable implements AutoPlacedDrawable
     protected void onLoadingError() {
 
     }
+
+    @Override
+    protected int getSampling() {
+        return 1;
+    }
 }

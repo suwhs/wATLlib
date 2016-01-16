@@ -202,10 +202,10 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     }
 
     @Override
-    protected void processTouchAt(float x, float y, boolean longTap, int zero) {
+    protected boolean processTouchAt(float x, float y, boolean longTap, int zero) {
         PointF p = new PointF();
         translateCoordinates(x,y,p);
-        super.processTouchAt(p.x, p.y, longTap, 0);
+        return super.processTouchAt(p.x, p.y, longTap, 0);
     }
 
     /*

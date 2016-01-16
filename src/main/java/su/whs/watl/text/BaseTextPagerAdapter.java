@@ -827,6 +827,12 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
         } */
     }
+
+    @Override
+    public TextLayout getTextLayout() {
+        return mTextLayout;
+    }
+
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     private ActionMode.Callback makeActionModeCallbackWrapper(final TextViewEx holder, final ActionMode.Callback original) {
         return new ActionMode.Callback() {

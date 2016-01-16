@@ -365,10 +365,9 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
             int pends = mPreformattedEnds.get(i) + shift;
             Range r = pres.get(i);
             int plen = pends-pstarts;
-            int rlen = r.end-r.start;
             CharSequence target = formatPreformatted(source.substring(r.start, r.end));
             ssb.replace(pstarts,pends,target);
-            shift += plen-target.length();
+            shift -= plen-target.length();
         }
         return charSequence;
     }

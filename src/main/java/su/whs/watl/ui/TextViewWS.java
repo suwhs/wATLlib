@@ -117,8 +117,13 @@ public class TextViewWS extends TextView {
                     if (statePressed) {
                         if (mSelectModeActive && time < longTapTime) {
                             jumpSelectionCursor(motionEvent.getX(), motionEvent.getY());
-                        } else
-                            processTouchAt(motionEvent.getX(), motionEvent.getY(), time > longTapTime);
+                        } else {
+                            statePressed = false;
+                            if(processTouchAt(motionEvent.getX(), motionEvent.getY(), time > longTapTime))
+                                return true;
+                            performOnClick();
+                            return false;
+                        }
                         // Log.v(TAG,"tap : " + motionEvent.getX() + ", "+motionEvent.getY());
                         statePressed = false;
                         return true;
@@ -141,6 +146,11 @@ public class TextViewWS extends TextView {
         }
     };
 
+    private void performOnClick() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
+            super.callOnClick();
+        }
+    }
 
     public TextViewWS(Context context) {
         this(context, null, 0);
@@ -360,8 +370,8 @@ public class TextViewWS extends TextView {
         invalidate();
     }
 
-    private void processTouchAt(float x, float y, boolean longTap) {
-        processTouchAt(x, y, longTap, 0);
+    private boolean processTouchAt(float x, float y, boolean longTap) {
+        return processTouchAt(x, y, longTap, 0);
     }
     /**
      *
@@ -374,13 +384,13 @@ public class TextViewWS extends TextView {
      * @param longTap
      */
 
-    protected void processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
+    protected boolean processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
         int position = getOffsetForCoordinates(X, Y, startsFromLine);
         if (position > -1) {
             if (longTap && isTextSelectable()) {
                 Log.v(TAG, "long tap");
                 onLongTapCharacter(position);
-                return;
+                return true;
             }
             if (getText() instanceof Spanned) {
                 ClickableSpan[] spans = ((Spanned) getText()).getSpans(position, position + 1, ClickableSpan.class);
@@ -388,16 +398,18 @@ public class TextViewWS extends TextView {
                     ClickableSpan cs = spans[0];
                     if (cs instanceof URLSpan)
                         onUrlClicked(((URLSpan) cs).getURL(), position, spans[0]);
-                    return;
+                    return true;
                 }
                 DynamicDrawableSpan[] drawables = ((Spanned) getText()).getSpans(position, position + 1, DynamicDrawableSpan.class);
                 if (drawables != null && drawables.length > 0) {
                     DynamicDrawableSpan ds = drawables[0];
                     onDrawableClicked(ds.getDrawable(), position, drawables[0]);
+                    return true;
                 }
             }
         }
         postInvalidateDelayed(10);
+        return false;
     }
 
 

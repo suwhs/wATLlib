@@ -81,7 +81,7 @@ class ReflowState {
         this.skipWhitespaces = state.skipWhitespaces;
     }
 
-    public void carrierReturn(TextLayout.TextLine ld) {
+    public void carrierReturn(TextLine ld) {
         LineSpanBreak lineBreak = span.newBreak();
         lineBreak.position = this.character - 1;
         ld.end = this.character;
@@ -112,7 +112,7 @@ class ReflowState {
             Log.d(TAG, "[3] carrierReturn on TextLine:>>>\n" + ld + "\n<<<\n" + this.toString());
     }
 
-    public void breakLine(boolean whitespace, TextLayout.TextLine ld) {
+    public void breakLine(boolean whitespace,TextLine ld) {
         /* break line at state.character (state.character are last character on line) */
         float incrementWidth = span.widths[character - span.start];
 
@@ -179,7 +179,11 @@ class ReflowState {
     }
 
     public ReflowState nonLetterBreak(boolean strong) {
-        float currentCharacterWidth = span.widths[this.character - span.start];
+        float currentCharacterWidth;
+        if (this.character-span.start < span.widths.length)
+            currentCharacterWidth = span.widths[this.character - span.start];
+        else
+            currentCharacterWidth = 0f;
         increaseBreak(currentCharacterWidth);
         LineSpanBreak lineBreak = span.newBreak();
 
