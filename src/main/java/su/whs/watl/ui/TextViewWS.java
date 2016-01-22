@@ -659,6 +659,7 @@ public class TextViewWS extends TextView {
         return getLayout().getLineForOffset(position);
     }
 
+
     protected void onUrlClicked(String url, int position, ClickableSpan span) {
         if (span!=null) span.onClick(this);
     }

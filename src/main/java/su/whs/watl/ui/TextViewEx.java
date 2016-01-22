@@ -397,7 +397,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      */
     @Override
     protected void onUrlClicked(String url, int position, ClickableSpan span) {
+        mCatchUrl = false;
         if (mHighlightedSpan == span) {
+            mCatchUrl = true;
             if (mDebug)
                 Log.v(TAG, "clicked on url: '" + url + "'");
             try {
@@ -409,6 +411,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             mHighlightedSpan = null;
             invalidate();
         } else {
+            mCatchUrl = true;
             mHighlightedSpan = span;
             Spanned text = (Spanned) mTextLayout.getText();
             int r = Color.red(mHighlightColor);
@@ -477,7 +480,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      */
     @Override
     public void onTextReady() {
-        if (isInEditMode()) return;
+        if (isInEditMode() || mTextLayout==null) return;
         if (mDebug) Log.v(TAG, "onTextReady");
 
         int lastLine = mTextLayout.getLinesCount();
@@ -614,9 +617,19 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return true;
     }
 
+    private boolean mCatchUrl = false;
+
     @Override
     protected boolean processTouchAt(float X, float Y, boolean longTap, int startsFromLine) {
-        return super.processTouchAt(X,Y,longTap,startsFromLine);
+        boolean expected = mHighlightedSpan != null;
+        mCatchUrl = false;
+        boolean result = super.processTouchAt(X,Y,longTap,startsFromLine);
+        if (expected && !mCatchUrl) { // must reset if second click misses UrlSpan
+            mTextLayout.resetHighlight();
+            mHighlightedSpan = null;
+            invalidate();
+        }
+        return result;
     }
 
     /* support partially drawing */
