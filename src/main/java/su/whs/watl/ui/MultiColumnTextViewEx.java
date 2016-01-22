@@ -301,8 +301,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public void onTextReady() {
         mTextReady = true;
-        super.onTextReady();
         if (isInEditMode()) return;
+        super.onTextReady();
         // TODO: need to calculate individual columns vertical shift to make text more accuracy
         // arrange by most frequent horizontals
         // we need actual heights (sum of line.height for each column

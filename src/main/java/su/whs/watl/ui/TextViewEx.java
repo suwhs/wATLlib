@@ -428,7 +428,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public int getLineCount() {
-        if (isInEditMode()) return super.getLineCount();
+        if (isInEditMode()||mTextLayout==null) return super.getLineCount();
         return mTextLayout.getLinesCount();
     }
 
