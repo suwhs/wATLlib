@@ -276,16 +276,17 @@ class ReflowContext {
             }
             y += state.height;
             viewHeightLeft -= state.height;
-            span.gravity = gravity;
 
             if (height > -1 && y > height - 1) {
                 // Log.v(TAG, "9 break recursion height=" + height + ", y=" + y);
                 return false;
             }
-
+            if (imagePlacementHandler.isNewLineBefore(placement)) {
+                span.gravity = gravity;
+            }
             ld = new TextLine(span, scale.x, state.height);
             ld.margin = lineMargin;
-            ld.gravity = state.gravity;
+            ld.gravity = gravity;
             result.add(ld); // first call here
             state.breakLineAfterImage();
             wrapWidth = width - lineWidthDec;

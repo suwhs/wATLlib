@@ -17,9 +17,9 @@ public abstract class ImagePlacementHandler {
     public static final int EXCLUSIVE = 0x02;
     public static final int SCROLLABLE = 0x04;
     private static final int WRAP_TEXT = 0x08;
-    private static final int ALIGN_CENTER = 0x10;
-    private static final int ALIGN_START = 0x20;
-    private static final int ALIGN_END = 0x40;
+    public static final int ALIGN_CENTER = 0x10;
+    public static final int ALIGN_START = 0x20;
+    public static final int ALIGN_END = 0x40;
     public static final int DEFER = 0x00;
     public static final int PLACEHOLDER = 0x80;
     public static final int INLINE = 0xf000;
