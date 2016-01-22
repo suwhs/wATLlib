@@ -221,7 +221,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
         int startLine = column < mColumnsCount ? mColumnsLinesStarts[column] : mColumnsCount-1;
         translated.x = x - (column*layoutWidth);
         translated.y = y;
-        for (int i=0; i< column; translated.y+=mLinesHeightsOnColumns[i], i++) {};
+        for (int i=0; i< column && i < mLinesHeightsOnColumns.length; translated.y+=mLinesHeightsOnColumns[i], i++) {}; // we crash here
         return startLine;
     }
 
@@ -302,6 +302,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     public void onTextReady() {
         mTextReady = true;
         super.onTextReady();
+        if (isInEditMode()) return;
         // TODO: need to calculate individual columns vertical shift to make text more accuracy
         // arrange by most frequent horizontals
         // we need actual heights (sum of line.height for each column

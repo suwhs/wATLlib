@@ -166,6 +166,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         mHighlightColor = color;
     }
 
+    private int gMeasuredWithWMS = -1;
+    private int gMeasuredWithHMS = -1;
+    private int gMeasuredWidth = -1;
+    private int gMeasuredHeight = -1;
     /**
      * @param wms - width measurement specs
      * @param hms - height measurement specs
@@ -177,7 +181,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             super.onMeasure(wms, hms);
             return;
         }
-
+        if (gMeasuredWithWMS==wms && gMeasuredWithHMS==hms) {
+            setMeasuredDimension(gMeasuredWidth,gMeasuredHeight);
+            gMeasuredWithHMS = hms;
+            gMeasuredWithWMS = wms;
+            return;
+        }
         int widthSpec = MeasureSpec.getMode(wms);
         int heightSpec = MeasureSpec.getMode(hms);
         int width = -1;
@@ -240,6 +249,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
                 prepareLayout(want,height-cpT-cpB);
             }
         } Log.d(TAG,"Measured");
+        gMeasuredWidth = width;
+        gMeasuredHeight = height;
+
         setMeasuredDimension(width, height);
     }
 
@@ -413,6 +425,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public int getLineCount() {
+        if (isInEditMode()) return super.getLineCount();
         return mTextLayout.getLinesCount();
     }
 
@@ -430,6 +443,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     protected void resetState() {
         setSelection(0, 0);
         setSelected(false);
+        gMeasuredWithWMS = -1;
+        gMeasuredWithHMS = -1;
         super.invalidateContent();
     }
 
@@ -462,6 +477,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      */
     @Override
     public void onTextReady() {
+        if (isInEditMode()) return;
         if (mDebug) Log.v(TAG, "onTextReady");
 
         int lastLine = mTextLayout.getLinesCount();
