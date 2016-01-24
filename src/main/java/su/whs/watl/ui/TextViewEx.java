@@ -18,12 +18,9 @@ import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.URLSpan;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.widget.Scroller;
-import android.widget.Toast;
 
 import su.whs.watl.text.ContentView;
 import su.whs.watl.text.DynamicDrawableInteractionListener;
@@ -68,7 +65,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     private DynamicDrawableInteractionListener mDynamicDrawableInteractionListenerDefault = new DynamicDrawableInteractionListener() {
         @Override
         public void onClicked(DynamicDrawableSpan span, Rect bounds, View view) {
-            Toast.makeText(getContext(), "clicked " + span.getDrawable(), Toast.LENGTH_LONG).show();
+//            Toast.makeText(getContext(), "clicked " + span.getDrawable(), Toast.LENGTH_LONG).show();
         }
 
         @Override
@@ -248,7 +245,8 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             if (getVisibility()==View.INVISIBLE) {
                 prepareLayout(want,height-cpT-cpB);
             }
-        } Log.d(TAG,"Measured");
+        }
+
         gMeasuredWidth = width;
         gMeasuredHeight = height;
 
@@ -293,7 +291,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         getLocalVisibleRect(bounds);
         getLocationOnScreen(locationOnScreen);
         mTextLayout.draw(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom);
-        // Log.d(TAG,"drawText() finished");
     }
 
     @Override
@@ -400,12 +397,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         mCatchUrl = false;
         if (mHighlightedSpan == span) {
             mCatchUrl = true;
-            if (mDebug)
-                Log.v(TAG, "clicked on url: '" + url + "'");
             try {
                 span.onClick(this);
             } catch (Exception e) {
-                Toast.makeText(getContext(), "could not find '" + getUrl(span) + "' handler", Toast.LENGTH_LONG).show();
+//                Toast.makeText(getContext(), "could not find '" + getUrl(span) + "' handler", Toast.LENGTH_LONG).show();
             }
             mTextLayout.resetHighlight();
             mHighlightedSpan = null;
@@ -461,7 +456,6 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void onTextInfoInvalidated() {
-        // Log.v(TAG, "onTextInfoInvalidated()");
         resetState();
         if (mNeedTotalHeight) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
@@ -481,17 +475,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public void onTextReady() {
         if (isInEditMode() || mTextLayout==null) return;
-        if (mDebug) Log.v(TAG, "onTextReady");
-
         int lastLine = mTextLayout.getLinesCount();
-        //
         if (lastLine < 1) return;
         int nextCharacter = mTextLayout.getLineEnd(lastLine - 1);
-        if (mDebug) {
-            int firstCharacter = mTextLayout.getLineStart(lastLine - 1);
-            String lastLineStr = getText().subSequence(firstCharacter, nextCharacter).toString();
-            Log.v(TAG, "last line: '" + lastLineStr + "'");
-        }
         if (mLayoutListener != null) {
             mLayoutListener.onLayoutFinished(nextCharacter);
         }
@@ -550,13 +536,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
-        //
         Rect bounds = new Rect();
-        if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
-            Log.v(TAG, "clicked on drawable: '" + drawable + "' ["+bounds+"]");
-        } else {
-            Log.e(TAG,"clicked on invisible drawable: "+position);
-        }
+//        if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
+//            Log.v(TAG, "clicked on drawable: '" + drawable + "' ["+bounds+"]");
+//        } else {
+//            Log.e(TAG,"clicked on invisible drawable: "+position);
+//        }
         mDynamicDrawableInteractionListener.onClicked(dynamicDrawableSpan,bounds,this);
     }
 
@@ -632,15 +617,14 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return result;
     }
 
-    /* support partially drawing */
-    private boolean mIsContanerAreScrollView = false;
-    private Scroller mScroller = null;
-
-    @Override
-    protected void onScrollChanged(int horiz, int vert, int oldHoriz, int oldVert) {
-        super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
-        Log.d(TAG,"onScrollChanged");
-    }
+//    /* support partially drawing */
+//    private boolean mIsContanerAreScrollView = false;
+//    private Scroller mScroller = null;
+//
+//    @Override
+//    protected void onScrollChanged(int horiz, int vert, int oldHoriz, int oldVert) {
+//        super.onScrollChanged(horiz, vert, oldHoriz, oldVert);
+//    }
 
     @Override
     public void onAttachedToWindow() {

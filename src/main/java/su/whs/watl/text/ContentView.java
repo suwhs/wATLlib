@@ -118,6 +118,8 @@ public interface ContentView {
             mDrawableMinimumScaleFactor = source.mDrawableMinimumScaleFactor;
             mDrawableWrapWidthTreshold = source.mDrawableWrapWidthTreshold;
             mDrawableWrapRatioTreshold = source.mDrawableWrapRatioTreshold;
+            mTextPaddings.set(source.getTextPaddings());
+            mDrawablePaddings.set(source.getDrawablePaddings());
             mIsAsyncReflow = source.mIsAsyncReflow;
             if (mListener!=null)
                 mListener.invalidateMeasurement();
@@ -539,7 +541,8 @@ public interface ContentView {
          * @param bottom
          */
         public void setTextPaddings(int left, int top, int right, int bottom) {
-            if (diff(mTextPaddings,new Rect(left,top,right,bottom))) _im();
+            //if (diff(mTextPaddings,new Rect(left,top,right,bottom))) _im();
+            _im();
             mTextPaddings.set(left,top,right,bottom);
         }
 

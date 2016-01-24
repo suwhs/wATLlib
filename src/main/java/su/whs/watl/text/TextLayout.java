@@ -53,7 +53,7 @@ import su.whs.wlazydrawable.LazyDrawable;
 public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener {
     /* */
     private boolean debugDraw = false;
-    private boolean debug = true;
+    private boolean debug = false;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -577,7 +577,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
         if (endLine <= startLine) {
-            if (!isReflowBackgroundTaskRunning()) {
+            if (!isReflowBackgroundTaskRunning() && getOptions().isAsyncReflow()) {
                if (isLayouted()) {
                    Log.e(TAG,"background task not running, lines are null, and isLayouted flag set");
                }
