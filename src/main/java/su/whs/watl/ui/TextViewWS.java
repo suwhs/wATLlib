@@ -396,8 +396,15 @@ public class TextViewWS extends TextView {
                 ClickableSpan[] spans = ((Spanned) getText()).getSpans(position, position + 1, ClickableSpan.class);
                 if (spans != null && spans.length > 0) {
                     ClickableSpan cs = spans[0];
-                    if (cs instanceof URLSpan)
-                        onUrlClicked(((URLSpan) cs).getURL(), position, spans[0]);
+                    if (cs instanceof URLSpan) {
+                        if (mClickableSpanListener!=null) {
+                            int css = ((Spanned)getText()).getSpanStart(cs);
+                            int cse = ((Spanned)getText()).getSpanEnd(cs);
+                            mClickableSpanListener.onClick(this,cs,css,cse,null);
+                        } else {
+                            onUrlClicked(((URLSpan) cs).getURL(), position, spans[0]);
+                        }
+                    }
                     return true;
                 }
                 DynamicDrawableSpan[] drawables = ((Spanned) getText()).getSpans(position, position + 1, DynamicDrawableSpan.class);

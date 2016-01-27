@@ -18,6 +18,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.URLSpan;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -537,11 +538,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     protected void onDrawableClicked(Drawable drawable, int position, DynamicDrawableSpan dynamicDrawableSpan) {
         Rect bounds = new Rect();
-//        if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
-//            Log.v(TAG, "clicked on drawable: '" + drawable + "' ["+bounds+"]");
-//        } else {
-//            Log.e(TAG,"clicked on invisible drawable: "+position);
-//        }
+        if (getTextLayout()!=null && getTextLayout().getDynamicDrawableSpanRect(dynamicDrawableSpan,bounds)) {
+            Log.v(TAG, "clicked on drawable: '" + drawable + "' [" + bounds + "]");
+        } else {
+            Log.e(TAG, "clicked on invisible drawable: " + position);
+        }
         mDynamicDrawableInteractionListener.onClicked(dynamicDrawableSpan,bounds,this);
     }
 

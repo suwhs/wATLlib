@@ -78,6 +78,7 @@ class ReflowContext {
     private boolean justification;
     private ITextLayout mCallbacks;
     private TextPaint workPaint;
+
     public ReflowContext(char[] text, int lineStartAt, int textEnd, LineSpan _startSpan, float x, int width, int height, int viewHeight, TextPaint paint, ITextLayout callbacks) {
         this.textEnd = textEnd;
         this.width = width;
