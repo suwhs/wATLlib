@@ -540,10 +540,11 @@ public interface ContentView {
          * @param right
          * @param bottom
          */
-        public void setTextPaddings(int left, int top, int right, int bottom) {
+        public Options setTextPaddings(int left, int top, int right, int bottom) {
             //if (diff(mTextPaddings,new Rect(left,top,right,bottom))) _im();
             _im();
             mTextPaddings.set(left,top,right,bottom);
+            return this;
         }
 
         public Rect getTextPaddings() { return mTextPaddings; }

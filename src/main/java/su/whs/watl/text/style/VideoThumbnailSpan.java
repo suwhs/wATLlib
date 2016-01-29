@@ -1,11 +1,13 @@
 package su.whs.watl.text.style;
 
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.text.style.DynamicDrawableSpan;
+import android.util.Log;
 
-import su.whs.wlazydrawable.PreviewDrawable;
 import su.whs.watl.text.HtmlTagHandler;
+import su.whs.wlazydrawable.PreviewDrawable;
 
 /**
  * Created by igor n. boulliev on 13.11.15.
@@ -41,6 +43,11 @@ public class VideoThumbnailSpan extends DynamicDrawableSpan {
                 @Override
                 protected Drawable getFullDrawable() {
                     return imageGetter.getDrawable(source);
+                }
+
+                @Override
+                protected void recycleBitmap(Bitmap bmp) {
+                    Log.e("VideoThumbnailSpan", "attempt to recycle bitmap");
                 }
             };
         }
