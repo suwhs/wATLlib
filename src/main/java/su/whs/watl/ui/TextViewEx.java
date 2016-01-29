@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
@@ -256,6 +257,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     protected void prepareLayout(int textLayoutWidth, int textLayoutHeight) {
         /* set geometry for layout */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            if (getMaxLines()>0)
+                mTextLayout.setMaxLines(getMaxLines());
+        }
         mTextLayout.setSize(textLayoutWidth, textLayoutHeight);
     }
 

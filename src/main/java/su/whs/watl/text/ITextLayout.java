@@ -16,6 +16,6 @@ public interface ITextLayout {
     Drawable.Callback getDrawableCallbacks();
     void onFinish(List<TextLine> lines, int height);
     void registerDrawable(DynamicDrawableSpan dds, int placement, int position);
-
     void setDrawableBounds(Drawable dr, int left, int top, int right, int bottom);
+    void setMaxLines(int maxLines);
 }

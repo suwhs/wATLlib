@@ -86,6 +86,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     private boolean mReflowFinished = false;
     private boolean mIsLayouted = false;
     private boolean mCompatDrawableCallback = Build.VERSION.SDK_INT < 11;
+    private int mMaxLines = -1;
     /* selection handling vars */
     private int mSelectionStart = 0;
     private int mSelectionEnd = 0;
@@ -1045,7 +1046,6 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             return false;
         }
         return true;
-
     }
 
     @Override
@@ -1187,7 +1187,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             Log.v(TAG, "reflow with font size:" + paint.getTextSize());
 
         synchronized (reflowLock) {
-            ReflowContext ctx = new ReflowContext(text, lineStartAt, textEnd, _startSpan, x, width, height, viewHeight, paint, this);
+            ReflowContext ctx = new ReflowContext(text, lineStartAt, textEnd, _startSpan, x, width, height, viewHeight, mMaxLines, paint, this);
 
             /**
              * reflow() supports "defer" image to next view
@@ -1754,6 +1754,11 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         mLocalSetBounds = true;
         d.setBounds(left,top,right,bottom);
         mLocalSetBounds = false;
+    }
+
+    @Override
+    public void setMaxLines(int maxLines) {
+        mMaxLines = maxLines;
     }
 
     private synchronized boolean isLocalSetBounds() { return mLocalSetBounds; }

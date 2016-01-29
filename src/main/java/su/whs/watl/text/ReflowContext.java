@@ -78,8 +78,9 @@ class ReflowContext {
     private boolean justification;
     private ITextLayout mCallbacks;
     private TextPaint workPaint;
+    private int mMaxLines = -1;
 
-    public ReflowContext(char[] text, int lineStartAt, int textEnd, LineSpan _startSpan, float x, int width, int height, int viewHeight, TextPaint paint, ITextLayout callbacks) {
+    public ReflowContext(char[] text, int lineStartAt, int textEnd, LineSpan _startSpan, float x, int width, int height, int viewHeight, int maxLines, TextPaint paint, ITextLayout callbacks) {
         this.textEnd = textEnd;
         this.width = width;
         this.height = height;
@@ -91,6 +92,7 @@ class ReflowContext {
             return;
         }
         mCallbacks = callbacks;
+        mMaxLines = maxLines;
         options = mCallbacks.getOptions();
         lineBreaker = options.getLineBreaker();
         imagePlacementHandler = options.getImagePlacementHandler();
@@ -634,6 +636,7 @@ class ReflowContext {
             processing:
             while (state.character < span.end || forceBreak) {
                 if (state.skipWhitespaces) { // handle skip whitespaces
+                    if (mMaxLines>-1 && result.size()>=mMaxLines) break recursion;
                     if (carrierReturn && state.lineWidth < 0.5f)
                         state.lineWidth = lineMargin;
                     state.doSkipWhitespaces(text);
@@ -796,7 +799,7 @@ class ReflowContext {
         state.character--;
         TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
 
-        if (ld.end <= textEnd && (height < 1 || y + ld.height < height + 1)) {
+        if (ld.end <= textEnd && (height < 1 || y + ld.height < height + 1) && (mMaxLines < 0 || result.size() < mMaxLines)) {
             result.add(ld);
         } else
             state.height = 0;
@@ -829,7 +832,6 @@ class ReflowContext {
 
         state = new ReflowState(state, span.next);
         span = span.next;
-
 
         return true;
     }
