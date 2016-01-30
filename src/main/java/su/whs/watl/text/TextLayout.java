@@ -815,6 +815,11 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         return lines.get(line).descent;
     }
 
+    /**
+     * find line for character position
+     * @param position - character position in text
+     * @return number of line
+     */
     public int getLineForPosition(int position) {
         /* prevent race condition on this.lines field */
         List<TextLine> lines = this.lines;
