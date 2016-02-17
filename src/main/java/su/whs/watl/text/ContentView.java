@@ -53,6 +53,7 @@ public interface ContentView {
         private boolean mFilterEmptyLines = false;
         private boolean mJustification = true;
         private int mJustificationTreshold = 3;
+        private float mJustificationFraction = 0.15f; // TODO: document, create setter and attribute, handle with copy()
         private int mSelectionColor = Color.BLUE;
         private int mUrlHighlightColor = Color.YELLOW;
         private boolean mUrlHighlightBeforeOpen = true;
@@ -635,6 +636,10 @@ public interface ContentView {
 
         public int getJustificationThreshold() {
             return mJustificationTreshold;
+        }
+
+        public float getJustificationFraction() {
+            return mJustificationFraction;
         }
     }
 

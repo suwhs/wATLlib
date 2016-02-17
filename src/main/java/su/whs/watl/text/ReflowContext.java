@@ -459,7 +459,7 @@ class ReflowContext {
             carrierReturn = false;
         }
 
-        if (justification && ld.whitespaces > options.getJustificationThreshold())
+        if (justification && (ld.whitespaces > options.getJustificationThreshold() || (wrapWidth-ld.width) / wrapWidth < options.getJustificationFraction()))
             ld.justify(wrapWidth);
 
         /* handle exceed view height */
