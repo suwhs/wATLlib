@@ -14,6 +14,8 @@ import su.whs.wlazydrawable.PreviewDrawable;
  */
 public class VideoThumbnailSpan extends DynamicDrawableSpan {
     private Drawable mDrawable;
+    private String mSource;
+
     public VideoThumbnailSpan(final String poster, final String source, int width, int height, final Html.ImageGetter imageGetter) {
         super();
         if (imageGetter instanceof HtmlTagHandler.ImageGetter) {
@@ -58,5 +60,7 @@ public class VideoThumbnailSpan extends DynamicDrawableSpan {
         return mDrawable;
     }
 
-
+    public String getVideoSource() {
+        return mSource;
+    }
 }

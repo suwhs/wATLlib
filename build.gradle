@@ -25,9 +25,9 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:23.0.0'
-    compile project(':wlazydrawable')
-    // compile 'su.whs:wlazydrawable:1.0+'
+     compile project(':wlazydrawable')
+//    compile 'su.whs:wlazydrawable:1.0.1'
 }
 
 // uncomment before deploy
-// apply from: 'deploy.gradle'
+apply from: 'deploy.gradle'
