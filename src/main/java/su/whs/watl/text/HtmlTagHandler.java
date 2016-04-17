@@ -51,7 +51,19 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     private Html.ImageGetter mImageGetter = null;
     private List<Integer> mPreformattedStarts = new ArrayList<Integer>();
     private List<Integer> mPreformattedEnds = new ArrayList<Integer>();
+
+    /**
+     *
+     * @return true, if html contains <pre></pre> tags
+     */
+
     public boolean hasPreformatted() { return mPreformattedStarts.size() > 0; }
+
+    /**
+     *
+     * @param source - url of image
+     * @return Drawable (using Html.ImageGetter)
+     */
 
     @Override
     public Drawable getDrawable(String source) {
@@ -72,10 +84,6 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
             super(every+offset);
         }
 
-        // @Override
-        // public void drawLeadingMargin(Canvas c, Paint p, int x, int dir, int top, int baseline, int bottom, CharSequence text, int start, int end, boolean first, Layout l) {
-        //    super.drawLeadingMargin(c, p, x+offset-everyc, dir, top, baseline, bottom, text, start, end, first, l);
-        // }
     }
 
     public HtmlTagHandler(Html.ImageGetter imageGetter) {
@@ -83,6 +91,7 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     }
 
     public HtmlTagHandler() {
+
     }
 
     @Override
@@ -377,6 +386,10 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
     protected CharSequence formatPreformatted(String html) {
         return ThirdPartyUtils.unescape(html.replaceAll("</?(code|span){1}.*?/?>", ""));
     }
+
+    /**
+     *  extended ImageGetter, with supports for construct previewDrawable/video
+     */
 
     public interface ImageGetter extends Html.ImageGetter {
         Drawable getDrawable(String source, int width, int height);

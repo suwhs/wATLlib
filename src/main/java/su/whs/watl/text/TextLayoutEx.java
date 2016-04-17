@@ -21,7 +21,7 @@ import java.util.ListIterator;
 
  * Created by igor n. boulliev on 30.05.15.
  */
-class TextLayoutEx extends TextLayout {
+public class TextLayoutEx extends TextLayout {
     private static final String TAG="TextLayoutEx";
     private static final boolean debug = true; // BuildConfig.DEBUG;
     private int pageInProgress = 0;

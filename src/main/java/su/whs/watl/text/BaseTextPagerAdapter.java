@@ -871,6 +871,4 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
             }
         };
     }
-
-
 }
