@@ -118,7 +118,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
      */
 
     @Override
-    public void drawText(Canvas canvas) {
+    protected void drawText(Canvas canvas) {
+        super.drawText(canvas);
         int left = getCompoundPaddingLeft();
         int right = getWidth() - getCompoundPaddingRight();
         int top = getCompoundPaddingTop();
@@ -133,18 +134,18 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             return;
         }
         getLocationOnScreen(locationOnScreen);
-        if (mColumnsReady > 0)
-            for (int i = 0; i < mColumnsReady; i++) {
+        if (mColumnsReady > 1)
+            for (int i = 1; i < mColumnsReady; i++) {
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + bounds.top,
                         right + columnShift * i,
                         mColumnsVerticalShifts[i] + bounds.bottom, mColumnsLinesStarts[i], i + 1 < mColumnsCount ? mColumnsLinesStarts[i + 1] : getLineCount());
             }
         else {
-            getTextLayout().draw(canvas, left,
-                    mColumnsVerticalShifts[0] + bounds.top,
-                    right,
-                    mColumnsVerticalShifts[0] + bounds.bottom, 0, getLineCount());
+//            getTextLayout().draw(canvas, left,
+//                    mColumnsVerticalShifts[0] + bounds.top,
+//                    right,
+//                    mColumnsVerticalShifts[0] + bounds.bottom, 0, getLineCount());
         }
         // canvas.drawRect(debugClickedLineBound,debugPaint);
      }

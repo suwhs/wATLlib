@@ -52,8 +52,8 @@ import su.whs.wlazydrawable.LazyDrawable;
 
 public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener {
     /* */
-    private boolean debugDraw = false;
-    private boolean debug = false;
+    private boolean debugDraw = true;
+    private boolean debug = true;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -106,6 +106,24 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             }
         }
         return -1;
+    }
+
+    public void append(CharSequence text, int start, int end) {
+        throw new RuntimeException("append not supported yet.");
+//        stopReflowIfNeed();
+//        SpannableStringBuilder ssb = new SpannableStringBuilder();
+//        if (TextUtils.isEmpty(mText)) {
+//            ssb.append(text,start,end);
+//        } else {
+//            ssb.append(mText);
+//            ssb.append(text,start,end);
+//        }
+//        mText = ssb;
+//        if (this.lines!=null)
+//            this.lines.clear();
+//        lineSpan = null;
+//        prepare(mText,0,mText.length());
+//        notifyTextInfoInvalidated();
     }
 
     /* */
@@ -221,8 +239,11 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         return "";
     }
 
+    private boolean mReleased  = false;
+
     public void release() {
         mText = null;
+        mReleased = true;
         if (lines != null)
             lines.clear();
         lineSpan = null;
@@ -288,6 +309,10 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         }
 
         this.paint = paint;
+        prepare(text,start,end);
+    }
+
+    protected void prepare(Spanned text, int start, int end) {
         lineSpan = LineSpan.prepare(text, start, end, mParagraphStartMargin, mParagraphTopMargin, mDynamicDrawableSpanSparseArray);
     }
 
@@ -377,7 +402,12 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         return false;
     }
 
+    @Deprecated
     public int getLinesCount() {
+        return lines == null ? 0 : lines.size();
+    }
+
+    public int getLineCount() {
         return lines == null ? 0 : lines.size();
     }
 
@@ -577,10 +607,14 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     private Rect mClipRect = new Rect();
 
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
+        if (mReleased) throw new IllegalStateException("attemt to draw released layout");
         if (endLine <= startLine) {
             if (!isReflowBackgroundTaskRunning() && getOptions().isAsyncReflow()) {
                if (isLayouted()) {
                    Log.e(TAG,"background task not running, lines are null, and isLayouted flag set");
+                   if (!TextUtils.isEmpty(getText())) {
+                       doReflowInBackground();
+                   }
                }
             }
             // mFailedDrawAttempt = true;
@@ -849,6 +883,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      */
 
     public CharSequence getText() {
+        if (mText==null) return "";
         return mText;
     }
 

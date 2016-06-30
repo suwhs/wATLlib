@@ -43,12 +43,8 @@ import su.whs.watl.text.TextLayoutListener;
 
 public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextView {
     private static final String TAG = "TextViewEx";
-    //private ContentView.Options mPendingOptions; // = new ContentView.Options();
-    private boolean mDebug = false; // BuildConfig.DEBUG;
     private TextLayout mTextLayout;
     private boolean mHeightWrapContent = false;
-    // private boolean mFallBackMode = false;
-    private boolean mTextIsSelectable = true;
     // @Attribute
     private ClickableSpan mHighlightedSpan = null;
     // @Attribute
@@ -99,7 +95,9 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public void setTextSize(int unit, float size) {
         float value = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, size, getResources().getDisplayMetrics());
-        mTextLayout.setTextSize(value);
+        if (mTextLayout!=null)
+           mTextLayout.setTextSize(value);
+        getPaint().setTextSize(value);
     }
 
     public void setTextViewLayoutListener(TextViewLayoutListener l) {
@@ -128,7 +126,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         }
         CharSequence text = _text instanceof Spanned ? _text : new SpannableString(_text);
 
-        super.setText("", BufferType.NORMAL);
+        super.setText(" ", BufferType.NORMAL);
         if (_text == null || _text.length() < 1) return;
 
         if (mTextLayout!=null)
@@ -292,11 +290,15 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      */
 
     @Override
-    public void drawText(Canvas canvas) {
+    protected void drawText(Canvas canvas) {
         Rect bounds = canvas.getClipBounds();
         getLocalVisibleRect(bounds);
         getLocationOnScreen(locationOnScreen);
-        mTextLayout.draw(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom);
+        mTextLayout.draw(canvas,
+                bounds.left + getCompoundPaddingLeft(),
+                bounds.top + getCompoundPaddingTop(),
+                bounds.right - getCompoundPaddingRight(),
+                bounds.bottom - getCompoundPaddingBottom());
     }
 
     @Override
@@ -329,7 +331,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     public CharSequence getText() { // marshmallow - called before TextLayout created
         if (isInEditMode())
             return super.getText();
-        if (getTextLayout()==null) return super.getText();
+        if (getTextLayout()==null) {
+            CharSequence result = super.getText();
+            if (result==null) return "";
+            return result;
+        }
         return getTextLayout().getText();
     }
 
@@ -378,8 +384,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     protected int getOffsetForCoordinates(float x, float y, int startLine) {
         Rect paddings = getOptions().getTextPaddings();
-        int offset = getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y - paddings.top, startLine);
-        return offset;
+        if (getTextLayout()!=null) {
+            int offset = getTextLayout().getOffsetForCoordinates(this, x - paddings.left, y - paddings.top, startLine);
+            return offset;
+        }
+        return -1;
     }
 
     /**
@@ -635,7 +644,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
-       getViewTreeObserver().addOnScrollChangedListener(mOnScrollChangedListener);
+        getViewTreeObserver().addOnScrollChangedListener(mOnScrollChangedListener);
     }
 
     @Override
@@ -644,7 +653,20 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         getViewTreeObserver().removeOnScrollChangedListener(mOnScrollChangedListener);
         if (mTextLayout!=null) {
             mTextLayout.release();
+            mTextLayout = null;
         }
+    }
+
+    @Override
+    public void append(CharSequence text, int start, int end) {
+        if (mTextLayout==null) {
+            mTextLayout = new TextLayout((Spanned) text, 0, end, getPaint(),
+                    mOptions,
+                    this);
+        } else {
+            mTextLayout.append(text,start,end);
+        }
+        postInvalidate();
     }
 
     private ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
