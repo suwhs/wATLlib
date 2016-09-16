@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import su.whs.watl.text.style.PreformattedSpan;
-import su.whs.wlazydrawable.LazyDrawable;
+import su.whs.lazydrawable.parent.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 11.01.16.

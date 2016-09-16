@@ -94,7 +94,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void setTextSize(int unit, float size) {
-        float value = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, size, getResources().getDisplayMetrics());
+        float value = TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics());
         if (mTextLayout!=null)
            mTextLayout.setTextSize(value);
         getPaint().setTextSize(value);
@@ -118,9 +118,18 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         return mOptions;
     }
 
+    private boolean mIgnoreSetText = false;
+
+    @Override
+    public void setTextIsSelectable(boolean selectable) {
+        mIgnoreSetText = true;
+        super.setTextIsSelectable(selectable);
+        mIgnoreSetText = false;
+    }
+
     @Override
     public void setText(CharSequence _text, BufferType type) {
-        if (isInEditMode()) {
+        if (isInEditMode()||mIgnoreSetText) {
             super.setText(_text, type);
             return;
         }

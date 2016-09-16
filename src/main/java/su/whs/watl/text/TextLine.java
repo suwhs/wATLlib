@@ -7,7 +7,7 @@ import android.view.Gravity;
 import java.lang.ref.WeakReference;
 
 /**
- * Created by geek on 11.01.16.
+ * Created by igor n. boulliev on 11.01.16.
  */
 public class TextLine {
     int whitespaces = 0;
@@ -27,6 +27,8 @@ public class TextLine {
     int wrapHeight = 0;
     int wrapWidth = 0;
     int wrapMargin = 0;
+    boolean highlighted = false;
+    boolean selected = false;
 
     public TextLine(ReflowState state, int lineStartAt, LeadingMarginSpan leadingMarginSpan) {
         this.whitespaces = state.whitespaces;

@@ -6,8 +6,8 @@ import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.style.DynamicDrawableSpan;
 
+import su.whs.lazydrawable.parent.LazyDrawable;
 import su.whs.watl.experimental.AutoPlacedDrawable;
-import su.whs.wlazydrawable.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 03.02.15.

@@ -33,7 +33,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-import su.whs.wlazydrawable.LazyDrawable;
+import su.whs.lazydrawable.parent.LazyDrawable;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -52,8 +52,8 @@ import su.whs.wlazydrawable.LazyDrawable;
 
 public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener {
     /* */
-    private boolean debugDraw = true;
-    private boolean debug = true;
+    private boolean debugDraw = false;
+    private boolean debug = false;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -605,7 +605,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      * @param bottom - bottom bound of layout rect
      */
     private Rect mClipRect = new Rect();
-
+    private boolean DEV_STUB = false;
     public void draw(Canvas canvas, int left, int top, int right, int bottom, int startLine, int endLine) {
         if (mReleased) throw new IllegalStateException("attemt to draw released layout");
         if (endLine <= startLine) {
@@ -633,9 +633,9 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         mFailedDrawAttempt = false;
         if (getLineSpan() != null) {
             if (isReflowBackgroundTaskRunning()) {
-                draw(lines_copy, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), 0, 0, 0, 0, 0, 0, getOptions().isJustification());
+                draw(lines_copy, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), 0, 0, 0, DEV_STUB, getOptions().isJustification());
             } else {
-                draw(lines_copy, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), getSelectionStarts(), getSelectionEnds(), getSelectionColor(), mHighlightStart, mHighlightEnd, mHighlightColor, getOptions().isJustification());
+                draw(lines_copy, startLine, endLine, getChars(), canvas, mClipRect, width, viewHeight, getPaint(), getSelectionStarts(), getSelectionEnds(), getSelectionColor(), DEV_STUB, getOptions().isJustification());
             }
         } else {
             // Log.w(TAG, "could not draw() getLines() returns null");
@@ -1167,7 +1167,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     public void onFinish(List<TextLine> lines, int height) {
         synchronized (this) { this.lines = lines; }
         if (debug) {
-            Log.d(TAG, "onFinish()");
+            Log.d(TAG, "onFinish() height:"+height);
         }
         setReflowBackgroundTaskCancelled(false);
         setReflowBackgroundTaskRunning(false);
@@ -1275,7 +1275,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     Map<Drawable, Rect> visibleDrawableBounds = new HashMap<Drawable, Rect>();
     // List<Float> innerRtlStack = new ArrayList<Float>();
 
-    public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, Rect clipRect, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, int highlightStart, int highlightEnd, int highlightColor, boolean justification) {
+    public int draw(List<TextLine> lines, int startLine, int endLine, char[] text, Canvas canvas, Rect clipRect, float width, float height, TextPaint paint, int selectionStart, int selectionEnd, int selectionColor, boolean STUB_HIGHLIGHTS_OBJECT, boolean justification) {
         if (lines == null || lines.size() < 1) {
             // Log.w(TAG, "lines==null || lines.size() < 1");
             return 0;
@@ -1303,7 +1303,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         int drawablePaddingWidth = drawablePaddings.left + drawablePaddings.right;
         int drawablePaddingHeight = drawablePaddings.top + drawablePaddings.bottom;
 
-        highlightPaint.setColor(highlightColor);
+//        highlightPaint.setColor(highlightColor);
         selectionPaint.setColor(selectionColor);
 
         int i = startLine;
@@ -1330,8 +1330,8 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
         if (selectionStart < selectionEnd)
             selection = true;
-        if (highlightStart < highlightEnd)
-            highlight = true;
+//        if (highlightStart < highlightEnd)
+//            highlight = true;
 
         CharacterStyle[] styles = null;
         linesLoop:
@@ -1373,6 +1373,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             boolean drawHighlight = false;
             boolean drawSelection = false;
 
+            /* begin selections */
             if (selection && (selectionStart < line.end && selectionEnd > line.start)) {
                 if (line.start >= selectionStart && line.end < selectionEnd) {
                 /* fill entire background */
@@ -1394,25 +1395,26 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                 drawSelection = true;
             }
 
-            if (highlight && (highlightStart < line.end && highlightEnd > line.start)) {
-                if (line.start >= highlightStart && line.end <= highlightEnd) {
-                /* fill entire background */
-                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
-                } else if (highlightStart <= line.start && highlightEnd <= line.end) {
-                /* highlight starts on previous line, but ends on current line */
-                    findHighlightEndX = true;
-                } else if (highlightStart >= line.start && highlightEnd > line.end) {
-                /* highlight starts on current line, but ends on next line or below */
-                    findHighlightStartX = true;
-                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
-                } else if (highlightStart >= line.start && highlightEnd <= line.end) {
-                /* highlight starts and ends on current line */
-                    findHighlightStartX = true;
-                    findHighlightEndX = true;
-                }
-                // Log.v(TAG, "find highlight startX = " + findHighlightStartX + ", endX = " + findHighlightEndX + " (" + highlightStart + "," + highlightEnd + ") on line [" + line.start + "," + line.end + "]");
-                drawHighlight = true;
-            }
+            /* begin highlights */
+//            if (line.highlighted && highlight && (highlightStart < line.end && highlightEnd > line.start)) {
+//                if (line.start >= highlightStart && line.end <= highlightEnd) {
+//                /* fill entire background */
+//                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+//                } else if (highlightStart <= line.start && highlightEnd <= line.end) {
+//                /* highlight starts on previous line, but ends on current line */
+//                    findHighlightEndX = true;
+//                } else if (highlightStart >= line.start && highlightEnd > line.end) {
+//                /* highlight starts on current line, but ends on next line or below */
+//                    findHighlightStartX = true;
+//                    highlightEndX = textPaddings.left + line.wrapMargin + line.width + (justification ? line.justifyArgument * line.whitespaces : 0);
+//                } else if (highlightStart >= line.start && highlightEnd <= line.end) {
+//                /* highlight starts and ends on current line */
+//                    findHighlightStartX = true;
+//                    findHighlightEndX = true;
+//                }
+//                // Log.v(TAG, "find highlight startX = " + findHighlightStartX + ", endX = " + findHighlightEndX + " (" + highlightStart + "," + highlightEnd + ") on line [" + line.start + "," + line.end + "]");
+//                drawHighlight = true;
+//            }
 
             int baseLine = y + line.height - line.descent;
             float tail = (line.afterBreak == null || line.afterBreak.get() == null) ? 0f : line.afterBreak.get().tail;
@@ -1723,13 +1725,13 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                 }
             } // end drawline: loop
 
-            if (drawHighlight) {
-                if (findHighlightStartX)
-                    highlightStartX = getOffsetX(line, highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
-                if (findHighlightEndX)
-                    highlightEndX = getOffsetX(line, highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
-                canvas.drawRect(highlightStartX + align, y, highlightEndX + align, y + line.height, highlightPaint);
-            }
+//            if (drawHighlight) {
+//                if (findHighlightStartX)
+//                    highlightStartX = getOffsetX(line, highlightStart); // calculateOffset(line.span.get(), line.start, highlightStart, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+//                if (findHighlightEndX)
+//                    highlightEndX = getOffsetX(line, highlightEnd); // calculateOffset(line.span.get(), line.start, highlightEnd+1, (justification ? line.justifyArgument : 0), getOptions()) + line.margin + line.wrapMargin + textPaddings.left;
+//                canvas.drawRect(highlightStartX + align, y, highlightEndX + align, y + line.height, highlightPaint);
+//            }
 
             if (line.hyphen) {
                 if (isLineRtl)
