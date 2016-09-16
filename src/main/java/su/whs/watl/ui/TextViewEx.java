@@ -111,7 +111,11 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     protected ContentView.Options makeOptions() {
         if (mOptions==null) {
-            mOptions = new ContentView.Options();
+            if (mTextLayout!=null) {
+                mOptions = mTextLayout.getOptions();
+            } else {
+                mOptions = new ContentView.Options();
+            }
             if (mImagePlacementHandler!=null)
                 mOptions.setImagePlacementHandler(mImagePlacementHandler);
         }
@@ -129,7 +133,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void setText(CharSequence _text, BufferType type) {
-        if (isInEditMode()||mIgnoreSetText) {
+        if (isInEditMode()||mIgnoreSetText||_text==null) {
             super.setText(_text, type);
             return;
         }

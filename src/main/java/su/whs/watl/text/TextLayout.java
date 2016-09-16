@@ -827,8 +827,13 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             }
 
 
-            if (listener != null)
-                listener.onTextInfoInvalidated();
+            if (listener != null) new Handler(Looper.getMainLooper())
+                    .post(new Runnable() {
+                        @Override
+                        public void run() {
+                            listener.onTextInfoInvalidated();
+                        }
+                    });
             reflow(chars, mStart, mEnd, lineSpan,
                     0, width, 0, requestedHeight, viewHeight,
                     reflowPaint,
