@@ -32,7 +32,7 @@ wATLlib published on jcenter repository, so just
 
 add to dependencies :
 ```gradle
-compile 'su.whs:wATLlib:+'
+compile 'su.whs:wATLlib:1.2.0'
 ```
 
 more detailed <a href="http://whs.su/products/watl-widgets-library-for-android/watl-library-quickstart-guide/">quick start guide</a>

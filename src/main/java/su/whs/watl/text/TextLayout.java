@@ -54,6 +54,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     /* */
     private boolean debugDraw = false;
     private boolean debug = false;
+    boolean debugDrawRtl = false;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -1271,6 +1272,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     TextPaint workPaint = new TextPaint();
     Paint highlightPaint = new Paint();
     Paint selectionPaint = new Paint();
+    Paint debugPaint = new Paint();
     Rect drawablePaddings = new Rect();
 
     Set<Drawable> visibleDrawables = new HashSet<Drawable>();
@@ -1292,15 +1294,18 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         processedDrawables.clear();
         processedDrawables.addAll(visibleDrawables);
 
-        if (debugDraw) {
+        if (debugDraw||debugDrawRtl) {
             backgroundPaint.setStyle(Paint.Style.STROKE);
             backgroundPaint.setColor(Color.BLUE);
-
-            canvas.drawRect(clipRect, backgroundPaint);
-            backgroundPaint.setColor(Color.GREEN);
-            canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
+            if (debugDraw) {
+                canvas.drawRect(clipRect, backgroundPaint);
+                backgroundPaint.setColor(Color.GREEN);
+                canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
+            }
             backgroundPaint.setColor(Color.RED);
             backgroundPaint.setStrokeWidth(1);
+            debugPaint.setColor(Color.RED);
+            debugPaint.setStrokeWidth(2f);
         }
 
         final int leftOffset = textPaddings.left;
@@ -1345,7 +1350,10 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             line = lines.get(i);
             boolean isLineRtl = false;
             if (LineSpan.isBidiEnabled()) {
-                isLineRtl = (line.direction != Layout.DIR_LEFT_TO_RIGHT);
+                isLineRtl = (line.direction < 0);
+                if (isLineRtl && debugDrawRtl) {
+                    canvas.drawLine(leftOffset,y,leftOffset,y+line.height,debugPaint);
+                }
             }
             if (height > 0 && (y + line.height > clipRect.bottom) && line.wrapHeight < 1) {
                 // Log.v("DDD","line "+i+" height="+line.height+" total="+y+" finish (3)");
@@ -1449,7 +1457,12 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                 canvas.drawRect(selectStartX + align, y, selectEndX + align, y + line.height, selectionPaint);
             }
 
-            LineSpanBreak lineSpanBreak = span == null ? null : (line.afterBreak == null ? span.breakFirst : (line.afterBreak.get() == null ? null : line.afterBreak.get().next));
+            LineSpanBreak lineSpanBreak = span == null ?
+                    null :
+                    (line.afterBreak == null ?
+                            span.breakFirst :
+                            (line.afterBreak.get() == null ?
+                                    null : line.afterBreak.get().next));
             x = line.margin + align;
 
             if (line.leadingMargin != null) { // draw leading margin span (bullet, etc)
@@ -1474,7 +1487,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             drawline:
             while (span != null && drawStart < line.end) {
                 // draw leading drawable only
-                boolean isSpanRtl = span.direction != Layout.DIR_LEFT_TO_RIGHT;
+                boolean isSpanRtl = span.direction <0;
                 if (span.isDrawable && span.end > line.start) {
                     if (span.width == 0) {
                         span = span.next;
@@ -1675,7 +1688,8 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
                         lineSpanBreak = lineSpanBreak.next;
                     }
-                } else // cycle over LTR line span
+
+                } else { // cycle over LTR line spans
                     while (lineSpanBreak != null) {
                         drawStop = lineSpanBreak.position + 1;
                         drawStop = drawStop > line.end ? line.end : drawStop;
@@ -1702,7 +1716,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
                         lineSpanBreak = lineSpanBreak.next;
                     }
-
+                } // end cycle over LTR line
                 if (tail > 0f) {
                     drawStop = line.end < span.end ? line.end : span.end;
 

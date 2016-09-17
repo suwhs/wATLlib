@@ -429,7 +429,7 @@ class ReflowContext {
         lineStartAt = state.character;
         state.skipWhitespaces = true;
 
-        return DIR_LTR;
+        return lineStartAt >= span.end ? 0 : span.direction;
     }
 
     private int handleBreakLine(char[] text, int breakPosition, boolean hyphen, int direction) {
@@ -494,7 +494,7 @@ class ReflowContext {
         state.skipWhitespaces = true;
         lineStartAt = state.character;
         linesAddedInParagraph++;
-        return DIR_LTR; // direction;
+        return direction; // direction;
     }
 
     public boolean nextSpan() {
