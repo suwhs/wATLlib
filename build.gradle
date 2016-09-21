@@ -30,4 +30,4 @@ dependencies {
 }
 
 // uncomment before deploy
-apply from: 'deploy.gradle'
+//apply from: 'deploy.gradle'
