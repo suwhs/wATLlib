@@ -133,6 +133,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void setText(CharSequence _text, BufferType type) {
+        if (mRestoringState) return;
         if (isInEditMode()||mIgnoreSetText||_text==null) {
             super.setText(_text, type);
             return;
@@ -156,6 +157,16 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         } else
             invalidate();
     }
+
+    private boolean mRestoringState = false;
+    @Override
+    public void onRestoreInstanceState(Parcelable state) {
+        mRestoringState = true;
+        super.onRestoreInstanceState(state);
+        mRestoringState = false;
+    }
+
+
 
     /**
      * WARNING: local options overriden with TextLayout.getOptions()
@@ -208,7 +219,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         if (widthSpec == MeasureSpec.EXACTLY) {
             // Must be this size
-            width = Math.max(getLayoutParams().width, widthSize);
+            width = widthSize; // Math.max(getLayoutParams().width, widthSize);
         } else if (widthSpec == MeasureSpec.AT_MOST) {
             // Can't be bigger than...
             width = widthSize;
@@ -220,12 +231,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
         if (heightSpec == MeasureSpec.EXACTLY) {
             // Must be this size
-            height = Math.max(getLayoutParams().height, heightSize);
+            height = heightSize; // Math.max(getLayoutParams().height, heightSize);
 
             // throw new RuntimeException("height exactly: "+height);
         } else if (heightSpec == MeasureSpec.AT_MOST) {
             // Can't be bigger than...
-            height = Math.min(getLayoutParams().height, heightSize);
+            height = heightSize; // Math.min(getLayoutParams().height, heightSize);
             // throw new RuntimeException("height: "+height);
         } else {
             // throw new RuntimeException("height  unspecified ?");

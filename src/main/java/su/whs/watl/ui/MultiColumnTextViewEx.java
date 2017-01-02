@@ -101,7 +101,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
     @Override
     public void setTextLayout(TextLayout textLayout) {
         super.setTextLayout(textLayout);
-        calculateColumns(textLayout.getWidth());
+        Log.d(TAG,"need restore columnWidth");
+        mColumnWidth = textLayout.getWidth();
     }
 
     @Override
@@ -119,7 +120,7 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
 
     @Override
     protected void drawText(Canvas canvas) {
-        super.drawText(canvas);
+//        super.drawText(canvas);
         int left = getCompoundPaddingLeft();
         int right = getWidth() - getCompoundPaddingRight();
         int top = getCompoundPaddingTop();
@@ -134,8 +135,8 @@ public class MultiColumnTextViewEx extends TextViewEx implements TextLayoutListe
             return;
         }
         getLocationOnScreen(locationOnScreen);
-        if (mColumnsReady > 1)
-            for (int i = 1; i < mColumnsReady; i++) {
+        if (mColumnsReady > 0)
+            for (int i = 0; i < mColumnsReady; i++) {
                 getTextLayout().draw(canvas, left + columnShift * i,
                         mColumnsVerticalShifts[i] + bounds.top,
                         right + columnShift * i,

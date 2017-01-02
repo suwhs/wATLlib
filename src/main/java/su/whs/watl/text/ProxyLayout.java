@@ -13,7 +13,7 @@ import java.util.List;
  */
 class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerAdv {
     private static final String TAG="ProxyLayout";
-    private boolean debug = false;
+    private boolean debug = true;
     private int mPosition = 0;
     private Replies mEvents = null;
     private boolean mFinished = false;
@@ -210,6 +210,7 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
 
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
+        Log.d(TAG,"onProgress: "+collectedHeight+" exceed:"+viewHeightExceed);
         if (!mTextInvalidated) {
             // first call for this page
             mTextInvalidated = true;
@@ -495,6 +496,8 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
     }
 
     private void replayEvents(TextLayoutListener listener) {
+        if (debug)
+            Log.d(TAG,"replay events");
         mReplay = true;
         for(ViewHeightExceedEvent event = mEvents.first(); event!=null; event = mEvents.next()) {
             if ( event.equals(Event.INIT)) {
@@ -536,5 +539,11 @@ class ProxyLayout extends TextLayout implements TextLayoutEx.TextLayoutListenerA
         mTextInvalidated = false;
         mLayout = null;
         super.finalize();
+    }
+
+    @Override
+    public void release() {
+        // super.release();
+        Log.d(TAG,"suppress release");
     }
 }

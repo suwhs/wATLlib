@@ -611,7 +611,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         if (mReleased) throw new IllegalStateException("attemt to draw released layout");
         if (endLine <= startLine) {
             if (!isReflowBackgroundTaskRunning() && getOptions().isAsyncReflow()) {
-               if (isLayouted()) {
+               if (!isLayouted()) {
                    Log.e(TAG,"background task not running, lines are null, and isLayouted flag set");
                    if (!TextUtils.isEmpty(getText())) {
                        doReflowInBackground();

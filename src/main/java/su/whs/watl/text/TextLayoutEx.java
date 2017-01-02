@@ -124,7 +124,7 @@ public class TextLayoutEx extends TextLayout {
     @Override
     public boolean onProgress(List<TextLine> lines, int collectedHeight, boolean viewHeightExceed) {
         if (debug)
-            Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight);
+            Log.v(TAG,"onProgress() + collectedHeight = " + collectedHeight + " exceed: "+viewHeightExceed);
         this.lines = lines;
         if (Looper.getMainLooper().getThread().equals(Thread.currentThread())) {
             throw new RuntimeException("here is wait on main thread possible - sync mode for TextLayoutEx is not allowed");
