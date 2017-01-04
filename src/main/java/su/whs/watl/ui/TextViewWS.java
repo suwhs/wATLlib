@@ -50,11 +50,15 @@ public class TextViewWS extends TextView {
     private float mSelectionCursorEndLineHeight = 0;
     private Drawable mSelectionCursorDrawableStart = null;
     private Drawable mSelectionCursorDrawableEnd = null;
+    private float mSelectionCursorDrawableStartShiftY = 0f;
+    private float mSelectionCursorDrawableStartShiftX = 0f;
+    private float mSelectionCursorDrawableEndShiftY = 0f;
+    private float mSelectionCursorDrawableEndShiftX = 0f;
     private float mTapX = 0f;
     private float mTapY = 0f;
     private ActionMode.Callback mCustomActionModeCallback = null;
     // @Attribute
-    private int mSelectionColor = Color.BLUE;
+    private int mSelectionColor = 0x90C3D4;
     private int mSelectionColorDraw = selectionColor();
     private int mSelectionStart = 0;
     private int mSelectionEnd = 0;
@@ -175,7 +179,7 @@ public class TextViewWS extends TextView {
 
     private void init(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         TypedArray  ta = context.obtainStyledAttributes(attrs, R.styleable.TextViewWS,defStyleRes,defStyleAttr);
-        if (ta==null || ta.getIndexCount()<1) return;
+        if (ta!=null && ta.getIndexCount()>0)
         for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
             if (attr == R.styleable.TextViewWS_selectionColor){
                 mSelectionColor = ta.getColor(attr,Color.BLUE);
@@ -188,6 +192,18 @@ public class TextViewWS extends TextView {
             }
         }
         ta.recycle();
+        if (mSelectionCursorDrawableStart==null) {
+            mSelectionCursorDrawableStart = getResources().getDrawable(R.mipmap.selection_marker_top);
+            mSelectionCursorDrawableStartShiftY = 0.17f;
+            mSelectionCursorDrawableStartShiftX = 0.5f;
+            mSelectionCursorDrawableStart.setBounds(0,0,mSelectionCursorDrawableStart.getIntrinsicWidth(),mSelectionCursorDrawableStart.getIntrinsicHeight());
+        }
+        if (mSelectionCursorDrawableEnd==null) {
+            mSelectionCursorDrawableEnd = getResources().getDrawable(R.mipmap.selection_marker_bottom);
+            mSelectionCursorDrawableEndShiftY = 0.17f;
+            mSelectionCursorDrawableEndShiftX = 0.5f;
+            mSelectionCursorDrawableEnd.setBounds(0,0,mSelectionCursorDrawableEnd.getIntrinsicWidth(),mSelectionCursorDrawableEnd.getIntrinsicHeight());
+        }
     }
 
     public TextViewWS setSelectionColor(int color) {
@@ -233,17 +249,19 @@ public class TextViewWS extends TextView {
         x += getCompoundPaddingLeft();
         y += getCompoundPaddingTop();
         int side = start ? mDefaultSelectionCursorWidth : -mDefaultSelectionCursorWidth;
-        if (mSelectionCursorDrawableStart != null) {
-            // TODO: implement resource drawable
+        if (mSelectionCursorDrawableStart != null && mSelectionCursorDrawableEnd != null) {
+            int state = canvas.save();
             if (start) {
-
+                canvas.translate(x - mSelectionCursorDrawableStart.getBounds().width() * mSelectionCursorDrawableStartShiftX
+                        ,y - lineHeight - mSelectionCursorDrawableStart.getBounds().height() * mSelectionCursorDrawableStartShiftY /* - (mSelectionCursorDrawableStart.getBounds().height()-
+                                mSelectionCursorDrawableStart.getBounds().height() * mSelectionCursorDrawableStartShiftY )*/);
+                mSelectionCursorDrawableStart.draw(canvas);
             } else {
-                if (mSelectionCursorDrawableEnd == null) {
-
-                } else {
-
-                }
+                canvas.translate(x - mSelectionCursorDrawableEnd.getBounds().width() * mSelectionCursorDrawableEndShiftX
+                        ,y- /*mSelectionCursorDrawableEnd.getBounds().height() + */ mSelectionCursorDrawableEnd.getBounds().height() * mSelectionCursorDrawableEndShiftY );
+                mSelectionCursorDrawableEnd.draw(canvas);
             }
+            canvas.restoreToCount(state);
             return;
         }
         if (x + side < 0 || x + side > canvas.getWidth()) {

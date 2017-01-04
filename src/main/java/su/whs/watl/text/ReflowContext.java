@@ -796,7 +796,7 @@ class ReflowContext {
                 break recursion;
         }
         // handle tail of line
-        state.character--;
+        state.character--; // FIXME: null while
         TextLine ld = new TextLine(state, lineStartAt, leadingMarginSpan);
 
         if (ld.end <= textEnd && (height < 1 || y + ld.height < height + 1) && (mMaxLines < 0 || result.size() < mMaxLines)) {

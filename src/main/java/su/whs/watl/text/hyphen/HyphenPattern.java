@@ -63,7 +63,6 @@ public class HyphenPattern {
     public static class TrieNode {
         public SparseArray<TrieNode> codePoint = new SparseArray<TrieNode>();
         public ArrayList<Integer> _points;
-        // int[] _points; - ready
 
         public int serialize(DataOutputStream out) throws IOException {
             out.writeInt(_points == null ? 0 : _points.size());

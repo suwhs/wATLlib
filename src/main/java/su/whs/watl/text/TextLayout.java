@@ -50,7 +50,7 @@ import su.whs.lazydrawable.parent.LazyDrawable;
  * layouted (depends on 'measured' and 'width', 'lineBreaker', 'imagePlacementHandler' + if requested height > reflowed Height)
  */
 
-public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener {
+public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener, Highlights.HighlightAnimationListener {
     /* */
     private boolean debugDraw = false;
     private boolean debug = false;
@@ -94,9 +94,11 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
 
     /* highlight handling vars */
-    private int mHighlightStart = 0;
-    private int mHighlightEnd = 0;
-    private int mHighlightColor = Color.YELLOW;
+    //    private int mHighlightStart = 0;
+    //    private int mHighlightEnd = 0;
+    //    private int mHighlightColor = Color.YELLOW;
+
+    private Highlights mHighlights = new Highlights();
 
     public int getDynamicDrawablePosition(DynamicDrawableSpan span) {
         Drawable dr = span.getDrawable();
@@ -125,6 +127,21 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 //        lineSpan = null;
 //        prepare(mText,0,mText.length());
 //        notifyTextInfoInvalidated();
+    }
+
+    @Override
+    public void onHighlightAnimationStarts(int highlight) {
+
+    }
+
+    @Override
+    public void onHighlightAnimationUpdate(int highlight) {
+
+    }
+
+    @Override
+    public void onHighlightAnimationFinished(int highlight) {
+
     }
 
     /* */
@@ -682,10 +699,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      */
 
     public void setHighlight(int start, int end, int color) {
-        mHighlightStart = start;
-        mHighlightEnd = end;
-        mHighlightColor = color;
-        addHighlight(start, end, color);
+        addHighlight(start, end, color,false,0,null);
     }
 
     /**
@@ -694,9 +708,17 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      * @param color
      */
 
-    public void addHighlight(int start, int end, int color) {
-
+    public int addHighlight(int start, int end, int color, boolean animated, int duration, Runnable onAnimationEnds) {
+        int result = mHighlights.add(start,end,color, animated ? null : this, duration);
+        int l1 = getLineForPosition(start);
+        int l2 = getLineForPosition(end);
+        int y1 = getLineTop(l1);
+        int y2 = getLineBottom(l2);
+        listener.invalidate(0,y1,getWidth(),y2);
+        return result;
     }
+
+
 
     /**
      * @param start
@@ -704,7 +726,12 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      */
 
     public void removeHighlight(int start, int end) {
-
+        mHighlights.remove(start,end);
+        int l1 = getLineForPosition(start);
+        int l2 = getLineForPosition(end);
+        int y1 = getLineTop(l1);
+        int y2 = getLineBottom(l2);
+        listener.invalidate(0,y1,getWidth(),y2);
     }
 
     /**
@@ -728,8 +755,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      */
 
     public void resetHighlight() {
-        mHighlightStart = 0;
-        mHighlightEnd = 0;
+        mHighlights.clear();
     }
 
     /**

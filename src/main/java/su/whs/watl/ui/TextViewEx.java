@@ -84,7 +84,12 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     public TextViewEx(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        getOptions().fromAttributes(context, attrs, defStyle, 0);
+        makeOptions().fromAttributes(context, attrs, defStyle, 0);
+    }
+
+    public TextViewEx(Context context, AttributeSet attrs, int defStyle, int defRes) {
+        super(context, attrs, defStyle, defRes);
+        makeOptions().fromAttributes(context, attrs, defStyle, defRes);
     }
 
     @Override
@@ -478,8 +483,10 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
      * reset state (currently - only selections)
      */
     protected void resetState() {
-        setSelection(0, 0);
-        setSelected(false);
+        if (getTextLayout()!=null) {
+            setSelection(0, 0);
+            setSelected(false);
+        }
         gMeasuredWithWMS = -1;
         gMeasuredWithHMS = -1;
         super.invalidateContent();

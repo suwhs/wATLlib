@@ -49,12 +49,12 @@ public interface ContentView {
         private static final String DRAWABLE_MINIMUM_SCALE_FACTOR = "DRMSF";
         private static final String DRAWABLE_WRAP_RATIO_TRESHOLD = "DRWRT";
         private static final String DRAWABLE_WRAP_WIDTH_TRESHOLD = "DRWWT";
-
+        private static final String ASYNC_REFLOW = "IASRFL";
         private boolean mFilterEmptyLines = false;
         private boolean mJustification = true;
         private int mJustificationTreshold = 3;
         private float mJustificationFraction = 0.15f; // TODO: document, create setter and attribute, handle with copy()
-        private int mSelectionColor = Color.BLUE;
+        private int mSelectionColor = 0x90C3D4ff;
         private int mUrlHighlightColor = Color.YELLOW;
         private boolean mUrlHighlightBeforeOpen = true;
         private int mDefaultDirection = 0;
@@ -134,6 +134,7 @@ public interface ContentView {
         public void set(Bundle in) {
             mFilterEmptyLines = in.getBoolean(FILTER_EMPTY_LINES_ENABLED,true);
             mJustification = in.getBoolean(JUSTIFICATION_ENABLED,true);
+            mIsAsyncReflow = in.getBoolean(ASYNC_REFLOW,false);
             mDefaultDirection = in.getInt(DEFAULT_DIRECTION,0);
             rectFromBundle(DRAWABLE_PADDINGS, in, mDrawablePaddings);
             mReflowTimeQuant = in.getInt(REFLOW_TIME_QUANT_MS,300);
@@ -171,6 +172,7 @@ public interface ContentView {
             state.putFloat(DRAWABLE_MINIMUM_SCALE_FACTOR, mDrawableMinimumScaleFactor);
             state.putFloat(DRAWABLE_WRAP_WIDTH_TRESHOLD,mDrawableWrapWidthTreshold);
             state.putFloat(DRAWABLE_WRAP_RATIO_TRESHOLD, mDrawableWrapRatioTreshold);
+            state.putBoolean(ASYNC_REFLOW,mIsAsyncReflow);
             return state;
         }
 
@@ -178,7 +180,7 @@ public interface ContentView {
             TypedArray ta;
             /* TextViewWS attrs */
             ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewWS,defStyleRes,defStyleAttr);
-            if (ta==null||ta.getIndexCount()<1) return;
+            if (ta!=null&&ta.getIndexCount()>0)
             for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
                 if (attr == R.styleable.TextViewWS_selectionColor){
                     mSelectionColor = ta.getColor(attr,Color.BLUE);
@@ -189,7 +191,7 @@ public interface ContentView {
                 } else if (attr == R.styleable.TextViewWS_urlHighlightBeforeOpen) {
                     mUrlHighlightBeforeOpen = ta.getBoolean(attr,true);
                 } else if (attr == R.styleable.TextViewWS_urlHighlightColor) {
-                    mUrlHighlightColor = ta.getColor(attr,Color.YELLOW);
+                    mUrlHighlightColor = ta.getColor(attr, Color.YELLOW);
                 } else {
                     Log.e(TAG, "unknown TextViewWS attribute index: " + i);
                 }
@@ -197,6 +199,7 @@ public interface ContentView {
             ta.recycle();
             /* TextViewEx attrs */
             ta = context.obtainStyledAttributes(attrs,R.styleable.TextViewEx,defStyleRes,defStyleAttr);
+            if (ta!=null&&ta.getIndexCount()>0)
             for (int i = 0, attr = ta.getIndex(i); i < ta.getIndexCount(); i++, attr = ta.getIndex(i)) {
                 if (attr == R.styleable.TextViewEx_justificationEnabled) {
                     mJustification = ta.getBoolean(attr,true);
