@@ -22,7 +22,8 @@ Demo Application available on Google Play
 <img src="https://developer.android.com/images/brand/en_generic_rgb_wo_45.png" alt="Get it on Google Play" />
 </a>
 
-[![Demo Video on Youtube](http://img.youtube.com/vi/ui3HLkEK9T0/0.jpg)](https://www.youtube.com/watch?v=ui3HLkEK9T0)
+[![Demo Video on Youtube](http://img.youtube.com/vi/ZtXvyS6GHGo/0.jpg)](https://youtu.be/ZtXvyS6GHGo)
+
 
 Quick Start
 ======
@@ -32,10 +33,10 @@ wATLlib published on jcenter repository, so just
 
 add to dependencies :
 ```gradle
-compile 'su.whs:wATLlib:1.2.1'
+compile 'su.whs:wATLlib:1.2.3'
 ```
 
-more detailed <a href="http://whs.su/products/watl-widgets-library-for-android/watl-library-quickstart-guide/">quick start guide</a>
+more info <a href="http://whs.su/">whs.su</a> 
 
 
 <a href="http://whs.su">commercial license for non-gpl project on whs.su</a>
