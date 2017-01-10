@@ -12,7 +12,7 @@ Description
   - wrap text around images, 
   - auto-hyphenation,
   - adapter for show paginated article with stock ViewPager
-  - supported Android version - 2.3 - 5.1+ (both runtimes - ART and DALVIK)
+  - supported Android version - 2.3 - 7.1+ (both runtimes - ART and DALVIK)
   - supports animation with DrawableSpan
   - and more...
 
@@ -33,7 +33,7 @@ wATLlib published on jcenter repository, so just
 
 add to dependencies :
 ```gradle
-compile 'su.whs:wATLlib:1.2.3'
+compile 'su.whs:wATLlib:1.2.3.1'
 ```
 
 more info <a href="http://whs.su/">whs.su</a> 
