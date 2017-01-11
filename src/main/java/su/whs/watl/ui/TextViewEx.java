@@ -15,6 +15,7 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.URLSpan;
@@ -138,7 +139,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     @Override
     public void setText(CharSequence _text, BufferType type) {
-        if (mRestoringState) return;
+        if (mRestoringState|| TextUtils.isEmpty(_text) || " ".equals(_text)) return;
         if (isInEditMode()||mIgnoreSetText||_text==null) {
             super.setText(_text, type);
             return;
