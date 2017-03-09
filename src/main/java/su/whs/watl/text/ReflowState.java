@@ -7,7 +7,7 @@ import android.util.Log;
  */
 
 /* @hide */
-class ReflowState {
+public class ReflowState {
     private static final String TAG = "ReflowState";
     private boolean debug = false;
     // public LineSpanBreak afterBreak;
@@ -16,7 +16,7 @@ class ReflowState {
     LineSpanBreak prevBreak = null;
     LineSpan startSpan = null; // ??? WHY // FIXME: remove
     int gravity = 0; // active gravity
-    float lineWidth = 0f;
+    public float lineWidth = 0f;
     int shiftY;
     int lastWhitespace = 0;
     float processedWidth = 0f;

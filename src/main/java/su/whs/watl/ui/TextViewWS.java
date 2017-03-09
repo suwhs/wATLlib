@@ -717,6 +717,7 @@ public class TextViewWS extends TextView {
     @Override
     public boolean onPreDraw() {
         boolean r = super.onPreDraw();
+        if (getText()==null) super.setText(" ",BufferType.NORMAL);
         on_pre_draw_called = true;
         return r;
     }
@@ -726,10 +727,35 @@ public class TextViewWS extends TextView {
             if (!onPreDraw())
                 return;
         }
-        super.onDraw(canvas);
-        if (isInEditMode()) return;
+        drawBackground(canvas);
+        drawCompoundDrawables(canvas);
+//        super.onDraw(canvas);
         drawText(canvas);
         drawOverlay(canvas);
+    }
+
+    protected void drawBackground(Canvas canvas) {
+        Drawable bg = getBackground();
+        if (bg!=null)
+            bg.draw(canvas);
+    }
+
+    protected void drawCompoundDrawables(Canvas canvas) {
+        Drawable[] drawables = getCompoundDrawables();
+        if (drawables!=null) {
+            if (drawables[0]!=null) {
+                // draw left drawable
+            }
+            if (drawables[1]!=null) {
+                // draw top drawable
+            }
+            if (drawables[2]!=null) {
+                // draw right drawable
+            }
+            if (drawables[3]!=null) {
+                // draw bottom drawable
+            }
+        }
     }
 
     protected void drawText(Canvas canvas) {
@@ -741,23 +767,21 @@ public class TextViewWS extends TextView {
             drawAllSelectionCursors(canvas);
     }
 
+    protected void setTextIsSelecteableInternal(boolean selectable) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            super.setTextIsSelectable(selectable);
+        }
+    }
+
     @Override
     public void setTextIsSelectable(boolean selectable) {
-        if (Build.VERSION.SDK_INT > 10)
-            super.setTextIsSelectable(selectable);
-        else {
-            mTextIsSelectable = selectable;
-        }
+        setTextIsSelecteableInternal(selectable);
+        mTextIsSelectable = selectable;
         if (!selectable) {
             if (mSelectModeActive) {
                 onSelectionModeEnds();
             }
         }
-    }
-
-    @Override
-    public void setText(CharSequence text, BufferType type) {
-        super.setText(text,type);
     }
 
     @Override

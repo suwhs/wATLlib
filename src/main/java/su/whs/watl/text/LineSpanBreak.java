@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Created by igor n. boulliev on 13.03.15.
  */
-class LineSpanBreak {
+public class LineSpanBreak {
     public int position = -1; // position < lineSpan.end && position >= lineSpan.start !
     public LineSpanBreak next = null;
     public float width;

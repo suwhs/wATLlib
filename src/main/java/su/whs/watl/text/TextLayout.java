@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import su.whs.lazydrawable.parent.LazyDrawable;
+import su.whs.syllabification.parent.LineBreaker;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -52,9 +53,9 @@ import su.whs.lazydrawable.parent.LazyDrawable;
 
 public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener, Highlights.HighlightAnimationListener {
     /* */
-    private boolean debugDraw = false;
-    private boolean debug = false;
-    boolean debugDrawRtl = false;
+    private boolean debugDraw = true;
+    private boolean debug = true;
+    boolean debugDrawRtl = true;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -281,23 +282,6 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      * default LineBreaker implementation
      */
 
-    public static class DefaultLineBreaker extends LineBreaker {
-        private static final String TAG = "DefaultLineBreaker";
-
-        @Override
-        public int nearestLineBreak(char[] text, int start, int _end, int limit) {
-            int end = _end;
-
-            for (; end >= start; end--) {
-                if (text[end] == ' ' || text[end] == ',' || text[end] == '.' || text[end] == '!' || text[end] == '-' || text[end] == '?')
-                    break;
-            }
-            if ((end > start - 1) && end < limit && Character.isLetter(text[end]) && Character.isLetter(text[end + 1]))
-                end = end | HYPHEN;
-            return end; // force break, if not fit
-        }
-    }
-
     public TextLayout(Spanned text, int start, int end, TextPaint paint, TextLayoutListener invalidateListener) {
         this(text, start, end, paint, new ContentView.Options(), invalidateListener);
     }
@@ -323,7 +307,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
 
         if (mOptions.getLineBreaker() == null) {
-            mOptions.setLineBreaker(new DefaultLineBreaker());
+            mOptions.setLineBreaker(new LineBreaker());
         }
 
         this.paint = paint;
@@ -1326,6 +1310,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             if (debugDraw) {
                 canvas.drawRect(clipRect, backgroundPaint);
                 backgroundPaint.setColor(Color.GREEN);
+                backgroundPaint.setStrokeWidth(2f);
                 canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
             }
             backgroundPaint.setColor(Color.RED);
@@ -1559,6 +1544,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                             // TODO: profile this
                             if (!visibleDrawables.contains(dr)) {
                                 visibleDrawables.add(dr);
+                                dr.setCallback(mDrawableCallback);
                                 visibleDrawableOffsets.put(dr,
                                         isLineRtl ?
                                                 new Point((int) (width - x - drawableWidth + drawablePaddings.left), sY + drawablePaddings.top)
@@ -1570,7 +1556,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                         ((LazyDrawable) dr).onVisibilityChanged(true);
                                     }
                                 } // else
-                                  //  dr.setCallback(mDrawableCallback);
+
                                 // restore animations, if need
                                 if (dr instanceof Animatable && visibleDrawableAnimations.contains(dr)) {
                                     visibleDrawableAnimations.remove(dr);
@@ -1800,6 +1786,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                     ((Animatable) unprocessed).stop();
                 }
             }
+            unprocessed.setCallback(null);
             visibleDrawables.remove(unprocessed);
             visibleDrawableOffsets.remove(unprocessed);
             visibleDrawableBounds.remove(unprocessed);

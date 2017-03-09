@@ -138,10 +138,18 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     @Override
+    protected void setTextIsSelecteableInternal(boolean selectable) {
+
+    }
+
+    @Override
     public void setText(CharSequence _text, BufferType type) {
         if (mRestoringState|| TextUtils.isEmpty(_text) || " ".equals(_text)) return;
-        if (isInEditMode()||mIgnoreSetText||_text==null) {
+        if (isInEditMode()||mIgnoreSetText) {
             super.setText(_text, type);
+            return;
+        }
+        if (_text==null) {
             return;
         }
         CharSequence text = _text instanceof Spanned ? _text : new SpannableString(_text);

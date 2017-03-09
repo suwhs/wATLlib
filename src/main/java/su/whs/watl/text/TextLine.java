@@ -19,7 +19,7 @@ public class TextLine {
     WeakReference<LineSpan> span;
     int start;
     int end;
-    int height;
+    public int height;
     WeakReference<LineSpanBreak> afterBreak = null;
     int margin = 0;
     int direction = Layout.DIR_LEFT_TO_RIGHT;
