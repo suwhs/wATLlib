@@ -56,14 +56,14 @@ public class TextLinesBuilderTest {
                 return false;
             }
 
-            @Override
-            public void onSpanProcessingFinished(Span span) {
-                if (result.lines.size()!=100)
-                    throw new RuntimeException("test failed");
-                for (Line line :result.lines) {
-
-                }
-            }
+//            @Override
+//            public void onSpanProcessingFinished(Span span) {
+//                if (result.lines.size()!=100)
+//                    throw new RuntimeException("test failed");
+//                for (Line line :result.lines) {
+//
+//                }
+//            }
         },makeTestOptions(mockLineBreaker()));
         builder.add(text,span,null,null);
     }

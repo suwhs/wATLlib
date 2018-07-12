@@ -70,10 +70,10 @@ public class TextPagesBuilder implements TextLinesBuilderCallbacks {
         return false;
     }
 
-    @Override
-    public void onSpanProcessingFinished(Span span) {
-
-    }
+//    @Override
+//    public void onSpanProcessingFinished(Span span) {
+//
+//    }
 
 
     private void finishPage() {

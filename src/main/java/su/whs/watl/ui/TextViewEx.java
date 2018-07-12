@@ -191,6 +191,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (textLayout == null) throw new IllegalArgumentException("textLayout must be not null");
         if (mTextLayout!=null) mTextLayout.release();
         mTextLayout = textLayout;
+        textLayout.setTextColor(getCurrentTextColor());
         mOptions = mTextLayout.getOptions();
         mTextLayout.setInvalidateListener(this);
         postInvalidate();
@@ -741,4 +742,13 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     }
     */
+
+    @Override
+    public void setTextColor(int color) {
+        super.setTextColor(color);
+        if (mTextLayout!=null) {
+            mTextLayout.setTextColor(color);
+            postInvalidate();
+        }
+    }
 }

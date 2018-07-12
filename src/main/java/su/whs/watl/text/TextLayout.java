@@ -53,9 +53,9 @@ import su.whs.syllabification.parent.LineBreaker;
 
 public class TextLayout implements ITextLayout, ContentView.OptionsChangeListener, Highlights.HighlightAnimationListener {
     /* */
-    private boolean debugDraw = true;
-    private boolean debug = true;
-    boolean debugDrawRtl = true;
+    private boolean debugDraw = false;
+    private boolean debug = false;
+    boolean debugDrawRtl = false;
     private boolean mFailedDrawAttempt = false;
     private static char[] mHyphenChar = new char[]{'-'};
     private Spanned mText;
@@ -143,6 +143,10 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     @Override
     public void onHighlightAnimationFinished(int highlight) {
 
+    }
+
+    public void setTextColor(int color) {
+        paint.setColor(color);
     }
 
     /* */
@@ -1354,6 +1358,9 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 //        if (highlightStart < highlightEnd)
 //            highlight = true;
 
+        boolean backgroundColorSpan = false;
+        int backgroundColor = Color.TRANSPARENT;
+
         CharacterStyle[] styles = null;
         linesLoop:
         for (; i < endLine && y < clipRect.bottom; i++) {
@@ -1607,19 +1614,25 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                     continue drawline;
                 }
 
-                boolean backgroundColorSpan = false;
-                int backgroundColor = Color.WHITE;
+
                 float ltrX = x; // origin point for draw ltr spans on rtl line
                 if (span.spans != null && span.spans != styles) {
                     workPaint.set(paint);
+                    boolean resetColorSpan = true;
                     for (CharacterStyle style : span.spans) {
                         style.updateDrawState(workPaint);
                         // TODO: move to 'prepare'
                         if (style instanceof BackgroundColorSpan) {
                             backgroundColor = ((BackgroundColorSpan) style).getBackgroundColor();
+                            backgroundColorSpan = true;
+                            resetColorSpan = false;
                         }
                     }
                     styles = span.spans;
+                    if (resetColorSpan) {
+                        backgroundColorSpan = false;
+                        backgroundColor = Color.TRANSPARENT;
+                    }
                 }
 
                 backgroundPaint.setColor(backgroundColor);
@@ -1633,7 +1646,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                 float rtlWidth = lineSpanBreak.width + (lineSpanBreak.strong || !justification ? 0f : line.justifyArgument);
 
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - x - rtlWidth, y, width - x, y + span.height, backgroundPaint);
+                                    canvas.drawRect(width - x - rtlWidth, y, width - x, y + span.height+line.descent, backgroundPaint);
                                 if (span.reversed == null)
                                     canvas.drawText(text, drawStart, drawStop - drawStart, width - x - rtlWidth, baseLine, workPaint);
                                 else
@@ -1674,7 +1687,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                         ltrRun += tailX;
                                 }
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height, backgroundPaint);
+                                    canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height + line.descent, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - ltrRun, baseLine, workPaint);
                                 if (debugDraw) {
                                     backgroundPaint.setColor(getCycleColor());
@@ -1707,7 +1720,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                         drawStop = drawStop > line.end ? line.end : drawStop;
                         if (drawStart < drawStop && drawStart > line.start - 1) {
                             if (backgroundColorSpan)
-                                canvas.drawRect(x, y, x + span.width, y + span.height, backgroundPaint);
+                                canvas.drawRect(x, y, x + span.width, y + span.height+line.descent, backgroundPaint);
                             canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                             x += lineSpanBreak.width; // TODO: \n empty line has width ?
                         } else {
