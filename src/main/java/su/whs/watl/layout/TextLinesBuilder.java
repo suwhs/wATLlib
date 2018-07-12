@@ -6,6 +6,7 @@ import android.text.TextPaint;
 import java.util.ArrayList;
 import java.util.List;
 
+import su.whs.syllabification.parent.LineBreaker;
 import su.whs.watl.text.ContentView;
 
 
@@ -20,9 +21,11 @@ public class TextLinesBuilder {
     private List<State> mStatesStack = new ArrayList<State>();
     private List<Break> mBreaks = new ArrayList<Break>();
     private Line mCurrentLine;
+    private ContentView.Options mOptions;
 
     public TextLinesBuilder(TextLinesBuilderCallbacks callbacks, ContentView.Options options) {
         mCallbacks = callbacks;
+        mOptions = options;
     }
 
     public void reset() {
@@ -41,6 +44,9 @@ public class TextLinesBuilder {
      * **/
 
     public void add(char[] text, Span span, Break lastBreak, TextPaint paint) {
+        add(text,span,lastBreak,span.mEnd,paint);
+    }
+    public void add(char[] text, Span span, Break lastBreak, int limit, TextPaint paint) {
         if (span.mMeasure == null)
             span.measure(text, paint);
         if (mReflowState!=null) {
@@ -86,7 +92,7 @@ public class TextLinesBuilder {
 
         float leftWidth = mCallbacks.getAvailableWidth() - mCollectedWidth;
         loop:
-        for(int i=span.mStart; i<span.mEnd; i++) {
+        for(int i=span.mStart; i<span.mEnd && i<limit; i++) {
             float width = span.mMeasure.mWidths[i - span.mStart];
 
             if (leftWidth-width<0) {
@@ -99,9 +105,9 @@ public class TextLinesBuilder {
 
             }
             restart:
-            while(i<span.mEnd) {
-                if (text[i] < 21) {
-                    if (text[i]=='\n') {
+            while(i<span.mEnd && i<limit) {
+                if (text[i] < 21) {  // special character
+                    if (text[i] == '\n') {
                         if (!mCallbacks.onLineReady(mCurrentLine)) {
                             finishLine();
                             finishLayout();
@@ -125,12 +131,64 @@ public class TextLinesBuilder {
                     continue loop;
                 } else {
                     // force break (lb)
-                    i++;
+                    i = handleForceBreak(text,span,lastBreak,i,width,paint);
                     continue restart;
                 }
             }
         }
+        if (limit < span.mEnd) {
+            // force break after rollback
+            // do nothing, called from handleForceBreak
+        } else if (limit > span.mEnd) {
+            // in rebuild line process after force break
+
+        } else {
+            // normal finish of span
+
+        }
         //
+    }
+
+    private int handleForceBreak(char[] text, Span span, Break lastBreak, int at, float width, TextPaint paint) {
+        float unsufficient = -(mReflowState.leftWidth - width);
+        if (mOptions.isCompressionEnabled()) {
+                        /*
+                        * i.e. 5 whitespaces on line with 8 width for each - 40 px of line eaten by whitespace
+                        * check, if unsufficient < 40 * .8
+                        * */
+            if ( // TODO: implement ContentView.Options.isCompressionEnabled() before testing
+                    mReflowState.whitespacesCount>0
+                            && ((mReflowState.whitespacesCount*mReflowState.currentWhitespaceWidth)*.8f/mReflowState.whitespacesCount) > unsufficient) {
+                // increment i and continue
+                at++;
+                return at;
+            }
+        }
+        LineBreaker lb = mOptions.getLineBreaker();
+        int breakVal = lb.nearestLineBreak(text,mReflowState.lastWhitespace,text.length,text.length);
+        int breakPosition = LineBreaker.getPosition(breakVal);
+        boolean hyphen = LineBreaker.isHyphen(breakVal);
+        if (breakPosition<span.mStart) {
+            List<Span> rolledOut = rollback(breakPosition);
+            for(Span again : rolledOut)
+                add(text,again,lastBreak,breakPosition,paint); // add rolled back spans
+            return mReflowState.position;
+        }
+        if (hyphen) {
+
+        }
+        return mReflowState.position;
+    }
+
+    private List<Span> rollback(int toPosition) {
+        List<Span> results = new ArrayList<Span>();
+        Span prev = mReflowState.span;
+        while (toPosition<prev.mStart) {
+            mReflowState = mStatesStack.get(0);
+            results.add(0,prev);
+            prev = mReflowState.span;
+        }
+        return results;
     }
 
     private void addRTL(char[] text, Span span, Break lastBreak, TextPaint paint) {

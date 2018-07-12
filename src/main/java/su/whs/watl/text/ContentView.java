@@ -645,6 +645,11 @@ public interface ContentView {
         public float getJustificationFraction() {
             return mJustificationFraction;
         }
+
+        public boolean isCompressionEnabled() {
+            // TODO:
+            return mJustification && false;
+        }
     }
 
 

@@ -12,6 +12,9 @@ public class State {
     int position;
     float leftWidth;
     int direction = Layout.DIR_LEFT_TO_RIGHT;
+    public int lastWhitespace;
+    public int whitespacesCount;
+    public float currentWhitespaceWidth = 8f;
 
     public State(Span span, float leftWidth) {
         this.span = span;
@@ -24,4 +27,5 @@ public class State {
         }
         this.position = position;
     }
+
 }

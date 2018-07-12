@@ -10,5 +10,4 @@ public interface TextLinesBuilderCallbacks {
     void onLineHeightChanged(int height);
     boolean onLineReady(Line textLine);
     boolean isWhitespacesCompressEnabled();
-    void onSpanProcessingFinished(Span span);
 }
