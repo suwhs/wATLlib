@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import su.whs.lazydrawable.parent.LazyDrawable;
+import su.whs.syllabification.parent.LineBreaker;
 
 /**
  * Created by igor n. boulliev on 07.12.14.
@@ -142,6 +143,10 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
     @Override
     public void onHighlightAnimationFinished(int highlight) {
 
+    }
+
+    public void setTextColor(int color) {
+        paint.setColor(color);
     }
 
     /* */
@@ -281,23 +286,6 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
      * default LineBreaker implementation
      */
 
-    public static class DefaultLineBreaker extends LineBreaker {
-        private static final String TAG = "DefaultLineBreaker";
-
-        @Override
-        public int nearestLineBreak(char[] text, int start, int _end, int limit) {
-            int end = _end;
-
-            for (; end >= start; end--) {
-                if (text[end] == ' ' || text[end] == ',' || text[end] == '.' || text[end] == '!' || text[end] == '-' || text[end] == '?')
-                    break;
-            }
-            if ((end > start - 1) && end < limit && Character.isLetter(text[end]) && Character.isLetter(text[end + 1]))
-                end = end | HYPHEN;
-            return end; // force break, if not fit
-        }
-    }
-
     public TextLayout(Spanned text, int start, int end, TextPaint paint, TextLayoutListener invalidateListener) {
         this(text, start, end, paint, new ContentView.Options(), invalidateListener);
     }
@@ -323,7 +311,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
 
 
         if (mOptions.getLineBreaker() == null) {
-            mOptions.setLineBreaker(new DefaultLineBreaker());
+            mOptions.setLineBreaker(new LineBreaker());
         }
 
         this.paint = paint;
@@ -1326,6 +1314,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             if (debugDraw) {
                 canvas.drawRect(clipRect, backgroundPaint);
                 backgroundPaint.setColor(Color.GREEN);
+                backgroundPaint.setStrokeWidth(2f);
                 canvas.drawRect(clipRect.left + textPaddings.left, clipRect.top + textPaddings.top, clipRect.right - textPaddings.right, clipRect.bottom - textPaddings.bottom, backgroundPaint);
             }
             backgroundPaint.setColor(Color.RED);
@@ -1368,6 +1357,9 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
             selection = true;
 //        if (highlightStart < highlightEnd)
 //            highlight = true;
+
+        boolean backgroundColorSpan = false;
+        int backgroundColor = Color.TRANSPARENT;
 
         CharacterStyle[] styles = null;
         linesLoop:
@@ -1559,6 +1551,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                             // TODO: profile this
                             if (!visibleDrawables.contains(dr)) {
                                 visibleDrawables.add(dr);
+                                dr.setCallback(mDrawableCallback);
                                 visibleDrawableOffsets.put(dr,
                                         isLineRtl ?
                                                 new Point((int) (width - x - drawableWidth + drawablePaddings.left), sY + drawablePaddings.top)
@@ -1570,7 +1563,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                         ((LazyDrawable) dr).onVisibilityChanged(true);
                                     }
                                 } // else
-                                  //  dr.setCallback(mDrawableCallback);
+
                                 // restore animations, if need
                                 if (dr instanceof Animatable && visibleDrawableAnimations.contains(dr)) {
                                     visibleDrawableAnimations.remove(dr);
@@ -1621,19 +1614,25 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                     continue drawline;
                 }
 
-                boolean backgroundColorSpan = false;
-                int backgroundColor = Color.WHITE;
+
                 float ltrX = x; // origin point for draw ltr spans on rtl line
                 if (span.spans != null && span.spans != styles) {
                     workPaint.set(paint);
+                    boolean resetColorSpan = true;
                     for (CharacterStyle style : span.spans) {
                         style.updateDrawState(workPaint);
                         // TODO: move to 'prepare'
                         if (style instanceof BackgroundColorSpan) {
                             backgroundColor = ((BackgroundColorSpan) style).getBackgroundColor();
+                            backgroundColorSpan = true;
+                            resetColorSpan = false;
                         }
                     }
                     styles = span.spans;
+                    if (resetColorSpan) {
+                        backgroundColorSpan = false;
+                        backgroundColor = Color.TRANSPARENT;
+                    }
                 }
 
                 backgroundPaint.setColor(backgroundColor);
@@ -1647,7 +1646,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                 float rtlWidth = lineSpanBreak.width + (lineSpanBreak.strong || !justification ? 0f : line.justifyArgument);
 
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - x - rtlWidth, y, width - x, y + span.height, backgroundPaint);
+                                    canvas.drawRect(width - x - rtlWidth, y, width - x, y + span.height+line.descent, backgroundPaint);
                                 if (span.reversed == null)
                                     canvas.drawText(text, drawStart, drawStop - drawStart, width - x - rtlWidth, baseLine, workPaint);
                                 else
@@ -1688,7 +1687,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                                         ltrRun += tailX;
                                 }
                                 if (backgroundColorSpan)
-                                    canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height, backgroundPaint);
+                                    canvas.drawRect(width - ltrX - ltrRun, y, width - ltrX - ltrRun, y + span.height + line.descent, backgroundPaint);
                                 canvas.drawText(text, drawStart, drawStop - drawStart, width - ltrX - ltrRun, baseLine, workPaint);
                                 if (debugDraw) {
                                     backgroundPaint.setColor(getCycleColor());
@@ -1721,7 +1720,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                         drawStop = drawStop > line.end ? line.end : drawStop;
                         if (drawStart < drawStop && drawStart > line.start - 1) {
                             if (backgroundColorSpan)
-                                canvas.drawRect(x, y, x + span.width, y + span.height, backgroundPaint);
+                                canvas.drawRect(x, y, x + span.width, y + span.height+line.descent, backgroundPaint);
                             canvas.drawText(text, drawStart, drawStop - drawStart, x, baseLine, workPaint);
                             x += lineSpanBreak.width; // TODO: \n empty line has width ?
                         } else {
@@ -1800,6 +1799,7 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                     ((Animatable) unprocessed).stop();
                 }
             }
+            unprocessed.setCallback(null);
             visibleDrawables.remove(unprocessed);
             visibleDrawableOffsets.remove(unprocessed);
             visibleDrawableBounds.remove(unprocessed);

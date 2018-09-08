@@ -9,6 +9,7 @@ import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
 
+import su.whs.syllabification.parent.LineBreaker;
 import su.whs.watl.R;
 
 /**
@@ -643,6 +644,11 @@ public interface ContentView {
 
         public float getJustificationFraction() {
             return mJustificationFraction;
+        }
+
+        public boolean isCompressionEnabled() {
+            // TODO:
+            return mJustification && false;
         }
     }
 

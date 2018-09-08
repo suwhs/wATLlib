@@ -14,15 +14,16 @@ import android.view.Gravity;
 import java.util.ArrayList;
 import java.util.List;
 
-import su.whs.watl.text.style.PreformattedSpan;
 import su.whs.lazydrawable.parent.LazyDrawable;
+import su.whs.syllabification.parent.LineBreaker;
+import su.whs.watl.text.style.PreformattedSpan;
 
 /**
  * Created by igor n. boulliev on 11.01.16.
  */
 class ReflowContext {
     private static final String TAG="ReflowContext";
-    private boolean debug = false;
+    private boolean debug = true;
 
     private List<LineSpan> deffered = new ArrayList<LineSpan>();
     private ImagePlacementHandler imagePlacementHandler;
@@ -726,7 +727,7 @@ class ReflowContext {
                     }
 
                     if (!forceBreak) // if forceBreak - lineBreakVal ALREADY contains position
-                        lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
+                        lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character, span.end);
 
                     // int lineBreakVal = forceBreak ? breakPosition : lineBreaker.nearestLineBreak(text, state.lastWhitespace, state.character - 1, span.end);
                     int breakPosition = LineBreaker.getPosition(lineBreakVal);
@@ -736,12 +737,8 @@ class ReflowContext {
 
                     }
                     boolean hyphen = LineBreaker.isHyphen(lineBreakVal);
-//                        if (breakPosition < state.lastWhitespace) {
-//                            // Log.e(TAG, "possible crash in future: error in lineBreaker:(" + lineBreaker + ") - nearestLineBreak(text,start,end,limit) must returns value, that greater or equal start");
-//                        }
                     if (breakPosition <= lineStartAt) { // in some cases breakPosition<lineStartAt
                         breakPosition = state.character - 1;
-                        // Log.e(TAG, "lineBreaker (" + lineBreaker + ") returns breakPosition before lineStarts");
                     }
                     forceBreak = false; // cancel force break
                     /* check if breakPosition < span.start (rollback to previous state) */
@@ -764,12 +761,18 @@ class ReflowContext {
                         // check if text[breakPosition] + hyphen_width fit line
                         if (state.lineWidth + span.hyphenWidth > wrapWidth) {
                             if (debug) Log.v(TAG, "hyphen character exceed line width");
-                            lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, breakPosition - 1, span.end);
+                            lineBreakVal = lineBreaker.nearestLineBreak(text, state.lastWhitespace, breakPosition, span.end);
                             forceBreak = true;
                             continue processing;
                         }
                         state.lineWidth += span.hyphenWidth;
                     }
+//                    else if (!isPunctuationAllowedAtEndOfLine(text[breakPosition])) {
+//                        lineBreakVal = breakPosition - 1;
+//                        forceBreak = true;
+//                        continue processing;
+////                        state.rollback(breakPosition);
+//                    }
 
                     direction = handleBreakLine(text, breakPosition, hyphen, direction);
 
@@ -836,4 +839,7 @@ class ReflowContext {
         return true;
     }
 
+    private static boolean isPunctuationAllowedAtEndOfLine(char ch) {
+        return !LineBreaker.isPunktuation(ch) || (ch=='.' || ch==',' || ch== '?' || ch == '!');
+    }
 }

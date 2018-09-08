@@ -32,7 +32,7 @@ import java.util.List;
  */
 
 /* package */
-class LineSpan {
+public class LineSpan {
     private static final String TAG = "LineSpan"; // at least 64 bytes per lineSpan
     private static final boolean debug = false;
     private static boolean mBidiEnabled = true;
@@ -101,30 +101,60 @@ class LineSpan {
     }
 
     private static int flagsToInt(LineSpan span) {
-        return (span.strong ? 0x01 : 0) | (span.paragraphStart ? 0x02 : 0) | (span.paragraphEnd ? 0x04 : 0) | (span.isDrawable ? 0x08 : 0);
+        return (span.strong ? 1 : 0)
+                | (span.paragraphStart ? 1 << 1 : 0)
+                | (span.paragraphEnd ? 1 << 2 : 0)
+                | (span.noDraw ? 1 << 3 : 0)
+                | (span.isDrawable ? 1 << 4 : 0);
     }
 
     private static void flagsFromInt(LineSpan span, int flags) {
         span.strong = (flags & 0x01) == 0x01;
-        span.paragraphStart = (flags & 0x02) == 0x02;
-        span.paragraphEnd = (flags & 0x04) == 0x04;
-        span.isDrawable = (flags & 0x08) == 0x08;
+        span.paragraphStart = (flags >> 1 & 0x01) == 0x01;
+        span.paragraphEnd = (flags >> 2 & 0x01) == 0x01;
+        span.noDraw = (flags >> 3 & 0x01) == 0x01;
+        span.isDrawable = (flags >> 4 & 0x01) == 0x01;
     }
 
-    public static void Serialize(DataOutputStream osw, LineSpan span) throws IOException {
+    public static void Serialize(DataOutputStream osw, LineSpan span, char[] content, boolean measured) throws IOException {
+        if (content!=null) {
+            osw.writeInt(content.length);
+            String str = new String(content);
+            osw.writeUTF(str);
+        } else {
+            osw.writeInt(0);
+        }
+        if (measured) {
+            // first pass to collect ParagraphStyle and CharacterStyle dictionary
+            osw.writeInt(0);
+        } else {
+            osw.writeInt(0);
+        }
         LineSpan current = span;
         int counter = span == null ? 0 : 1;
         for (current = span; current != null; current = current.next, counter++) ;
         osw.writeInt(counter);
         for (current = span; current != null; current = current.next) {
-            SerializeLineSpan(osw, current);
+            SerializeLineSpan(osw, current,measured);
         }
     }
 
-    public static void Deserialize(DataInputStream isw, LineSpan span) throws IOException {
+    public static char[] Deserialize(DataInputStream isw, LineSpan span, boolean measured) throws IOException {
         // it's restore all info except measurement
         // so, call 'prepare', then Deserialize(stream, preparedLineSpan)
         LineSpan current = span;
+        char[] content;
+        int contentSize = isw.readInt();
+        content = new char[contentSize];
+        if (contentSize>0) {
+            String str = isw.readUTF();
+            content = new char[contentSize];
+            TextUtils.getChars(str,0,contentSize,content,0);
+        }
+        int measuredDict = isw.readInt();
+        if (measuredDict>0) {
+            // read ParagraphStyle, CharacterStyle dictionary
+        }
         int counter = span == null ? 0 : 1;
         for (current = span; current != null; current = current.next, counter++) ;
         int storedCounter = isw.readInt();
@@ -132,16 +162,104 @@ class LineSpan {
             throw new IOException("stored counter and prepared span chain length does not match");
         }
         for (current = span; current != null; current = current.next) {
-            DeserializeLineSpan(isw, current);
+            DeserializeLineSpan(isw, current /* style dictionary */);
         }
+        return content;
     }
 
-    public static void SerializeLineSpan(DataOutputStream osw, LineSpan span) {
+    public static void SerializeLineSpan(DataOutputStream osw, LineSpan span, boolean measured) throws IOException {
+        // int gravity
+        osw.writeInt(span.gravity);
+        // int direction
+        osw.writeInt(span.direction);
+        // boolean strong = false;
+        // boolean paragraphStart = false; // this span are first span in paragraph
+        // boolean paragraphEnd = false; // this span are last span in paragraph
+        // boolean noDraw = false;
+        // isDrawable = false;     // is cache ?
+        osw.writeInt(flagsToInt(span));
+        // float width = -1;
+        osw.writeFloat(span.width);
+        // int height = -1;
+        osw.writeInt(span.height);
+        // int start; // first character index
+        osw.writeInt(span.start);
+        // int end; // end-1 == last character index
+        osw.writeInt(span.end);
+        // TODO: lazy widths[]
+        // float[] widths; // widths of chars
+        osw.writeInt(span.widths==null ? 0 : span.widths.length);
+        if (span.widths!=null) {
+            for (float width :span.widths) osw.writeFloat(width);
+        }
+        // CharacterStyle[] spans;
 
+        // ParagraphStyle[] paragraphStyles;
+        // CharSequence reversed = null;
+        // CACHED DATA
+        // LineSpanBreak breakFirst = null;
+        // int baselineShift = 0;
+        // int margin;
+        // int marginLineCount = -1;
+        // int marginEnd; // used if marginLineCount >-1
+        // float hyphenWidth = 0f;
+        // float leading;
+        // float drawableScaledWidth = 0f;
+        // float drawableScaledHeight = 0;
+        // float drawableScrollX = 0f;
+        // float drawableScrollY = 0f;
+        // float drawableClipWidth = 0f;
+        // float drawableClipHeight = 0f;
+        // int skip = 0;
+    /* options ? */
+        // int paragraphStartMargin;
+        // int paragraphTopMargin;
+
+
+        // int descent;
+        // LineSpan next = null; // next LineSpan in chain
     }
 
     public static void DeserializeLineSpan(DataInputStream isw, LineSpan span) {
+// int gravity
+        // int direction
+        // boolean strong = false;
+        // boolean paragraphStart = false; // this span are first span in paragraph
+        // boolean paragraphEnd = false; // this span are last span in paragraph
+        // boolean noDraw = false;
+        // isDrawable = false;     // is cache ?
+        // float width = -1;
+        // int height = -1;
+        // int start; // first character index
+        // int end; // end-1 == last character index
+        // TODO: lazy widths[]
+        // float[] widths; // widths of chars
 
+        // CharacterStyle[] spans;
+        // ParagraphStyle[] paragraphStyles;
+        // CharSequence reversed = null;
+        // CACHED DATA
+        // LineSpanBreak breakFirst = null;
+        // int baselineShift = 0;
+        // int margin;
+        // int marginLineCount = -1;
+        // int marginEnd; // used if marginLineCount >-1
+        // float hyphenWidth = 0f;
+        // float leading;
+        // float drawableScaledWidth = 0f;
+        // float drawableScaledHeight = 0;
+        // float drawableScrollX = 0f;
+        // float drawableScrollY = 0f;
+        // float drawableClipWidth = 0f;
+        // float drawableClipHeight = 0f;
+        // int skip = 0;
+    /* options ? */
+        // int paragraphStartMargin;
+        // int paragraphTopMargin;
+
+
+        // int descent;
+        // LineSpan next = null; // next LineSpan in chain
     }
 
 
@@ -324,7 +442,7 @@ class LineSpan {
      * @param lasy     - if true, measurement breaks after span are measured
      */
 
-    protected static void measure(LineSpan lineSpan, char[] text, TextPaint paint, boolean lasy) {
+    public static void measure(LineSpan lineSpan, char[] text, TextPaint paint, boolean lasy) {
         // Log.v(TAG, "measure with font size:" + paint.getTextSize());
         TextPaint workPaint = new TextPaint();
         Paint.FontMetricsInt fmi = new Paint.FontMetricsInt();

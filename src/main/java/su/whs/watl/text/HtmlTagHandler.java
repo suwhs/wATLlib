@@ -5,6 +5,7 @@ package su.whs.watl.text;
  */
 
 import android.graphics.drawable.Drawable;
+import android.os.Parcel;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Layout;
@@ -71,19 +72,72 @@ public class HtmlTagHandler implements Html.TagHandler, Html.ImageGetter {
         return null;
     }
 
-    private class LMS extends LeadingMarginSpan.Standard {
+    private static class LMS extends LeadingMarginSpan.Standard {
         public LMS(int every) {
             super(every);
         }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+        }
+
+        protected LMS(Parcel in) {
+            super(in);
+        }
+
+        public static final Creator<LMS> CREATOR = new Creator<LMS>() {
+            @Override
+            public LMS createFromParcel(Parcel source) {
+                return new LMS(source);
+            }
+
+            @Override
+            public LMS[] newArray(int size) {
+                return new LMS[size];
+            }
+        };
     }
 
-    private class BS extends BulletSpan {
+    private static class BS extends BulletSpan {
         private int offset;
         private int everyc;
         public BS(int every, int offset) {
             super(every+offset);
         }
 
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeInt(this.offset);
+            dest.writeInt(this.everyc);
+        }
+
+        protected BS(Parcel in) {
+            super(in);
+            this.offset = in.readInt();
+            this.everyc = in.readInt();
+        }
+
+        public static final Creator<BS> CREATOR = new Creator<BS>() {
+            @Override
+            public BS createFromParcel(Parcel source) {
+                return new BS(source);
+            }
+
+            @Override
+            public BS[] newArray(int size) {
+                return new BS[size];
+            }
+        };
     }
 
     public HtmlTagHandler(Html.ImageGetter imageGetter) {

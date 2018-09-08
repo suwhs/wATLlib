@@ -15,6 +15,7 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.URLSpan;
@@ -137,10 +138,18 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
     }
 
     @Override
+    protected void setTextIsSelecteableInternal(boolean selectable) {
+
+    }
+
+    @Override
     public void setText(CharSequence _text, BufferType type) {
-        if (mRestoringState) return;
-        if (isInEditMode()||mIgnoreSetText||_text==null) {
+        if (mRestoringState|| TextUtils.isEmpty(_text) || " ".equals(_text)) return;
+        if (isInEditMode()||mIgnoreSetText) {
             super.setText(_text, type);
+            return;
+        }
+        if (_text==null) {
             return;
         }
         CharSequence text = _text instanceof Spanned ? _text : new SpannableString(_text);
@@ -182,6 +191,7 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
         if (textLayout == null) throw new IllegalArgumentException("textLayout must be not null");
         if (mTextLayout!=null) mTextLayout.release();
         mTextLayout = textLayout;
+        textLayout.setTextColor(getCurrentTextColor());
         mOptions = mTextLayout.getOptions();
         mTextLayout.setInvalidateListener(this);
         postInvalidate();
@@ -732,4 +742,13 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
 
     }
     */
+
+    @Override
+    public void setTextColor(int color) {
+        super.setTextColor(color);
+        if (mTextLayout!=null) {
+            mTextLayout.setTextColor(color);
+            postInvalidate();
+        }
+    }
 }
