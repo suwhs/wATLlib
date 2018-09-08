@@ -5,6 +5,8 @@ License
 =====
  Community version under GPL v3 and Commercial License
 
+ [Need Apache 2.0 License! - support project on indiegogo](https://www.indiegogo.com/projects/make-mobile-applications-text-looks-more-accuracy-android-ios/x/17073547) - or just send some ETH to 0x1D50523b85A2A5283027b8ccB109a4bDc9c79EB1 - any help is appreciated
+ 
 Description
 ======
 *wATL* is a library for android applications with features:
