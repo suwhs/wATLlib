@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -1848,6 +1849,33 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
         mMaxLines = maxLines;
     }
 
+    @Override
+    public void setTypeface(Typeface font) {
+        getPaint().setTypeface(font);
+    }
+
+    @Override
+    public void setTypeface(Typeface tf, int style) {
+        if (style > 0) {
+            if (tf == null) {
+                tf = Typeface.defaultFromStyle(style);
+            } else {
+                tf = Typeface.create(tf, style);
+            }
+
+            setTypeface(tf);
+            // now compute what (if any) algorithmic styling is needed
+            int typefaceStyle = tf != null ? tf.getStyle() : 0;
+            int need = style & ~typefaceStyle;
+            getPaint().setFakeBoldText((need & Typeface.BOLD) != 0);
+            getPaint().setTextSkewX((need & Typeface.ITALIC) != 0 ? -0.25f : 0);
+        } else {
+            getPaint().setFakeBoldText(false);
+            getPaint().setTextSkewX(0);
+            setTypeface(tf);
+        }
+    }
+
     private synchronized boolean isLocalSetBounds() { return mLocalSetBounds; }
 
     private Drawable.Callback mDrawableCallback = new Drawable.Callback() {
@@ -1867,7 +1895,8 @@ public class TextLayout implements ITextLayout, ContentView.OptionsChangeListene
                             ) return;
             Point p = visibleDrawableOffsets.get(who);
             Rect bounds = who.getBounds();
-            listener.invalidate(p.x, p.y, p.x + bounds.width(), p.y + bounds.height());
+            if (listener!=null)
+                listener.invalidate(p.x, p.y, p.x + bounds.width(), p.y + bounds.height());
         }
 
         @Override

@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
@@ -750,5 +751,15 @@ public class TextViewEx extends TextViewWS implements TextLayoutListener, ITextV
             mTextLayout.setTextColor(color);
             postInvalidate();
         }
+    }
+
+    @Override
+    public void setTypeface(Typeface tf) {
+        super.setTypeface(tf);
+    }
+
+    @Override
+    public void setTypeface(Typeface tf, int style) {
+        super.setTypeface(tf, style);
     }
 }

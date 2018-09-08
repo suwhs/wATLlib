@@ -1,5 +1,6 @@
 package su.whs.watl.text;
 
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.text.style.DynamicDrawableSpan;
 
@@ -18,4 +19,6 @@ public interface ITextLayout {
     void registerDrawable(DynamicDrawableSpan dds, int placement, int position);
     void setDrawableBounds(Drawable dr, int left, int top, int right, int bottom);
     void setMaxLines(int maxLines);
+    void setTypeface(Typeface font);
+    void setTypeface(Typeface font, int style);
 }

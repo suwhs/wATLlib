@@ -3,6 +3,7 @@ package su.whs.watl.text;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -73,6 +74,10 @@ public abstract class BaseTextPagerAdapter extends PagerAdapter implements IText
     {
         mTextPaint.setAntiAlias(true);
         mTextPaint.linkColor = Color.BLUE; // required to correctly draw colors
+    }
+
+    public void setTypeface(Typeface font) {
+        mTextPaint.setTypeface(font);
     }
 
     /**
