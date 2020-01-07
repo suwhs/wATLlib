@@ -3,9 +3,9 @@ wATL for Android
 
 License
 =====
- Community version under GPL v3 and Commercial License
+ Community version under APACHE 2.0 LICENSE
 
- [Need Apache 2.0 License! - support project on indiegogo](https://www.indiegogo.com/projects/make-mobile-applications-text-looks-more-accuracy-android-ios/x/17073547) - or just send some ETH to 0x1D50523b85A2A5283027b8ccB109a4bDc9c79EB1 - any help is appreciated
+ [ support project on indiegogo](https://www.indiegogo.com/projects/make-mobile-applications-text-looks-more-accuracy-android-ios/x/17073547) - or just send some ETH to 0x1D50523b85A2A5283027b8ccB109a4bDc9c79EB1 - any help is appreciated
  
 Description
 ======
@@ -14,7 +14,7 @@ Description
   - wrap text around images, 
   - auto-hyphenation,
   - adapter for show paginated article with stock ViewPager
-  - supported Android version - 2.3 - 7.1+ (both runtimes - ART and DALVIK)
+  - supported Android version - 2.3 - 9.1+ (both runtimes - ART and DALVIK)
   - supports animation with DrawableSpan
   - and more...
 
