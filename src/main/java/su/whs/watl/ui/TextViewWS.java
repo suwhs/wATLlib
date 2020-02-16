@@ -596,7 +596,7 @@ public class TextViewWS extends TextView {
         invalidate();
     }
 
-    public void setCustomSelectionActionModeCallback(final android.support.v7.view.ActionMode.Callback actionModeCompat) {
+    public void setCustomSelectionActionModeCallback(final androidx.appcompat.view.ActionMode.Callback actionModeCompat) {
         Log.e(TAG, "unsupported action mode version");
     }
 

@@ -1,6 +1,8 @@
 wATL for Android 
 ==========
 
+UPDATE: migration for androidx since 1.4.7a
+
 License
 =====
  Community version under APACHE 2.0 LICENSE
@@ -18,11 +20,6 @@ Description
   - supports animation with DrawableSpan
   - and more...
 
-Demo Application available on Google Play
-
-<a href="https://play.google.com/store/apps/details?id=su.whs.watl.samples">
-<img src="https://developer.android.com/images/brand/en_generic_rgb_wo_45.png" alt="Get it on Google Play" />
-</a>
 
 [![Demo Video on Youtube](http://img.youtube.com/vi/ZtXvyS6GHGo/0.jpg)](https://youtu.be/ZtXvyS6GHGo)
 
@@ -35,13 +32,8 @@ wATLlib published on jcenter repository, so just
 
 add to dependencies :
 ```gradle
-compile 'su.whs:wATLlib:1.4.6a'
+compile 'su.whs:wATLlib:1.4.7a'
 ```
-
-more info <a href="http://whs.su/">whs.su</a> 
-
-
-<a href="http://whs.su">commercial license for non-gpl project on whs.su</a>
 
 
 Published Classes

@@ -4,15 +4,17 @@ apply plugin: 'com.android.library'
 //    all*.exclude group: 'com.android.support'
 //}
 android {
-    compileSdkVersion 23
-    buildToolsVersion '25.0.0'
-
+    compileSdkVersion 28
+    flavorDimensions 'default'
     defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 23
+        minSdkVersion 14
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters 'armeabi-v7a','arm64-v8a','x86','x86_64'
+        }
     }
     buildTypes {
         release {
@@ -21,31 +23,27 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_6
-        targetCompatibility JavaVersion.VERSION_1_6
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    def appcompat_version = "1.1.0"
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     // compile project(':wlazydrawable-parent')
-    compile 'su.whs:wlazydrawable-parent:1.0.1'
-    compile('com.android.support:appcompat-v7:23.4.0') {
-        transitive = false
-    }
-    compile('com.android.support:support-v4:23.4.0') {
-        transitive = false
-    }
-    compile('com.android.support:support-annotations:23.4.0') {
-        transitive = false
-    }
-
+    api 'su.whs:wlazydrawable-parent:1.0.2'
 //     compile project(path: ':syllabification-parent')
-     compile 'su.whs:syllabification-parent:1.4'
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+     compile 'su.whs:syllabification-parent:1.5'
+    androidTestCompile('androidx.test.espresso:espresso-core:3.1.0', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     testCompile 'junit:junit:4.12'
+    implementation "androidx.appcompat:appcompat:$appcompat_version"
+    implementation "androidx.appcompat:appcompat-resources:$appcompat_version"
+    implementation "androidx.viewpager:viewpager:1.0.0"
+    implementation "androidx.recyclerview:recyclerview:1.1.0"
+    implementation "androidx.recyclerview:recyclerview-selection:1.1.0-rc01"
 }
 
 // uncomment before deploy

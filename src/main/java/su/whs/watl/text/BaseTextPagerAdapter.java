@@ -7,8 +7,6 @@ import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.support.v4.view.PagerAdapter;
-import android.support.v7.view.ActionMode;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -29,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import androidx.appcompat.view.ActionMode;
+import androidx.viewpager.widget.PagerAdapter;
 import su.whs.watl.ui.ITextView;
 import su.whs.watl.ui.TextViewEx;
 
