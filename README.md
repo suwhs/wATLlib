@@ -6,8 +6,6 @@ UPDATE: migration for androidx since 1.4.7a
 License
 =====
  Community version under APACHE 2.0 LICENSE
-
- [ support project on indiegogo](https://www.indiegogo.com/projects/make-mobile-applications-text-looks-more-accuracy-android-ios/x/17073547) - or just send some ETH to 0x1D50523b85A2A5283027b8ccB109a4bDc9c79EB1 - any help is appreciated
  
 Description
 ======
